@@ -1,139 +1,129 @@
 """
-Agentic RAG Flow: 3 Specialized SLMs for Complex PDF Extraction
-================================================================
-Architecture:
-  PDF → Parser → Router
-        ├── Agent-1 (Text SLM)    : prose, headers, captions, footnotes
-        ├── Agent-2 (Table SLM)   : tables, lists, structured data
-        └── Agent-3 (Vision SLM)  : figures, graphs, flowcharts, diagrams
-  → Unified Chunk Store (ChromaDB) with rich metadata
-  → Orchestrator Agent (query routing + synthesis)
+agentic_rag_flow_v2.py
+======================
+Changes from v1:
+  1. OrchestratorAgent → ReasoningOrchestratorAgent
+       - Uses a ~10B reasoning-capable SLM
+       - Strips <think>...</think> internal chain-of-thought before returning answer
+       - Separates reasoning_trace from final_answer in the return value
+  2. Langfuse observability injected at every stage:
+       - Ingestion: parse, per-agent calls, upsert
+       - Query: retrieval spans, orchestrator generation with token usage
+  3. Cleaner injection pattern: _trace handle is set on agents by the pipeline
+     before each call — no global state, Copilot-friendly explicit flow.
 
-Model recommendations (swap freely):
-  SLM-1 Text   : microsoft/Phi-3.5-mini-instruct    (3.8B)
-  SLM-2 Table  : Qwen/Qwen2.5-3B-Instruct           (3B)
-  SLM-3 Vision : HuggingFaceTB/SmolVLM-Instruct     (2B, multimodal)
-  OR all three : microsoft/Phi-3.5-vision-instruct   (4.2B, unified)
-
-Install:
-  pip install unstructured[all-docs] pdfplumber pymupdf
-  pip install transformers torch chromadb langchain sentence-transformers
-  pip install pillow pytesseract camelot-py[cv]
+Model recommendations for ReasoningOrchestratorAgent (~10B):
+  - Qwen/Qwen3-8B                              (thinking mode via enable_thinking=True)
+  - deepseek-ai/DeepSeek-R1-Distill-Llama-8B   (8B GGUF distil, good reasoning)
+  - deepseek-ai/DeepSeek-R1-Distill-Qwen-14B   (14B if VRAM allows)
+  All produce <think> blocks; _strip_reasoning() handles all three formats.
 """
 
 from __future__ import annotations
 
-import base64
 import json
 import logging
 import re
 import uuid
 from dataclasses import dataclass, field
-from enum import Enum
-from io import BytesIO
 from pathlib import Path
 from typing import Any
 
 import chromadb
 import pdfplumber
-import pymupdf  # fitz
+import pymupdf
 from PIL import Image
 from sentence_transformers import SentenceTransformer
 from transformers import AutoModelForCausalLM, AutoProcessor, AutoTokenizer, pipeline
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+from langfuse_tracer import LangfuseTracer, _TraceHandle
+
 log = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
 
-# ─────────────────────────────────────────────
-# 1. DATA STRUCTURES
-# ─────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════
+# 1. DATA STRUCTURES  (unchanged from v1)
+# ═══════════════════════════════════════════════════════════
+
+from enum import Enum
+
 
 class ChunkType(str, Enum):
     TEXT   = "text"
     TABLE  = "table"
-    FIGURE = "figure"   # image / graph / flowchart / chart
+    FIGURE = "figure"
 
 
 @dataclass
 class RawChunk:
-    """Output from PDF parser before any SLM processing."""
     chunk_type : ChunkType
     page_num   : int
-    raw_content: Any          # str for text/table, PIL.Image for figure
-    bbox       : tuple | None = None   # (x0, y0, x1, y1) on page
+    raw_content: Any
+    bbox       : tuple | None = None
     source_file: str = ""
 
 
 @dataclass
 class ProcessedChunk:
-    """Output after SLM agent processing — what goes into the vector store."""
-    chunk_id      : str = field(default_factory=lambda: str(uuid.uuid4()))
-    chunk_type    : ChunkType = ChunkType.TEXT
-    page_num      : int = 0
-    source_file   : str = ""
-
-    # SLM-produced fields
-    structured_text  : str = ""   # cleaned, normalised prose or markdown table
-    intuition_summary: str = ""   # agent's 1-sentence semantic summary
-    key_concepts     : list[str] = field(default_factory=list)
-    confidence       : float = 1.0  # agent self-assessed 0–1
-    agent_notes      : str = ""   # warnings, ambiguity flags
-
-    # For retrieval
-    embedding        : list[float] = field(default_factory=list)
+    chunk_id         : str        = field(default_factory=lambda: str(uuid.uuid4()))
+    chunk_type       : ChunkType  = ChunkType.TEXT
+    page_num         : int        = 0
+    source_file      : str        = ""
+    structured_text  : str        = ""
+    intuition_summary: str        = ""
+    key_concepts     : list[str]  = field(default_factory=list)
+    confidence       : float      = 1.0
+    agent_notes      : str        = ""
+    embedding        : list[float]= field(default_factory=list)
 
 
-# ─────────────────────────────────────────────
-# 2. PDF PARSER  (modality-aware)
-# ─────────────────────────────────────────────
+@dataclass
+class RAGAnswer:
+    """Final output of ReasoningOrchestratorAgent."""
+    question       : str
+    answer         : str           # cleaned answer (think-block stripped)
+    reasoning_trace: str           # raw <think> content for debugging / Langfuse
+    source_chunks  : list[dict]    = field(default_factory=list)
+    trace_id       : str           = ""   # Langfuse trace ID for drill-down
+
+
+# ═══════════════════════════════════════════════════════════
+# 2. PDF PARSER
+# ═══════════════════════════════════════════════════════════
 
 class PDFParser:
-    """
-    Splits a PDF into typed RawChunks using pymupdf + pdfplumber.
-    Strategy:
-      - pymupdf  : fast page rendering, image extraction
-      - pdfplumber: precise table detection
-    """
-
     MIN_TABLE_ROWS = 2
-    MIN_TEXT_LEN   = 40   # chars; shorter blocks treated as captions
+    MIN_TEXT_LEN   = 40
 
     def parse(self, pdf_path: str | Path) -> list[RawChunk]:
-        pdf_path = Path(pdf_path)
-        chunks: list[RawChunk] = []
-
-        doc_fitz = pymupdf.open(str(pdf_path))
-        doc_plumber = pdfplumber.open(str(pdf_path))
+        pdf_path   = Path(pdf_path)
+        chunks     : list[RawChunk] = []
+        doc_fitz   = pymupdf.open(str(pdf_path))
+        doc_plumb  = pdfplumber.open(str(pdf_path))
 
         for page_idx in range(len(doc_fitz)):
-            fitz_page    = doc_fitz[page_idx]
-            plumber_page = doc_plumber.pages[page_idx]
+            fitz_page  = doc_fitz[page_idx]
+            plumb_page = doc_plumb.pages[page_idx]
 
-            # --- Tables (pdfplumber has best table extraction) ---
-            table_bboxes = []
-            for table in plumber_page.extract_tables():
+            # ── Tables ──
+            for table in plumb_page.extract_tables():
                 if table and len(table) >= self.MIN_TABLE_ROWS:
-                    md_table = self._table_to_markdown(table)
                     chunks.append(RawChunk(
                         chunk_type  = ChunkType.TABLE,
                         page_num    = page_idx + 1,
-                        raw_content = md_table,
+                        raw_content = self._table_to_markdown(table),
                         source_file = pdf_path.name,
                     ))
-                    # Record bbox to avoid double-extracting this area as text
-                    bbox = plumber_page.find_tables()[0].bbox if plumber_page.find_tables() else None
-                    if bbox:
-                        table_bboxes.append(bbox)
 
-            # --- Images / figures ---
+            # ── Figures ──
             for img_info in fitz_page.get_images(full=True):
                 xref = img_info[0]
                 pix  = pymupdf.Pixmap(doc_fitz, xref)
-                if pix.n > 4:          # CMYK → RGB
+                if pix.n > 4:
                     pix = pymupdf.Pixmap(pymupdf.csRGB, pix)
                 if pix.width < 80 or pix.height < 80:
-                    continue           # skip decorative tiny images
+                    continue
                 img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
                 chunks.append(RawChunk(
                     chunk_type  = ChunkType.FIGURE,
@@ -142,8 +132,8 @@ class PDFParser:
                     source_file = pdf_path.name,
                 ))
 
-            # --- Text blocks (excluding table regions) ---
-            raw_text = plumber_page.extract_text() or ""
+            # ── Text ──
+            raw_text = plumb_page.extract_text() or ""
             if len(raw_text.strip()) >= self.MIN_TEXT_LEN:
                 chunks.append(RawChunk(
                     chunk_type  = ChunkType.TEXT,
@@ -153,36 +143,33 @@ class PDFParser:
                 ))
 
         doc_fitz.close()
-        doc_plumber.close()
+        doc_plumb.close()
         log.info("Parsed %d raw chunks from %s", len(chunks), pdf_path.name)
         return chunks
 
     @staticmethod
     def _table_to_markdown(table: list[list]) -> str:
-        """Convert pdfplumber table (list of rows) to Markdown."""
         if not table:
             return ""
         header = "| " + " | ".join(str(c or "") for c in table[0]) + " |"
         sep    = "| " + " | ".join("---" for _ in table[0]) + " |"
-        rows   = [
-            "| " + " | ".join(str(c or "") for c in row) + " |"
-            for row in table[1:]
-        ]
+        rows   = ["| " + " | ".join(str(c or "") for c in row) + " |" for row in table[1:]]
         return "\n".join([header, sep] + rows)
 
 
-# ─────────────────────────────────────────────
-# 3. AGENT BASE CLASS
-# ─────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════
+# 3. BASE AGENT
+# ═══════════════════════════════════════════════════════════
 
 class BaseAgent:
     """
-    Contract every SLM agent must fulfil:
-      process(chunk) → ProcessedChunk
-    Subclasses implement _build_prompt() and _parse_response().
+    Contract: process(chunk, trace?) → ProcessedChunk
+    Subclasses implement _build_messages() and _parse_response().
+    _trace is injected by the pipeline per-call, not stored permanently.
     """
 
-    MAX_RETRIES = 2   # retry if confidence < threshold
+    CONFIDENCE_THRESHOLD = 0.5
+    RETRY_SUFFIX = "\n[RETRY] Previous attempt had low confidence. Be conservative; mark unknowns."
 
     def __init__(self, model_id: str, device: str = "cpu"):
         self.model_id = model_id
@@ -192,11 +179,28 @@ class BaseAgent:
     def _load_model(self):
         raise NotImplementedError
 
-    def process(self, chunk: RawChunk) -> ProcessedChunk:
-        result = self._run(chunk)
-        # Self-reflection loop: retry once if low confidence
-        if result.confidence < 0.5:
-            log.warning("Agent %s: low confidence (%.2f), retrying chunk p.%d",
+    def process(
+        self,
+        chunk: RawChunk,
+        trace: _TraceHandle | None = None,
+    ) -> ProcessedChunk:
+        span_name = f"agent_{chunk.chunk_type.value}"
+        if trace:
+            with trace.span(span_name, input={"page": chunk.page_num, "type": chunk.chunk_type.value}) as s:
+                result = self._run_with_retry(chunk)
+                s.update(output={
+                    "confidence": result.confidence,
+                    "key_concepts": result.key_concepts[:5],
+                    "notes": result.agent_notes,
+                })
+        else:
+            result = self._run_with_retry(chunk)
+        return result
+
+    def _run_with_retry(self, chunk: RawChunk) -> ProcessedChunk:
+        result = self._run(chunk, retry=False)
+        if result.confidence < self.CONFIDENCE_THRESHOLD:
+            log.warning("%s: low confidence (%.2f) on p.%d — retrying",
                         self.__class__.__name__, result.confidence, chunk.page_num)
             result = self._run(chunk, retry=True)
         return result
@@ -206,7 +210,6 @@ class BaseAgent:
 
     @staticmethod
     def _safe_json(text: str) -> dict:
-        """Extract JSON from LLM output even if surrounded by markdown fences."""
         match = re.search(r"\{.*\}", text, re.DOTALL)
         if match:
             try:
@@ -215,60 +218,58 @@ class BaseAgent:
                 pass
         return {}
 
+    @staticmethod
+    def _last_content(output: Any) -> str:
+        """Extract assistant text from various pipeline output shapes."""
+        if isinstance(output, list) and output:
+            last = output[-1]
+            if isinstance(last, dict):
+                return last.get("content", str(last))
+        return str(output)
 
-# ─────────────────────────────────────────────
-# 4. AGENT-1: TEXT AGENT
-# ─────────────────────────────────────────────
 
-TEXT_SYSTEM_PROMPT = """You are a precise academic document analyst.
+# ═══════════════════════════════════════════════════════════
+# 4. TEXT AGENT  (SLM-1 ~3-4B)
+# ═══════════════════════════════════════════════════════════
+
+_TEXT_SYSTEM = """You are a precise academic document analyst.
 Given a text passage from a PDF (academic paper or government report), return ONLY valid JSON:
 {
   "structured_text": "<cleaned, de-hyphenated, paragraph-normalised passage>",
   "intuition_summary": "<1 sentence: what this passage establishes>",
-  "key_concepts": ["<concept1>", "<concept2>", ...],
-  "confidence": <0.0–1.0>,
-  "agent_notes": "<any ambiguity, OCR noise, truncation>"
-}
-Rules:
-- Remove page headers/footers/watermarks
-- Preserve technical terms exactly
-- confidence < 0.6 if passage is clearly incomplete or garbled
-"""
-
-RETRY_ADDENDUM = "\nNote: previous extraction had low confidence. Be more conservative; flag unknown parts."
+  "key_concepts": ["<concept1>", "<concept2>"],
+  "confidence": <0.0-1.0>,
+  "agent_notes": "<ambiguity, OCR noise, truncation>"
+}"""
 
 
 class TextAgent(BaseAgent):
 
     def _load_model(self):
         log.info("Loading TextAgent: %s", self.model_id)
-        self.pipe = pipeline(
+        self._pipe = pipeline(
             "text-generation",
-            model    = self.model_id,
-            device   = self.device,
+            model          = self.model_id,
+            device         = self.device,
             max_new_tokens = 512,
             do_sample      = False,
         )
 
     def _run(self, chunk: RawChunk, retry: bool = False) -> ProcessedChunk:
-        user_msg = f"PASSAGE:\n{chunk.raw_content}"
+        user_content = str(chunk.raw_content)
         if retry:
-            user_msg += RETRY_ADDENDUM
-
+            user_content += self.RETRY_SUFFIX
         messages = [
-            {"role": "system", "content": TEXT_SYSTEM_PROMPT},
-            {"role": "user",   "content": user_msg},
+            {"role": "system", "content": _TEXT_SYSTEM},
+            {"role": "user",   "content": f"PASSAGE:\n{user_content}"},
         ]
-        output = self.pipe(messages)[0]["generated_text"]
-        # Most chat models return the full conversation; extract assistant turn
-        last = output[-1]["content"] if isinstance(output, list) else output
-        parsed = self._safe_json(last)
-
+        raw    = self._pipe(messages)[0]["generated_text"]
+        parsed = self._safe_json(self._last_content(raw))
         return ProcessedChunk(
             chunk_type       = ChunkType.TEXT,
             page_num         = chunk.page_num,
             source_file      = chunk.source_file,
-            structured_text  = parsed.get("structured_text", str(chunk.raw_content)[:2000]),
+            structured_text  = parsed.get("structured_text", user_content[:2000]),
             intuition_summary= parsed.get("intuition_summary", ""),
             key_concepts     = parsed.get("key_concepts", []),
             confidence       = float(parsed.get("confidence", 0.7)),
@@ -276,58 +277,50 @@ class TextAgent(BaseAgent):
         )
 
 
-# ─────────────────────────────────────────────
-# 5. AGENT-2: TABLE AGENT
-# ─────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════
+# 5. TABLE AGENT  (SLM-2 ~3B)
+# ═══════════════════════════════════════════════════════════
 
-TABLE_SYSTEM_PROMPT = """You are a structured-data extraction specialist.
+_TABLE_SYSTEM = """You are a structured-data extraction specialist.
 Given a Markdown table from a PDF, return ONLY valid JSON:
 {
-  "structured_text": "<corrected, complete Markdown table>",
-  "intuition_summary": "<1 sentence: what this table shows, including units if visible>",
-  "key_concepts": ["<column header or metric>", ...],
-  "schema": {"columns": ["col1","col2",...], "row_count": <int>, "units": {"col": "unit"}},
-  "confidence": <0.0–1.0>,
+  "structured_text": "<corrected Markdown table>",
+  "intuition_summary": "<1 sentence: what this table shows, including units>",
+  "key_concepts": ["<column headers or metrics>"],
+  "schema": {"columns": [], "row_count": 0, "units": {}},
+  "confidence": <0.0-1.0>,
   "agent_notes": "<merged cells, missing values, parsing artifacts>"
-}
-"""
+}"""
 
 
 class TableAgent(BaseAgent):
 
     def _load_model(self):
         log.info("Loading TableAgent: %s", self.model_id)
-        self.pipe = pipeline(
+        self._pipe = pipeline(
             "text-generation",
-            model    = self.model_id,
-            device   = self.device,
+            model          = self.model_id,
+            device         = self.device,
             max_new_tokens = 768,
             do_sample      = False,
         )
 
     def _run(self, chunk: RawChunk, retry: bool = False) -> ProcessedChunk:
-        user_msg = f"MARKDOWN TABLE:\n{chunk.raw_content}"
+        user_content = str(chunk.raw_content)
         if retry:
-            user_msg += RETRY_ADDENDUM
-
+            user_content += self.RETRY_SUFFIX
         messages = [
-            {"role": "system", "content": TABLE_SYSTEM_PROMPT},
-            {"role": "user",   "content": user_msg},
+            {"role": "system", "content": _TABLE_SYSTEM},
+            {"role": "user",   "content": f"MARKDOWN TABLE:\n{user_content}"},
         ]
-        output = self.pipe(messages)[0]["generated_text"]
-        last   = output[-1]["content"] if isinstance(output, list) else output
-        parsed = self._safe_json(last)
-
-        # Build augmented structured_text that includes schema context
-        schema_str = json.dumps(parsed.get("schema", {}), ensure_ascii=False)
-        combined   = parsed.get("structured_text", str(chunk.raw_content)) + \
-                     f"\n<!-- schema: {schema_str} -->"
-
+        raw    = self._pipe(messages)[0]["generated_text"]
+        parsed = self._safe_json(self._last_content(raw))
+        schema_annotation = f"\n<!-- schema: {json.dumps(parsed.get('schema', {}), ensure_ascii=False)} -->"
         return ProcessedChunk(
             chunk_type       = ChunkType.TABLE,
             page_num         = chunk.page_num,
             source_file      = chunk.source_file,
-            structured_text  = combined,
+            structured_text  = parsed.get("structured_text", user_content) + schema_annotation,
             intuition_summary= parsed.get("intuition_summary", ""),
             key_concepts     = parsed.get("key_concepts", []),
             confidence       = float(parsed.get("confidence", 0.7)),
@@ -335,75 +328,57 @@ class TableAgent(BaseAgent):
         )
 
 
-# ─────────────────────────────────────────────
-# 6. AGENT-3: VISION AGENT
-# ─────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════
+# 6. VISION AGENT  (SLM-3 ~2B multimodal)
+# ═══════════════════════════════════════════════════════════
 
-VISION_SYSTEM_PROMPT = """You are a scientific figure analyst.
-Analyse the provided image (may be a graph, flowchart, diagram, photograph, equation screenshot, or map).
-Return ONLY valid JSON:
+_VISION_SYSTEM = """You are a scientific figure analyst.
+Analyse the provided image. Return ONLY valid JSON:
 {
-  "figure_type": "<one of: bar_chart | line_chart | scatter_plot | flowchart | table_image |
-                   map | photograph | equation | network_diagram | other>",
-  "structured_text": "<full textual description including: axis labels, legend, values if readable,
-                       flow relationships, or key visual elements>",
+  "figure_type": "<bar_chart|line_chart|scatter_plot|flowchart|table_image|map|photograph|equation|network_diagram|other>",
+  "structured_text": "<full description: axes, legend, values, flow nodes, key elements>",
   "intuition_summary": "<1 sentence: what insight this figure provides>",
-  "key_concepts": ["<axis/variable/node label>", ...],
-  "confidence": <0.0–1.0>,
-  "agent_notes": "<low resolution, overlapping labels, partially cropped, etc.>"
-}
-"""
+  "key_concepts": ["<axis/variable/node label>"],
+  "confidence": <0.0-1.0>,
+  "agent_notes": "<resolution issues, overlapping labels, cropping>"
+}"""
 
 
 class VisionAgent(BaseAgent):
-    """
-    Uses a vision-language SLM (SmolVLM, Phi-3.5-vision, Qwen2-VL-2B, etc.)
-    Falls back to OCR-only description if vision model unavailable.
-    """
 
     def _load_model(self):
         log.info("Loading VisionAgent: %s", self.model_id)
         try:
-            self.processor = AutoProcessor.from_pretrained(self.model_id)
-            self.model     = AutoModelForCausalLM.from_pretrained(
+            self._processor = AutoProcessor.from_pretrained(self.model_id)
+            self._model     = AutoModelForCausalLM.from_pretrained(
                 self.model_id, device_map=self.device
             )
-            self.use_vision = True
+            self._use_vision = True
         except Exception as e:
-            log.warning("VisionAgent: could not load vision model (%s). "
-                        "Falling back to caption=filename only.", e)
-            self.use_vision = False
+            log.warning("VisionAgent: vision model failed to load (%s). Using OCR fallback.", e)
+            self._use_vision = False
 
     def _run(self, chunk: RawChunk, retry: bool = False) -> ProcessedChunk:
+        if not self._use_vision:
+            return self._ocr_fallback(chunk)
+
         img: Image.Image = chunk.raw_content
-
-        if not self.use_vision:
-            return self._fallback(chunk)
-
-        # Encode image to base64 for models that accept it as text token,
-        # OR pass as pixel_values depending on processor type.
-        # Below targets SmolVLM / Phi-3.5-vision style interface.
+        extra = self.RETRY_SUFFIX if retry else ""
         messages = [
-            {"role": "system", "content": VISION_SYSTEM_PROMPT},
+            {"role": "system", "content": _VISION_SYSTEM},
             {"role": "user",   "content": [
                 {"type": "image"},
-                {"type": "text", "text":
-                    "Describe this figure." + (RETRY_ADDENDUM if retry else "")
-                },
+                {"type": "text", "text": f"Describe this figure.{extra}"},
             ]},
         ]
-
-        prompt = self.processor.apply_chat_template(
-            messages, add_generation_prompt=True
-        )
-        inputs = self.processor(text=prompt, images=[img], return_tensors="pt")
-        inputs = {k: v.to(self.device) for k, v in inputs.items()}
+        prompt  = self._processor.apply_chat_template(messages, add_generation_prompt=True)
+        inputs  = self._processor(text=prompt, images=[img], return_tensors="pt")
+        inputs  = {k: v.to(self.device) for k, v in inputs.items()}
 
         import torch
         with torch.no_grad():
-            ids = self.model.generate(**inputs, max_new_tokens=512, do_sample=False)
-        output = self.processor.decode(ids[0], skip_special_tokens=True)
-
+            ids = self._model.generate(**inputs, max_new_tokens=512, do_sample=False)
+        output = self._processor.decode(ids[0], skip_special_tokens=True)
         parsed = self._safe_json(output)
 
         return ProcessedChunk(
@@ -414,12 +389,10 @@ class VisionAgent(BaseAgent):
             intuition_summary= parsed.get("intuition_summary", ""),
             key_concepts     = parsed.get("key_concepts", []),
             confidence       = float(parsed.get("confidence", 0.6)),
-            agent_notes      = f"figure_type={parsed.get('figure_type','unknown')} | "
-                               + parsed.get("agent_notes", ""),
+            agent_notes      = f"figure_type={parsed.get('figure_type', 'unknown')} | {parsed.get('agent_notes', '')}",
         )
 
-    def _fallback(self, chunk: RawChunk) -> ProcessedChunk:
-        """OCR fallback via pytesseract when no vision model is available."""
+    def _ocr_fallback(self, chunk: RawChunk) -> ProcessedChunk:
         try:
             import pytesseract
             text = pytesseract.image_to_string(chunk.raw_content)
@@ -436,167 +409,170 @@ class VisionAgent(BaseAgent):
         )
 
 
-# ─────────────────────────────────────────────
-# 7. ROUTER  (dispatches RawChunk → correct Agent)
-# ─────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════
+# 7. AGENT ROUTER
+# ═══════════════════════════════════════════════════════════
 
 class AgentRouter:
 
-    def __init__(self, text_agent: TextAgent,
-                 table_agent: TableAgent,
-                 vision_agent: VisionAgent):
+    def __init__(self, text: TextAgent, table: TableAgent, vision: VisionAgent):
         self._map = {
-            ChunkType.TEXT  : text_agent,
-            ChunkType.TABLE : table_agent,
-            ChunkType.FIGURE: vision_agent,
+            ChunkType.TEXT  : text,
+            ChunkType.TABLE : table,
+            ChunkType.FIGURE: vision,
         }
 
-    def route(self, chunk: RawChunk) -> ProcessedChunk:
+    def route(self, chunk: RawChunk, trace: _TraceHandle | None = None) -> ProcessedChunk:
         agent = self._map[chunk.chunk_type]
         log.info("Routing p.%d (%s) → %s",
                  chunk.page_num, chunk.chunk_type.value, agent.__class__.__name__)
-        return agent.process(chunk)
+        return agent.process(chunk, trace=trace)
 
 
-# ─────────────────────────────────────────────
-# 8. CHUNK STORE  (ChromaDB + SentenceTransformer)
-# ─────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════
+# 8. CHUNK STORE  (ChromaDB + multilingual-e5)
+# ═══════════════════════════════════════════════════════════
 
 class ChunkStore:
-    """
-    Persists ProcessedChunks into ChromaDB.
-    Embeds: structured_text + intuition_summary (concatenated).
-    Metadata preserved for filtered retrieval.
-    """
-
-    EMBED_MODEL = "intfloat/multilingual-e5-small"  # ~120MB, supports Japanese
+    EMBED_MODEL = "intfloat/multilingual-e5-small"
 
     def __init__(self, persist_dir: str = "./chroma_db"):
-        self.embedder = SentenceTransformer(self.EMBED_MODEL)
-        self.client   = chromadb.PersistentClient(path=persist_dir)
-        self.col      = self.client.get_or_create_collection(
+        self._embedder = SentenceTransformer(self.EMBED_MODEL)
+        self._client   = chromadb.PersistentClient(path=persist_dir)
+        self._col      = self._client.get_or_create_collection(
             "agentic_rag",
             metadata={"hnsw:space": "cosine"},
         )
 
-    def upsert(self, chunks: list[ProcessedChunk]):
-        texts = [
-            f"{c.structured_text}\n\n{c.intuition_summary}"
-            for c in chunks
-        ]
-        embeddings = self.embedder.encode(texts, normalize_embeddings=True).tolist()
-
-        self.col.upsert(
+    def upsert(self, chunks: list[ProcessedChunk], trace: _TraceHandle | None = None):
+        span_ctx = trace.span("upsert_store", input={"n": len(chunks)}) if trace else None
+        texts = [f"{c.structured_text}\n\n{c.intuition_summary}" for c in chunks]
+        embs  = self._embedder.encode(texts, normalize_embeddings=True).tolist()
+        self._col.upsert(
             ids        = [c.chunk_id for c in chunks],
-            embeddings = embeddings,
+            embeddings = embs,
             documents  = [c.structured_text for c in chunks],
             metadatas  = [{
-                "chunk_type"      : c.chunk_type.value,
-                "page_num"        : c.page_num,
-                "source_file"     : c.source_file,
+                "chunk_type"       : c.chunk_type.value,
+                "page_num"         : c.page_num,
+                "source_file"      : c.source_file,
                 "intuition_summary": c.intuition_summary,
-                "key_concepts"    : json.dumps(c.key_concepts, ensure_ascii=False),
-                "confidence"      : c.confidence,
-                "agent_notes"     : c.agent_notes,
+                "key_concepts"     : json.dumps(c.key_concepts, ensure_ascii=False),
+                "confidence"       : c.confidence,
+                "agent_notes"      : c.agent_notes,
             } for c in chunks],
         )
-        log.info("Upserted %d chunks into ChromaDB", len(chunks))
+        log.info("Upserted %d chunks", len(chunks))
+        if span_ctx:
+            with span_ctx as s:
+                s.update(output={"upserted": len(chunks)})
 
-    def query(self, question: str,
-              n_results: int = 6,
-              chunk_type: ChunkType | None = None) -> list[dict]:
-        vec = self.embedder.encode(
-            [question], normalize_embeddings=True
-        ).tolist()
+    def query(
+        self,
+        question  : str,
+        n_results : int = 6,
+        chunk_type: ChunkType | None = None,
+    ) -> list[dict]:
+        vec   = self._embedder.encode([question], normalize_embeddings=True).tolist()
         where = {"chunk_type": chunk_type.value} if chunk_type else None
-        results = self.col.query(
+        res   = self._col.query(
             query_embeddings = vec,
             n_results        = n_results,
             where            = where,
             include          = ["documents", "metadatas", "distances"],
         )
-        hits = []
-        for doc, meta, dist in zip(
-            results["documents"][0],
-            results["metadatas"][0],
-            results["distances"][0],
-        ):
-            hits.append({"text": doc, "meta": meta, "score": 1 - dist})
-        return hits
+        return [
+            {"text": doc, "meta": meta, "score": 1 - dist}
+            for doc, meta, dist in zip(
+                res["documents"][0],
+                res["metadatas"][0],
+                res["distances"][0],
+            )
+        ]
 
 
-# ─────────────────────────────────────────────
-# 9. ORCHESTRATOR AGENT  (query → answer)
-# ─────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════
+# 9. REASONING ORCHESTRATOR AGENT  (~10B SLM)
+#    Key additions vs v1:
+#    a) Strips <think>...</think> from raw output
+#    b) Preserves reasoning_trace in RAGAnswer for Langfuse logging
+#    c) Reports token usage to Langfuse generation span
+# ═══════════════════════════════════════════════════════════
 
-ORCHESTRATOR_PROMPT = """You are a research assistant with access to indexed document chunks.
+_ORCHESTRATOR_SYSTEM = """You are a research assistant with deep reasoning capability.
+You have access to indexed document chunks that include text, tables, and figure descriptions.
 
-Retrieved context (ranked by relevance):
+Think step-by-step inside <think> tags before writing your final answer.
+Your final answer must:
+  - Be grounded ONLY in the retrieved context below.
+  - Cite source_file and page_num for every claim.
+  - If a figure description is relevant, explicitly note it is from a figure.
+  - If context is insufficient, state "Insufficient context — cannot answer reliably."
+
+Retrieved context:
 {context}
 
-User question:
+Question:
 {question}
-
-Instructions:
-- Answer using ONLY the retrieved context.
-- If a figure description is referenced, explicitly state it came from a figure.
-- If data from a table is used, present it as a structured excerpt.
-- State "Insufficient context" if the chunks do not support a reliable answer.
-- Always cite source_file and page_num for every claim.
 """
 
+_VISUAL_KEYWORDS = {
+    "figure", "graph", "chart", "flow", "diagram", "image", "plot", "map",
+    "図", "グラフ", "フロー", "フローチャート", "チャート", "表",
+}
 
-class OrchestratorAgent:
+
+class ReasoningOrchestratorAgent:
     """
-    Performs multi-modal retrieval and synthesis.
-    Can be wired to any text-generation SLM or the Anthropic API.
+    10B-class reasoning SLM orchestrator.
+
+    Supported model formats:
+      - Any HuggingFace chat model that wraps its CoT in <think>...</think>.
+      - Confirmed: Qwen3-8B (thinking mode), DeepSeek-R1-Distill-Llama-8B,
+                   DeepSeek-R1-Distill-Qwen-14B.
     """
 
-    def __init__(self, store: ChunkStore, llm_pipeline):
-        self.store = store
-        self.llm   = llm_pipeline
+    _THINK_RE = re.compile(r"<think>(.*?)</think>", re.DOTALL | re.IGNORECASE)
 
-    def answer(self, question: str) -> dict:
-        # Step 1: retrieve relevant chunks (all modalities)
-        hits = self.store.query(question, n_results=8)
+    def __init__(self, store: ChunkStore, model_id: str, device: str = "cpu"):
+        self.store    = store
+        self.model_id = model_id
+        log.info("Loading ReasoningOrchestratorAgent: %s", model_id)
+        self._pipe = pipeline(
+            "text-generation",
+            model          = model_id,
+            device         = device,
+            max_new_tokens = 2048,   # reasoning needs room
+            do_sample      = False,
+        )
 
-        # Step 2: if question hints at visual content, boost figure results
-        visual_keywords = {"figure", "graph", "chart", "flow", "diagram",
-                           "image", "plot", "map", "図", "グラフ", "フロー"}
-        if any(kw in question.lower() for kw in visual_keywords):
-            fig_hits = self.store.query(
-                question, n_results=3, chunk_type=ChunkType.FIGURE
-            )
-            # Merge, deduplicate by chunk text
-            seen = {h["text"] for h in hits}
-            hits += [h for h in fig_hits if h["text"] not in seen]
+    def answer(
+        self,
+        question: str,
+        trace   : _TraceHandle | None = None,
+    ) -> RAGAnswer:
+        # ── Retrieval ────────────────────────────────────────────
+        hits = self._retrieve(question, trace=trace)
 
-        # Step 3: build context string with provenance
-        context_parts = []
-        for i, h in enumerate(hits, 1):
-            meta = h["meta"]
-            context_parts.append(
-                f"[{i}] ({meta['chunk_type'].upper()} | "
-                f"{meta['source_file']} p.{meta['page_num']} | "
-                f"score={h['score']:.2f})\n"
-                f"Summary: {meta['intuition_summary']}\n"
-                f"Content: {h['text'][:800]}"
-            )
-        context_str = "\n\n---\n\n".join(context_parts)
-
-        # Step 4: generate answer
-        prompt = ORCHESTRATOR_PROMPT.format(
+        # ── Build prompt ─────────────────────────────────────────
+        context_str = self._build_context(hits)
+        prompt      = _ORCHESTRATOR_SYSTEM.format(
             context  = context_str,
             question = question,
         )
         messages = [{"role": "user", "content": prompt}]
-        raw = self.llm(messages)[0]["generated_text"]
-        answer_text = raw[-1]["content"] if isinstance(raw, list) else raw
 
-        return {
-            "question"      : question,
-            "answer"        : answer_text,
-            "source_chunks" : [
+        # ── Generate with Langfuse generation span ───────────────
+        raw_output = self._generate(messages, trace=trace)
+
+        # ── Parse reasoning + answer ──────────────────────────────
+        reasoning, answer = self._strip_reasoning(raw_output)
+
+        return RAGAnswer(
+            question        = question,
+            answer          = answer,
+            reasoning_trace = reasoning,
+            source_chunks   = [
                 {
                     "type"   : h["meta"]["chunk_type"],
                     "file"   : h["meta"]["source_file"],
@@ -606,97 +582,236 @@ class OrchestratorAgent:
                 }
                 for h in hits
             ],
-        }
+            trace_id = trace.trace_id if trace else "",
+        )
+
+    # ── Private helpers ──────────────────────────────────────────
+
+    def _retrieve(
+        self,
+        question: str,
+        trace   : _TraceHandle | None = None,
+    ) -> list[dict]:
+        """
+        Two-stage retrieval:
+          1. General semantic search (all chunk types, top-8)
+          2. If visual keywords detected → figure-boosted search (top-3, merged)
+        """
+        def _do_retrieve():
+            hits = self.store.query(question, n_results=8)
+            if any(kw in question.lower() for kw in _VISUAL_KEYWORDS):
+                fig_hits = self.store.query(question, n_results=3, chunk_type=ChunkType.FIGURE)
+                seen = {h["text"] for h in hits}
+                hits += [h for h in fig_hits if h["text"] not in seen]
+            return hits
+
+        if trace:
+            with trace.span("retrieve_chunks", input={"question": question[:200]}) as s:
+                hits = _do_retrieve()
+                s.update(output={"n_hits": len(hits)})
+        else:
+            hits = _do_retrieve()
+        return hits
+
+    def _generate(
+        self,
+        messages: list[dict],
+        trace   : _TraceHandle | None = None,
+    ) -> str:
+        """Run the reasoning SLM; log as a Langfuse generation."""
+        raw = self._pipe(messages)[0]["generated_text"]
+        text = raw[-1]["content"] if isinstance(raw, list) else str(raw)
+
+        if trace:
+            # Estimate token counts (approximate — replace with real counts if available)
+            prompt_text    = messages[-1]["content"]
+            input_tokens   = len(prompt_text.split())      # rough word-count proxy
+            output_tokens  = len(text.split())
+            with trace.generation(
+                name        = "orchestrator_reasoning",
+                model       = self.model_id,
+                input       = {"messages": messages},
+                model_params= {"do_sample": False, "max_new_tokens": 2048},
+            ) as g:
+                g.set_output(text, input_tokens=input_tokens, output_tokens=output_tokens)
+
+        return text
+
+    def _strip_reasoning(self, raw: str) -> tuple[str, str]:
+        """
+        Separate <think>...</think> from final answer.
+        Returns (reasoning_trace, final_answer).
+        """
+        match = self._THINK_RE.search(raw)
+        if match:
+            reasoning = match.group(1).strip()
+            answer    = self._THINK_RE.sub("", raw).strip()
+        else:
+            reasoning = ""
+            answer    = raw.strip()
+        return reasoning, answer
+
+    @staticmethod
+    def _build_context(hits: list[dict]) -> str:
+        parts = []
+        for i, h in enumerate(hits, 1):
+            m = h["meta"]
+            parts.append(
+                f"[{i}] ({m['chunk_type'].upper()} | "
+                f"{m['source_file']} p.{m['page_num']} | score={h['score']:.2f})\n"
+                f"Summary: {m['intuition_summary']}\n"
+                f"Content: {h['text'][:800]}"
+            )
+        return "\n\n---\n\n".join(parts)
 
 
-# ─────────────────────────────────────────────
-# 10. PIPELINE ORCHESTRATION  (main entry point)
-# ─────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════
+# 10. PIPELINE  (main entry point)
+# ═══════════════════════════════════════════════════════════
 
 class AgenticRAGPipeline:
     """
-    Wires together: Parser → Router(3 agents) → ChunkStore → OrchestratorAgent.
+    End-to-end pipeline with Langfuse observability.
 
-    Usage:
-        pipeline = AgenticRAGPipeline.build(device="cuda")
-        pipeline.ingest("path/to/paper.pdf")
-        result = pipeline.query("What does Figure 3 show about compression ratio?")
+    Quick start:
+        import os
+        os.environ["LANGFUSE_PUBLIC_KEY"] = "pk-lf-..."
+        os.environ["LANGFUSE_SECRET_KEY"] = "sk-lf-..."
+
+        rag = AgenticRAGPipeline.build(device="cpu")
+        rag.ingest("paper.pdf")
+        result = rag.query("What does Figure 3 show?")
+        print(result.answer)
+        print("Langfuse trace:", result.trace_id)
     """
 
     @classmethod
     def build(
         cls,
-        text_model  : str = "microsoft/Phi-3.5-mini-instruct",
-        table_model : str = "Qwen/Qwen2.5-3B-Instruct",
-        vision_model: str = "HuggingFaceTB/SmolVLM-Instruct",
-        orchestrator_model: str = "microsoft/Phi-3.5-mini-instruct",
-        device      : str = "cpu",
-        persist_dir : str = "./chroma_db",
+        text_model         : str = "microsoft/Phi-3.5-mini-instruct",
+        table_model        : str = "Qwen/Qwen2.5-3B-Instruct",
+        vision_model       : str = "HuggingFaceTB/SmolVLM-Instruct",
+        orchestrator_model : str = "deepseek-ai/DeepSeek-R1-Distill-Llama-8B",   # ← ~10B reasoning
+        device             : str = "cpu",
+        persist_dir        : str = "./chroma_db",
     ) -> "AgenticRAGPipeline":
-        text_agent   = TextAgent(text_model, device)
-        table_agent  = TableAgent(table_model, device)
-        vision_agent = VisionAgent(vision_model, device)
-        router       = AgentRouter(text_agent, table_agent, vision_agent)
-        store        = ChunkStore(persist_dir)
-        orch_pipe    = pipeline(
-            "text-generation",
-            model          = orchestrator_model,
-            device         = device,
-            max_new_tokens = 1024,
-            do_sample      = False,
-        )
-        orchestrator = OrchestratorAgent(store, orch_pipe)
-
-        obj = cls()
+        obj              = cls()
         obj.parser       = PDFParser()
-        obj.router       = router
-        obj.store        = store
-        obj.orchestrator = orchestrator
+        obj.router       = AgentRouter(
+            TextAgent(text_model, device),
+            TableAgent(table_model, device),
+            VisionAgent(vision_model, device),
+        )
+        obj.store        = ChunkStore(persist_dir)
+        obj.orchestrator = ReasoningOrchestratorAgent(
+            store    = obj.store,
+            model_id = orchestrator_model,
+            device   = device,
+        )
+        obj.tracer = LangfuseTracer()
         return obj
 
+    # ── Ingestion ────────────────────────────────────────────────
+
     def ingest(self, pdf_path: str | Path) -> list[ProcessedChunk]:
-        raw_chunks       = self.parser.parse(pdf_path)
-        processed_chunks = [self.router.route(c) for c in raw_chunks]
-        # Filter out very low-confidence chunks (noisy / unreadable)
-        good_chunks = [c for c in processed_chunks if c.confidence >= 0.25]
-        discarded   = len(processed_chunks) - len(good_chunks)
-        if discarded:
-            log.warning("Discarded %d low-confidence chunks", discarded)
-        self.store.upsert(good_chunks)
-        return good_chunks
+        """
+        Parse → route through 3 agents → upsert.
+        Each stage is traced as a Langfuse span under one 'ingest_pdf' trace.
+        """
+        pdf_path = Path(pdf_path)
 
-    def query(self, question: str) -> dict:
-        return self.orchestrator.answer(question)
+        with self.tracer.trace(
+            "ingest_pdf",
+            input   = {"file": pdf_path.name},
+            metadata= {"pipeline": "agentic_rag_v2"},
+        ) as trace:
+
+            # 1. Parse
+            with trace.span("parse_pdf", input={"path": str(pdf_path)}) as s:
+                raw_chunks = self.parser.parse(pdf_path)
+                s.update(output={"n_raw": len(raw_chunks)})
+
+            # 2. Route through agents (trace is passed for per-agent spans)
+            processed: list[ProcessedChunk] = []
+            for chunk in raw_chunks:
+                pc = self.router.route(chunk, trace=trace)
+                processed.append(pc)
+
+            # 3. Filter low-confidence
+            good     = [c for c in processed if c.confidence >= 0.25]
+            dropped  = len(processed) - len(good)
+            if dropped:
+                log.warning("Dropped %d low-confidence chunks", dropped)
+
+            # 4. Upsert
+            self.store.upsert(good, trace=trace)
+
+            # 5. Log summary stats
+            stats = {ct.value: sum(1 for c in good if c.chunk_type == ct) for ct in ChunkType}
+            log.info("Ingestion complete: %s", stats)
+
+        return good
+
+    # ── Query ────────────────────────────────────────────────────
+
+    def query(self, question: str, session_id: str | None = None) -> RAGAnswer:
+        """
+        Retrieve → reason → answer.
+        Full pipeline traced under one 'rag_query' Langfuse trace.
+        The trace_id is embedded in RAGAnswer for easy drill-down.
+        """
+        with self.tracer.trace(
+            "rag_query",
+            input      = {"question": question},
+            session_id = session_id,
+        ) as trace:
+            result = self.orchestrator.answer(question, trace=trace)
+            # Patch in the trace ID so caller can link to Langfuse dashboard
+            result.trace_id = trace.trace_id
+
+        return result
 
 
-# ─────────────────────────────────────────────
-# 11. DEMO (run as script)
-# ─────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════
+# 11. DEMO
+# ═══════════════════════════════════════════════════════════
 
 if __name__ == "__main__":
-    import sys
+    import os, sys
+
+    # --- Set Langfuse credentials before running ---
+    # os.environ["LANGFUSE_PUBLIC_KEY"] = "pk-lf-..."
+    # os.environ["LANGFUSE_SECRET_KEY"] = "sk-lf-..."
 
     if len(sys.argv) < 2:
-        print("Usage: python agentic_rag_flow.py <path_to_pdf> [question]")
+        print("Usage: python agentic_rag_flow_v2.py <pdf_path> [question]")
         sys.exit(1)
 
-    pdf_file = sys.argv[1]
+    pdf_path = sys.argv[1]
     question = sys.argv[2] if len(sys.argv) > 2 else \
-        "Summarise the main findings and describe any key figures or tables."
+        "Summarise the main findings. Describe any key figures or tables."
 
-    # NOTE: For local testing without GPU, set device="cpu".
-    # For production, use device="cuda" and load quantised models (4-bit via bitsandbytes).
-    rag = AgenticRAGPipeline.build(device="cpu")
+    rag = AgenticRAGPipeline.build(
+        orchestrator_model = "deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
+        device             = "cpu",   # change to "cuda" for GPU
+    )
 
-    print(f"\n[INGEST] {pdf_file}")
-    chunks = rag.ingest(pdf_file)
-    stats = {ct.value: sum(1 for c in chunks if c.chunk_type == ct) for ct in ChunkType}
-    print(f"[STATS] {stats}")
+    print(f"\n[INGEST] {pdf_path}")
+    rag.ingest(pdf_path)
 
     print(f"\n[QUERY] {question}")
     result = rag.query(question)
+
     print("\n=== ANSWER ===")
-    print(result["answer"])
+    print(result.answer)
+
+    if result.reasoning_trace:
+        print("\n=== REASONING TRACE (first 500 chars) ===")
+        print(result.reasoning_trace[:500])
+
     print("\n=== SOURCES ===")
-    for s in result["source_chunks"]:
-        print(f"  [{s['type']}] {s['file']} p.{s['page']} (score={s['score']}) — {s['summary']}")
+    for s in result.source_chunks:
+        print(f"  [{s['type']}] {s['file']} p.{s['page']} score={s['score']} — {s['summary']}")
+
+    print(f"\n[Langfuse trace ID] {result.trace_id}")
+    print("View at: https://cloud.langfuse.com")
