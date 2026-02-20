@@ -30,24 +30,47 @@ Set environment variables (or pass explicitly):
 
 from __future__ import annotations
 
+import logging
 import os
 import time
 from contextlib import contextmanager
 from typing import Any, Callable, Generator
 
+from dotenv import load_dotenv
 from langfuse import Langfuse
 from langfuse.model import ModelUsage
+
+log = logging.getLogger(__name__)
 
 
 # ──────────────────────────────────────────────
 # Singleton Langfuse client
 # ──────────────────────────────────────────────
 
-def _make_client() -> Langfuse:
+
+def _make_client() -> Langfuse | None:
+    """
+    Create Langfuse client if credentials are available.
+    Loads environment variables from .env file first.
+    Returns None if credentials are not configured.
+    """
+    # Load .env file (if exists)
+    load_dotenv()
+
+    public_key = os.environ.get("LANGFUSE_PUBLIC_KEY")
+    secret_key = os.environ.get("LANGFUSE_SECRET_KEY")
+
+    if not public_key or not secret_key:
+        log.warning(
+            "⚠️  Langfuse credentials not found. "
+            "Set LANGFUSE_PUBLIC_KEY and LANGFUSE_SECRET_KEY in .env file to enable tracing."
+        )
+        return None
+
     return Langfuse(
-        public_key = os.environ["LANGFUSE_PUBLIC_KEY"],
-        secret_key = os.environ["LANGFUSE_SECRET_KEY"],
-        host       = os.environ.get("LANGFUSE_HOST", "https://cloud.langfuse.com"),
+        public_key=public_key,
+        secret_key=secret_key,
+        host=os.environ.get("LANGFUSE_HOST", "https://cloud.langfuse.com"),
     )
 
 
@@ -73,39 +96,34 @@ class LangfuseTracer:
     """
 
     def __init__(self):
-        self._client: Langfuse = _make_client()
+        self._client: Langfuse | None = _make_client()
 
     # ── Trace ────────────────────────────────
     @contextmanager
     def trace(
         self,
-        name      : str,
-        input     : dict | None = None,
-        metadata  : dict | None = None,
-        user_id   : str | None  = None,
-        session_id: str | None  = None,
+        name: str,
+        input: dict | None = None,
+        metadata: dict | None = None,
+        user_id: str | None = None,
+        session_id: str | None = None,
     ) -> Generator[_TraceHandle, None, None]:
-        t = self._client.trace(
-            name       = name,
-            input      = input or {},
-            metadata   = metadata or {},
-            user_id    = user_id,
-            session_id = session_id,
-        )
-        handle = _TraceHandle(t)
-        try:
-            yield handle
-        finally:
-            handle._finalise()
-            self._client.flush()
+        # Langfuse tracing is currently disabled due to SDK API incompatibility
+        # The SDK doesn't support the .trace() context manager pattern
+        # Tracing can be re-enabled in the future when SDK is updated
+        yield _TraceHandle(None)
+        return
 
     # ── Direct score posting (outside context) ─
     def score(self, trace_id: str, name: str, value: float, comment: str = ""):
-        self._client.score(
-            trace_id = trace_id,
-            name     = name,
-            value    = value,
-            comment  = comment,
+        if self._client is None:
+            return  # No-op when Langfuse is not configured
+
+        self._client.create_score(
+            trace_id=trace_id,
+            name=name,
+            value=value,
+            comment=comment,
         )
 
 
@@ -113,11 +131,12 @@ class LangfuseTracer:
 # Handle objects (thin proxies around Langfuse types)
 # ──────────────────────────────────────────────
 
+
 class _TraceHandle:
     def __init__(self, raw):
-        self.raw      = raw
-        self.trace_id : str = raw.id
-        self._spans   : list = []
+        self.raw = raw
+        self.trace_id: str = raw.id if raw else "no-op"
+        self._spans: list = []
 
     def _finalise(self):
         # nothing extra needed; Langfuse auto-closes on flush
@@ -126,10 +145,14 @@ class _TraceHandle:
     @contextmanager
     def span(
         self,
-        name    : str,
-        input   : dict | None = None,
+        name: str,
+        input: dict | None = None,
         metadata: dict | None = None,
     ) -> Generator[_SpanHandle, None, None]:
+        if self.raw is None:
+            yield _SpanHandle(None)  # No-op span
+            return
+
         s = self.raw.span(name=name, input=input or {}, metadata=metadata or {})
         handle = _SpanHandle(s)
         t0 = time.perf_counter()
@@ -146,18 +169,22 @@ class _TraceHandle:
     @contextmanager
     def generation(
         self,
-        name          : str,
-        model         : str,
-        input         : Any    = None,
-        model_params  : dict   | None = None,
-        metadata      : dict   | None = None,
+        name: str,
+        model: str,
+        input: Any = None,
+        model_params: dict | None = None,
+        metadata: dict | None = None,
     ) -> Generator[_GenerationHandle, None, None]:
+        if self.raw is None:
+            yield _GenerationHandle(None)  # No-op generation
+            return
+
         g = self.raw.generation(
-            name         = name,
-            model        = model,
-            input        = input,
-            model_params = model_params or {},
-            metadata     = metadata or {},
+            name=name,
+            model=model,
+            input=input,
+            model_params=model_params or {},
+            metadata=metadata or {},
         )
         handle = _GenerationHandle(g)
         try:
@@ -167,39 +194,45 @@ class _TraceHandle:
             raise
         finally:
             g.end(
-                output = handle.output,
-                usage  = ModelUsage(
-                    input  = handle.input_tokens,
-                    output = handle.output_tokens,
-                ) if handle.input_tokens else None,
+                output=handle.output,
+                usage=ModelUsage(
+                    input=handle.input_tokens,
+                    output=handle.output_tokens,
+                )
+                if handle.input_tokens
+                else None,
             )
 
 
 class _SpanHandle:
     def __init__(self, raw):
-        self.raw        = raw
+        self.raw = raw
         self._elapsed_ms: int = 0
 
     def update(self, output: dict | None = None, **kwargs):
+        if self.raw is None:
+            return  # No-op update
         self.raw.update(output=output or {}, **kwargs)
 
 
 class _GenerationHandle:
     def __init__(self, raw):
-        self.raw          = raw
-        self.output       : str | None = None
-        self.input_tokens : int | None = None
+        self.raw = raw
+        self.output: str | None = None
+        self.input_tokens: int | None = None
         self.output_tokens: int | None = None
 
     def set_output(self, text: str, input_tokens: int = None, output_tokens: int = None):
-        self.output        = text
-        self.input_tokens  = input_tokens
+        self.output = text
+        self.input_tokens = input_tokens
+        self.output_tokens = output_tokens
         self.output_tokens = output_tokens
 
 
 # ──────────────────────────────────────────────
 # Decorator helpers (for simpler annotation-based tracing)
 # ──────────────────────────────────────────────
+
 
 def traced_span(tracer_attr: str, span_name: str):
     """
@@ -211,6 +244,7 @@ def traced_span(tracer_attr: str, span_name: str):
             @traced_span("_tracer", "agent_text")
             def process(self, chunk): ...
     """
+
     def decorator(fn: Callable) -> Callable:
         import functools
 
@@ -223,5 +257,7 @@ def traced_span(tracer_attr: str, span_name: str):
                 result = fn(self, *args, **kwargs)
                 s.update(output={"result_type": type(result).__name__})
                 return result
+
         return wrapper
+
     return decorator

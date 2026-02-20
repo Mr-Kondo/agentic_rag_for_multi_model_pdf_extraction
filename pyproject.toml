@@ -4,4 +4,17 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "chromadb>=1.5.1",
+    "langfuse>=3.14.4",
+    "mlx>=0.1.0",
+    "mlx-lm>=0.1.0",
+    "mlx-vlm>=0.1.0",
+    "pdfplumber>=0.11.9",
+    "pillow>=12.1.1",
+    "pymupdf>=1.27.1",
+    "pytesseract>=0.3.13",
+    "python-dotenv>=1.2.1",
+    "sentence-transformers>=5.2.3",
+    "unstructured>=0.20.8",
+]

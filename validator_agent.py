@@ -42,11 +42,15 @@ import re
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-import torch
+from mlx_lm import generate, load
+from mlx_vlm import generate as vlm_generate
+from mlx_vlm import load as vlm_load
+from mlx_vlm.prompt_utils import apply_chat_template
+from mlx_vlm.utils import load_config
 
 if TYPE_CHECKING:
     from PIL.Image import Image as PILImage
-    from agentic_rag_flow_v3 import ProcessedChunk, RAGAnswer, RawChunk
+    from agentic_rag_flow import ProcessedChunk, RAGAnswer, RawChunk
     from langfuse_tracer import _TraceHandle
 
 log = logging.getLogger(__name__)
@@ -56,17 +60,19 @@ log = logging.getLogger(__name__)
 # 1. RESULT DATACLASSES  (unchanged from v1)
 # ═══════════════════════════════════════════════════════════
 
+
 @dataclass
 class ChunkValidationResult:
     """
     Result of Checkpoint A: chunk extraction quality audit.
     is_valid=False triggers correction or discard in the pipeline.
     """
-    is_valid        : bool
-    issues          : list[str]               = field(default_factory=list)
-    corrected       : "ProcessedChunk | None" = None
-    verdict_score   : float                   = 1.0
-    validator_notes : str                     = ""
+
+    is_valid: bool
+    issues: list[str] = field(default_factory=list)
+    corrected: "ProcessedChunk | None" = None
+    verdict_score: float = 1.0
+    validator_notes: str = ""
 
 
 @dataclass
@@ -75,24 +81,26 @@ class AnswerValidationResult:
     Result of Checkpoint B: hallucination / grounding check.
     is_grounded=False triggers revised_answer substitution or warning prefix.
     """
-    is_grounded     : bool
-    hallucinations  : list[str]  = field(default_factory=list)
-    revised_answer  : str | None = None
-    verdict_score   : float      = 1.0
-    validator_notes : str        = ""
+
+    is_grounded: bool
+    hallucinations: list[str] = field(default_factory=list)
+    revised_answer: str | None = None
+    verdict_score: float = 1.0
+    validator_notes: str = ""
 
 
 # ═══════════════════════════════════════════════════════════
 # 2. BASE LOADABLE MODEL  (load / unload lifecycle mixin)
 # ═══════════════════════════════════════════════════════════
 
+
 class BaseLoadableModel:
     """
     Mixin that provides explicit load/unload lifecycle for heavy LLMs.
 
     Subclasses must implement:
-        _do_load()    → initialise self._model and self._processor / self._pipe
-        _do_unload()  → delete those references (do NOT call gc or cuda.empty_cache here)
+        _do_load()    → initialise self._model and self._processor / self._tokenizer
+        _do_unload()  → delete those references (do NOT call gc here)
 
     Usage patterns:
 
@@ -110,10 +118,9 @@ class BaseLoadableModel:
             results = [agent.run(x) for x in items]
     """
 
-    def __init__(self, model_id: str, device: str = "cpu"):
+    def __init__(self, model_id: str):
         self.model_id = model_id
-        self.device   = device
-        self._loaded  = False
+        self._loaded = False
 
     # ── Lifecycle ──────────────────────────────────────────
 
@@ -133,9 +140,6 @@ class BaseLoadableModel:
         self._do_unload()
         self._loaded = False
         gc.collect()
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-            log.debug("CUDA cache cleared after %s unload.", self.__class__.__name__)
 
     @property
     def is_loaded(self) -> bool:
@@ -161,14 +165,13 @@ class BaseLoadableModel:
     def _assert_loaded(self) -> None:
         if not self._loaded:
             raise RuntimeError(
-                f"{self.__class__.__name__} is not loaded. "
-                "Call .load() or use 'with agent:' context manager before inference."
+                f"{self.__class__.__name__} is not loaded. Call .load() or use 'with agent:' context manager before inference."
             )
 
     # ── Shared utilities ───────────────────────────────────
 
     _THINK_RE = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)
-    _JSON_RE  = re.compile(r"\{.*\}", re.DOTALL)
+    _JSON_RE = re.compile(r"\{.*\}", re.DOTALL)
 
     @classmethod
     def _safe_json(cls, text: str) -> dict:
@@ -184,31 +187,26 @@ class BaseLoadableModel:
 
     def _log_generation(
         self,
-        trace    : "_TraceHandle | None",
+        trace: "_TraceHandle | None",
         span_name: str,
-        messages : list[dict],
-        output   : str,
+        messages: list[dict],
+        output: str,
     ) -> None:
         """Post a Langfuse Generation node if a trace handle is active."""
         if trace is None:
             return
-        prompt_flat   = " ".join(
-            m["content"] if isinstance(m["content"], str) else str(m["content"])
-            for m in messages
-        )
+        prompt_flat = " ".join(m["content"] if isinstance(m["content"], str) else str(m["content"]) for m in messages)
         with trace.generation(
-            name         = span_name,
-            model        = self.model_id,
-            input        = {"messages": [
-                {**m, "content": str(m["content"])[:300]} for m in messages
-            ]},
-            model_params = {"do_sample": False},
-            metadata     = {"role": self.__class__.__name__},
+            name=span_name,
+            model=self.model_id,
+            input={"messages": [{**m, "content": str(m["content"])[:300]} for m in messages]},
+            model_params={"do_sample": False},
+            metadata={"role": self.__class__.__name__},
         ) as g:
             g.set_output(
                 output,
-                input_tokens  = len(prompt_flat.split()),
-                output_tokens = len(output.split()),
+                input_tokens=len(prompt_flat.split()),
+                output_tokens=len(output.split()),
             )
 
 
@@ -253,34 +251,46 @@ class ChunkValidatorAgent(BaseLoadableModel):
     Qwen2-VL-7B can inspect figure images directly with its vision encoder.
     Text / table chunks are validated via text-only messages.
 
-    Model loading uses Qwen2VLForConditionalGeneration (NOT the generic pipeline),
-    which is required for correct image token injection.
+    Uses mlx-vlm for optimized Apple Silicon inference.
     """
 
     def _do_load(self) -> None:
-        from transformers import AutoProcessor, Qwen2VLForConditionalGeneration
-        self._processor = AutoProcessor.from_pretrained(
-            self.model_id, trust_remote_code=True
-        )
-        self._model = Qwen2VLForConditionalGeneration.from_pretrained(
-            self.model_id,
-            torch_dtype      = torch.float16 if self.device != "cpu" else torch.float32,
-            device_map       = self.device,
-            trust_remote_code= True,
-        )
-        self._model.eval()
+        try:
+            self._model, self._processor = vlm_load(self.model_id)
+            self._config = load_config(self.model_id)
+        except TypeError as e:
+            # Handle transformers library incompatibility
+            if "NoneType" in str(e) or "iterable" in str(e):
+                import logging
+
+                log = logging.getLogger(__name__)
+                log.warning(
+                    f"⚠️ Vision model processor error (likely transformers incompatibility): {e}\n"
+                    f"   Attempting to load model with trust_remote_code=True..."
+                )
+                try:
+                    # Retry with explicit trust_remote_code setting
+                    self._model, self._processor = vlm_load(self.model_id, trust_remote_code=True)
+                    self._config = load_config(self.model_id)
+                    log.info("✓ Model loaded successfully with trust_remote_code=True")
+                except Exception as e2:
+                    log.error(f"✗ Failed to load vision model: {e2}")
+                    raise
+            else:
+                raise
 
     def _do_unload(self) -> None:
         del self._model
         del self._processor
+        del self._config
 
     # ── Public API ─────────────────────────────────────────
 
     def validate_chunk(
         self,
-        raw      : "RawChunk",
+        raw: "RawChunk",
         processed: "ProcessedChunk",
-        trace    : "_TraceHandle | None" = None,
+        trace: "_TraceHandle | None" = None,
     ) -> ChunkValidationResult:
         """
         Validate ProcessedChunk against its RawChunk source.
@@ -290,142 +300,93 @@ class ChunkValidatorAgent(BaseLoadableModel):
         self._assert_loaded()
 
         from PIL import Image as PILImage
+
         is_figure = isinstance(raw.raw_content, PILImage.Image)
 
-        extracted_repr = json.dumps({
-            "chunk_type"       : processed.chunk_type.value,
-            "structured_text"  : processed.structured_text[:1500],
-            "intuition_summary": processed.intuition_summary,
-            "key_concepts"     : processed.key_concepts,
-            "confidence"       : processed.confidence,
-            "agent_notes"      : processed.agent_notes,
-        }, ensure_ascii=False)
+        extracted_repr = json.dumps(
+            {
+                "chunk_type": processed.chunk_type.value,
+                "structured_text": processed.structured_text[:1500],
+                "intuition_summary": processed.intuition_summary,
+                "key_concepts": processed.key_concepts,
+                "confidence": processed.confidence,
+                "agent_notes": processed.agent_notes,
+            },
+            ensure_ascii=False,
+        )
 
         if is_figure:
-            messages, images = self._figure_messages(raw.raw_content, extracted_repr)
+            output = self._infer_figure(raw.raw_content, extracted_repr)
         else:
-            messages = self._text_messages(str(raw.raw_content)[:2000], extracted_repr)
-            images   = None
+            output = self._infer_text(str(raw.raw_content)[:2000], extracted_repr)
 
-        output = self._infer(messages, images)
-        span   = f"chunk_validate_p{processed.page_num}_{processed.chunk_type.value}"
-        self._log_generation(trace, span, messages, output)
+        # Convert GenerationResult to string if needed
+        output = output if isinstance(output, str) else str(output)
+
+        span = f"chunk_validate_p{processed.page_num}_{processed.chunk_type.value}"
+        self._log_generation(trace, span, [], output)
 
         parsed = self._safe_json(output)
         return self._build_result(parsed, processed)
 
-    # ── Message builders ────────────────────────────────────
-
-    @staticmethod
-    def _figure_messages(
-        img           : "PILImage",
-        extracted_repr: str,
-    ) -> tuple[list[dict], list]:
-        """
-        Qwen2-VL multimodal message: image token + extracted JSON side by side.
-        The model sees the actual figure pixels when auditing the agent's description.
-        """
-        messages = [
-            {"role": "system", "content": _CHUNK_VALIDATOR_SYSTEM},
-            {
-                "role": "user",
-                "content": [
-                    {"type": "image", "image": img},
-                    {
-                        "type": "text",
-                        "text": (
-                            "Above is the ORIGINAL figure from the PDF.\n\n"
-                            f"[EXTRACTED]\n{extracted_repr}\n\n"
-                            "Does EXTRACTED faithfully describe the figure? "
-                            "Return only the JSON verdict."
-                        ),
-                    },
-                ],
-            },
-        ]
-        return messages, [img]
-
-    @staticmethod
-    def _text_messages(original_text: str, extracted_repr: str) -> list[dict]:
-        return [
-            {"role": "system", "content": _CHUNK_VALIDATOR_SYSTEM},
-            {
-                "role": "user",
-                "content": (
-                    f"[ORIGINAL]\n{original_text}\n\n"
-                    f"[EXTRACTED]\n{extracted_repr}\n\n"
-                    "Return only the JSON verdict."
-                ),
-            },
-        ]
-
     # ── Inference ───────────────────────────────────────────
 
-    def _infer(self, messages: list[dict], images: list | None) -> str:
-        """
-        Qwen2-VL generation.
-        apply_chat_template inserts the <|image_pad|> tokens at the correct position.
-        Prompt tokens are stripped from the output before returning.
-        """
-        text_prompt = self._processor.apply_chat_template(
-            messages,
-            tokenize             = False,
-            add_generation_prompt= True,
+    def _infer_figure(self, img: "PILImage", extracted_repr: str) -> str:
+        """Infer on figure using mlx-vlm."""
+        user_text = (
+            "Above is the ORIGINAL figure from the PDF.\n\n"
+            f"[EXTRACTED]\n{extracted_repr}\n\n"
+            "Does EXTRACTED faithfully describe the figure? "
+            "Return only the JSON verdict."
         )
-        if images:
-            inputs = self._processor(
-                text=text_prompt, images=images, return_tensors="pt", padding=True
-            )
-        else:
-            inputs = self._processor(
-                text=text_prompt, return_tensors="pt", padding=True
-            )
-        inputs = {k: v.to(self.device) for k, v in inputs.items()}
 
-        with torch.no_grad():
-            generated_ids = self._model.generate(
-                **inputs, max_new_tokens=1024, do_sample=False
-            )
-        # Strip input prompt tokens from output
-        trimmed = [
-            out_ids[len(in_ids):]
-            for in_ids, out_ids in zip(inputs["input_ids"], generated_ids)
-        ]
-        return self._processor.batch_decode(
-            trimmed,
-            skip_special_tokens           = True,
-            clean_up_tokenization_spaces  = False,
-        )[0]
+        # Combine system message with user text
+        full_prompt = f"{_CHUNK_VALIDATOR_SYSTEM}\n\n{user_text}"
+        prompt = apply_chat_template(self._processor, self._config, full_prompt, num_images=1)
+
+        return vlm_generate(self._model, self._processor, prompt, [img], verbose=False)
+
+    def _infer_text(self, original_text: str, extracted_repr: str) -> str:
+        """Infer on text using vision model in text-only mode."""
+        user_text = f"[ORIGINAL]\n{original_text}\n\n[EXTRACTED]\n{extracted_repr}\n\nReturn only the JSON verdict."
+
+        # Combine system message with user text
+        full_prompt = f"{_CHUNK_VALIDATOR_SYSTEM}\n\n{user_text}"
+
+        # Use the vision model in text-only mode (no images)
+        prompt = apply_chat_template(self._processor, self._config, full_prompt, num_images=0)
+
+        return vlm_generate(self._model, self._processor, prompt, verbose=False)
 
     # ── Result builder ──────────────────────────────────────
 
     def _build_result(self, parsed: dict, original: "ProcessedChunk") -> ChunkValidationResult:
-        from agentic_rag_flow_v3 import ProcessedChunk as PC
+        from agentic_rag_flow import ProcessedChunk as PC
 
-        is_valid      = bool(parsed.get("is_valid", True))
-        issues        = parsed.get("issues", [])
+        is_valid = bool(parsed.get("is_valid", True))
+        issues = parsed.get("issues", [])
         verdict_score = float(parsed.get("verdict_score", 1.0))
-        notes         = parsed.get("validator_notes", "")
+        notes = parsed.get("validator_notes", "")
 
         corrected = None
         if not is_valid:
             corrected = PC(
-                chunk_type       = original.chunk_type,
-                page_num         = original.page_num,
-                source_file      = original.source_file,
-                structured_text  = parsed.get("corrected_structured_text") or original.structured_text,
-                intuition_summary= parsed.get("corrected_intuition_summary") or original.intuition_summary,
-                key_concepts     = parsed.get("corrected_key_concepts") or original.key_concepts,
-                confidence       = verdict_score,
-                agent_notes      = f"[CHECKPOINT-A CORRECTED] {notes}",
+                chunk_type=original.chunk_type,
+                page_num=original.page_num,
+                source_file=original.source_file,
+                structured_text=parsed.get("corrected_structured_text") or original.structured_text,
+                intuition_summary=parsed.get("corrected_intuition_summary") or original.intuition_summary,
+                key_concepts=parsed.get("corrected_key_concepts") or original.key_concepts,
+                confidence=verdict_score,
+                agent_notes=f"[CHECKPOINT-A CORRECTED] {notes}",
             )
 
         return ChunkValidationResult(
-            is_valid        = is_valid,
-            issues          = issues,
-            corrected       = corrected,
-            verdict_score   = verdict_score,
-            validator_notes = notes,
+            is_valid=is_valid,
+            issues=issues,
+            corrected=corrected,
+            verdict_score=verdict_score,
+            validator_notes=notes,
         )
 
 
@@ -466,57 +427,46 @@ class AnswerValidatorAgent(BaseLoadableModel):
     CHECKPOINT B validator.
     Text-only 10B model: verifies every claim in the orchestrator's answer
     is supported by retrieved source chunk texts.
+
+    Uses mlx-lm for optimized Apple Silicon inference.
     """
 
     def _do_load(self) -> None:
-        from transformers import pipeline as hf_pipeline
-        self._pipe = hf_pipeline(
-            "text-generation",
-            model          = self.model_id,
-            device         = self.device,
-            max_new_tokens = 1024,
-            do_sample      = False,
-        )
+        self._model, self._tokenizer = load(self.model_id)
 
     def _do_unload(self) -> None:
-        del self._pipe
+        del self._model
+        del self._tokenizer
 
     # ── Public API ─────────────────────────────────────────
 
     def validate_answer(
         self,
-        question    : str,
-        answer      : "RAGAnswer",
+        question: str,
+        answer: "RAGAnswer",
         source_texts: list[str],
-        trace       : "_TraceHandle | None" = None,
+        trace: "_TraceHandle | None" = None,
     ) -> AnswerValidationResult:
         self._assert_loaded()
 
-        sources_repr = "\n\n".join(
-            f"[Source {i+1}] {text[:600]}"
-            for i, text in enumerate(source_texts)
-        )
-        user_content = (
-            f"[QUESTION]\n{question}\n\n"
-            f"[ANSWER]\n{answer.answer}\n\n"
-            f"[SOURCES]\n{sources_repr}"
-        )
+        sources_repr = "\n\n".join(f"[Source {i + 1}] {text[:600]}" for i, text in enumerate(source_texts))
+        user_content = f"[QUESTION]\n{question}\n\n[ANSWER]\n{answer.answer}\n\n[SOURCES]\n{sources_repr}"
         messages = [
             {"role": "system", "content": _ANSWER_VALIDATOR_SYSTEM},
-            {"role": "user",   "content": user_content},
+            {"role": "user", "content": user_content},
         ]
 
-        raw    = self._pipe(messages)[0]["generated_text"]
-        output = raw[-1]["content"] if isinstance(raw, list) else str(raw)
+        prompt = self._tokenizer.apply_chat_template(messages, add_generation_prompt=True)
+        output = generate(self._model, self._tokenizer, prompt=prompt, max_tokens=1024, verbose=False)
         output = self._THINK_RE.sub("", output).strip()
 
         self._log_generation(trace, "answer_validate", messages, output)
 
         parsed = self._safe_json(output)
         return AnswerValidationResult(
-            is_grounded     = bool(parsed.get("is_grounded", True)),
-            hallucinations  = parsed.get("hallucinations", []),
-            revised_answer  = parsed.get("revised_answer"),
-            verdict_score   = float(parsed.get("verdict_score", 1.0)),
-            validator_notes = parsed.get("validator_notes", ""),
+            is_grounded=bool(parsed.get("is_grounded", True)),
+            hallucinations=parsed.get("hallucinations", []),
+            revised_answer=parsed.get("revised_answer"),
+            verdict_score=float(parsed.get("verdict_score", 1.0)),
+            validator_notes=parsed.get("validator_notes", ""),
         )

@@ -1,0 +1,692 @@
+[
+  {
+    "chunk_id": "ed9fd238-0b17-4b59-b66a-1e2e9d236570",
+    "chunk_type": "text",
+    "page_num": 1,
+    "source_file": "21_77.pdf",
+    "structured_text": "In this study, the authors showed the discharge calculating method in the high runoff using Space-Time-Image-Velocimetry (STIV) and Dynamic Interpolation and Extrapolation (DIEX) method. We could measure the flood surface flow under the low light and bad weather condition using extended ISO sensitive camera in actual river. This reason was that surface wave image was capable to clearly analyzed at the night time and rainy condition. But, it was difficult to measure the Space-Time-Image (STI) at ...",
+    "intuition_summary": "The study demonstrates a method for measuring river discharge under challenging conditions using STIV and DIEX, which relies on analyzing surface wave brightness and requires significant brightness variation for accurate results.",
+    "key_concepts": [
+      "Space-Time-Image Velocimetry (STIV)",
+      "Dynamic Interpolation and Extrapolation (DIEX",
+      "river discharge",
+      "extended ISO sensitive camera",
+      "brightness distribution"
+    ],
+    "confidence": 0.95,
+    "agent_notes": "The passage is mostly coherent, but contains numerous repetitions of 'cid:' which seem to be metadata or identifiers, not relevant to the text content. These should be removed for a clean text analysis. Additionally, the text is highly technical and assumes prior knowledge of hydrological measurement techniques. The confidence level is high due to the clear presentation of the method and its application, despite potential readability issues for a general audience.",
+    "validation": {
+      "verdict_score": 1.0,
+      "issues": [],
+      "corrected_text": null
+    }
+  },
+  {
+    "chunk_id": "02a2e15b-4ad1-4a36-adbd-99c83c7d5ce2",
+    "chunk_type": "table",
+    "page_num": 2,
+    "source_file": "21_77.pdf",
+    "structured_text": "| 0.0\n)mm((cid:13598)(cid:7880)(cid:14150)\n10.0\n20.0\n(cid:4469)(cid:8238)(cid:14261)(cid:13598)(cid:12411)(cid:8196)(cid:6244)\n30.0 |\n| --- |\n| 181.0\n(cid:11432)(cid:5469)(cid:7595)(cid:18436)(cid:7880)(cid:3113)(cid:18437)\n180.5\n(cid:12411)(cid:8196)(cid:6892)\n180.0 )m((cid:3113)(cid:7880)\n179.5\n179.0\n178.5 |\n| 145.5\n145.0 (cid:6821)(cid:2949)(cid:3252)(cid:7595)(cid:18436)(cid:7880)(cid:3113)(cid:18437)\n(cid:12411)(cid:8196)(cid:6892)\n144.5 )m((cid:3113)(cid:7880)\n144.0\n143.5\n143.0 |\n<!-- sche...",
+    "intuition_summary": "The table appears to be a series of measurements or values with some identifiers.",
+    "key_concepts": [
+      "Measurement",
+      "Identifier"
+    ],
+    "confidence": 0.9,
+    "agent_notes": "<No issues>",
+    "validation": {
+      "verdict_score": 1.0,
+      "issues": [],
+      "corrected_text": null
+    }
+  },
+  {
+    "chunk_id": "101bd0ba-87e9-4ff2-96b6-7087ef1d1257",
+    "chunk_type": "table",
+    "page_num": 2,
+    "source_file": "21_77.pdf",
+    "structured_text": "| (cid:4469) | (cid:8238) | (cid:14261)(cid:13598)(cid:12411) | (cid:8196)(cid:6244)|\n| --- | --- | --- | --- |\n| (cid:4469) | (cid:8238) | (cid:14261)(cid:13598)(cid:12411) | (cid:8196)(cid:6244)|\n| (cid:4469) | (cid:8238) | (cid:14261)(cid:13598)(cid:12411) | (cid:8196)(cid:6244)|\n| (cid:4469) | (cid:8238) | (cid:14261)(cid:13598)(cid:12411) | (cid:8196)(cid:6244)|\n| (cid:4469) | (cid:8238) | (cid:14261)(cid:13598)(cid:12411) | (cid:8196)(cid:6244)|\n| (cid:4469) | (cid:8238) | (cid:14261)(cid:...",
+    "intuition_summary": "The table appears to be a repetition of the same values across rows and columns, possibly indicating a data entry error or a specific pattern to be extracted.",
+    "key_concepts": [
+      "cid values",
+      "repetition"
+    ],
+    "confidence": 0.9,
+    "agent_notes": "The table structure is consistent and the content is clearly identifiable by cid values.",
+    "validation": {
+      "verdict_score": 1.0,
+      "issues": [],
+      "corrected_text": null
+    }
+  },
+  {
+    "chunk_id": "1596752c-5462-4605-88dd-bd5b8dba9ffb",
+    "chunk_type": "table",
+    "page_num": 2,
+    "source_file": "21_77.pdf",
+    "structured_text": "| (cid:7880)(cid:3113)(cid:18437) | (cid:11432)(cid:5469) | (cid:12411)(cid:8196) | (cid:6892) |\n| --- | --- | --- | --- |\n| (cid:7880)(cid:3113)(cid:18437) | (cid:11432)(cid:5469) | (cid:12411)(cid:8196) | (cid:6892) |\n| (cid:7880)(cid:3113)(cid:18437) | (cid:11432)(cid:5469) | (cid:12411)(cid:8196) | (cid:6892) |\n| (cid:7880)(cid:3113)(cid:18437) | (cid:11432)(cid:5469) | (cid:12411)(cid:8196) | (cid:6892) |\n| (cid:7880)(cid:3113)(cid:18437) | (cid:11432)(cid:5469) | (cid:12411)(cid:8196) | (c...",
+    "intuition_summary": "The table appears to be a repetition of the same data across its rows and columns.",
+    "key_concepts": [
+      "cid",
+      "data repetition"
+    ],
+    "confidence": 0.99,
+    "agent_notes": "The table structure is clear and consistent, with each cell containing the same set of cids repeated.",
+    "validation": {
+      "verdict_score": 1.0,
+      "issues": [],
+      "corrected_text": null
+    }
+  },
+  {
+    "chunk_id": "b933309e-15ed-43b3-9312-65eae1f43088",
+    "chunk_type": "table",
+    "page_num": 2,
+    "source_file": "21_77.pdf",
+    "structured_text": "|  |  |  |  |  |  |  |  |  |  |  |  |  |  | (cid:7880)(cid:3113)(cid:18437) |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n|  |  |  |  |  |  |  |  |  |  |  | (cid:6821) | (cid:2949) | (cid:3252)(cid:7595)(cid:18436) |  |\n|  |  |  |  |  |  |  |  |  |  |  | (cid:12411) | (cid:8196) | (cid:6892) |  |\n|  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |\n|  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |\n<!-- schema: {} -->",
+    "intuition_summary": "",
+    "key_concepts": [],
+    "confidence": 0.7,
+    "agent_notes": "",
+    "validation": {
+      "verdict_score": 1.0,
+      "issues": [],
+      "corrected_text": null
+    }
+  },
+  {
+    "chunk_id": "30b7b324-fb1d-4c16-b88f-9a6108286e48",
+    "chunk_type": "table",
+    "page_num": 2,
+    "source_file": "21_77.pdf",
+    "structured_text": "| (cid:12377)(cid:4785)(cid:7595) | (cid:18436)(cid:7880)(cid:3113)(cid:18437) |\n| --- | --- |\n| (cid:12411)(cid:8196)(cid:6892) |\n<!-- schema: {\"columns\": [\"(cid:12377)(cid:4785)(cid:7595)\", \"(cid:18436)(cid:7880)(cid:3113)(cid:18437)\", \"(cid:12411)(cid:8196)(cid:6892)\"], \"row_count\": 2, \"units\": {}} -->",
+    "intuition_summary": "The table appears to be a simple structure with two rows and two columns, each containing multiple CID references.",
+    "key_concepts": [
+      "CID references",
+      "table structure"
+    ],
+    "confidence": 0.9,
+    "agent_notes": "The table structure is clear and the CID references are correctly identified.",
+    "validation": {
+      "verdict_score": 1.0,
+      "issues": [],
+      "corrected_text": null
+    }
+  },
+  {
+    "chunk_id": "397e011d-b3ce-420e-8a8d-338ed0eaa1bf",
+    "chunk_type": "table",
+    "page_num": 2,
+    "source_file": "21_77.pdf",
+    "structured_text": "| 0.0\n)mm((cid:13598)(cid:7880)(cid:14150)\n10.0\n20.0\n(cid:4469)(cid:8238)(cid:14261)(cid:13598)(cid:12411)(cid:8196)(cid:6244)\n30.0 |\n| --- |\n| 181.0\n180.5 (cid:11432)(cid:5469)(cid:7595)(cid:18436)(cid:7880)(cid:3113)(cid:18437)\n180.0 )m((cid:3113)(cid:7880) (cid:12411)(cid:8196)(cid:6892)\n179.5\n179.0\n178.5 |\n| 145.5\n145.0 (cid:6821)(cid:2949)(cid:3252)(cid:7595)(cid:18436)(cid:7880)(cid:3113)(cid:18437)\n144.5 )m((cid:3113)(cid:7880) (cid:12411)(cid:8196)(cid:6892)\n144.0\n143.5\n143.0 |\n| 75.0\n74...",
+    "intuition_summary": "The table appears to contain measurements or values with associated identifiers, possibly related to a specific context or dataset.",
+    "key_concepts": [
+      "Measurement",
+      "Identifier"
+    ],
+    "confidence": 0.9,
+    "agent_notes": "<No significant issues found>",
+    "validation": {
+      "verdict_score": 1.0,
+      "issues": [],
+      "corrected_text": null
+    }
+  },
+  {
+    "chunk_id": "fc587758-bc59-4cb7-9eb7-deed22c1f2df",
+    "chunk_type": "table",
+    "page_num": 2,
+    "source_file": "21_77.pdf",
+    "structured_text": "|  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n|  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |\n|  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |\n|  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |\n|  |  |  |  |  |  |  |  |  |  |  | (cid:4469) | (cid:8238) | (cid:14261)(cid:13598) | (cid:12411)(cid:8196)(cid:6244) |\n|  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |\n<!-- schema: {} -->",
+    "intuition_summary": "",
+    "key_concepts": [],
+    "confidence": 0.7,
+    "agent_notes": "",
+    "validation": {
+      "verdict_score": 1.0,
+      "issues": [],
+      "corrected_text": null
+    }
+  },
+  {
+    "chunk_id": "877256e5-c9c9-4125-8f99-af81e339e9c9",
+    "chunk_type": "table",
+    "page_num": 2,
+    "source_file": "21_77.pdf",
+    "structured_text": "| (cid:11432) | (cid:5469)(cid:7595)(cid:18436) | (cid:7880)(cid:3113)(cid:18437) | (cid:12411) | (cid:8196)(cid:6892) |\n| --- | --- | --- | --- | --- |\n| (cid:11432) | (cid:5469)(cid:7595)(cid:18436) | (cid:7880)(cid:3113)(cid:18437) | (cid:12411) | (cid:8196)(cid:6892) |\n| (cid:11432) | (cid:5469)(cid:7595)(cid:18436) | (cid:7880)(cid:3113)(cid:18437) | (cid:12411) | (cid:8196)(cid:6892) |\n| (cid:11432) | (cid:5469)(cid:7595)(cid:18436) | (cid:7880)(cid:3113)(cid:18437) | (cid:12411) | (cid:81...",
+    "intuition_summary": "The table appears to be a repetition of the same values across its rows and columns, possibly indicating a data entry error or a specific pattern to be identified.",
+    "key_concepts": [
+      "cid values",
+      "repetition"
+    ],
+    "confidence": 0.9,
+    "agent_notes": "The table structure is consistent with the provided data, but the exact meaning of the cid values is unclear without additional context.",
+    "validation": {
+      "verdict_score": 1.0,
+      "issues": [],
+      "corrected_text": null
+    }
+  },
+  {
+    "chunk_id": "2606493d-7d9f-4064-ba7e-475cb514b119",
+    "chunk_type": "table",
+    "page_num": 2,
+    "source_file": "21_77.pdf",
+    "structured_text": "| (cid:6821) | (cid:2949) | (cid:3252)(cid:7595)(cid:18436) | (cid:7880)(cid:3113)(cid:18437) |\n| --- | --- | --- | --- |\n| (cid:12411) | (cid:8196) | (cid:6892) | |\n\n<!-- schema: {\"columns\": [\"(cid:6821)\", \"(cid:2949)\", \"(cid:3252)(cid:7595)(cid:18436)\", \"(cid:7880)(cid:3113)(cid:18437)\", \"(cid:12411)\", \"(cid:8196)\", \"(cid:6892)\"], \"row_count\": 3, \"units\": {}} -->",
+    "intuition_summary": "The table appears to be a multi-part table with multiple identifiers.",
+    "key_concepts": [
+      "identifiers",
+      "content"
+    ],
+    "confidence": 0.9,
+    "agent_notes": "The table is correctly identified and structured.",
+    "validation": {
+      "verdict_score": 1.0,
+      "issues": [],
+      "corrected_text": null
+    }
+  },
+  {
+    "chunk_id": "d68c7d4c-2ad1-4515-9a24-cc97a3129177",
+    "chunk_type": "table",
+    "page_num": 2,
+    "source_file": "21_77.pdf",
+    "structured_text": "| (cid:12377) | (cid:4785)(cid:7595) | (cid:18436)(cid:7880)(cid:3113)(cid:18437) |\n| --- | --- | --- |\n| (cid:12411) | (cid:8196)(cid:6892) |\n\n<!-- schema: {\"columns\": [\"(cid:12377)\", \"(cid:4785)(cid:7595)\", \"(cid:18436)(cid:7880)(cid:3113)(cid:18437)\", \"(cid:12411)\", \"(cid:8196)(cid:6892)\"], \"row_count\": 2, \"units\": {}} -->",
+    "intuition_summary": "The table contains multiple identifiers (cid) with various combinations.",
+    "key_concepts": [
+      "identifiers",
+      "combinations"
+    ],
+    "confidence": 0.9,
+    "agent_notes": "The table structure is clear and the content is correctly identified.",
+    "validation": {
+      "verdict_score": 1.0,
+      "issues": [],
+      "corrected_text": null
+    }
+  },
+  {
+    "chunk_id": "54d5e398-7c89-4c80-a648-b82b6808087e",
+    "chunk_type": "figure",
+    "page_num": 2,
+    "source_file": "21_77.pdf",
+    "structured_text": "GenerationResult(text=' The image is a black and white photograph of a map or diagram. The map itself is a grid with lines and lines intersected by lines. The grid itself is a simple grid with no visible labels or annotations. The map itself is not very detailed, but it is a good representation of a geographic or geographical area. The lines are straight and are evenly spaced, indicating a precise and organized layout. The grid itself is a simple grid with no visible labels or annotations. The m...",
+    "intuition_summary": "",
+    "key_concepts": [],
+    "confidence": 0.6,
+    "agent_notes": "figure_type=? | ",
+    "validation": {
+      "verdict_score": 1.0,
+      "issues": [],
+      "corrected_text": null
+    }
+  },
+  {
+    "chunk_id": "de782c22-2f6e-4d8b-96f7-a1c6b554953d",
+    "chunk_type": "figure",
+    "page_num": 2,
+    "source_file": "21_77.pdf",
+    "structured_text": "GenerationResult(text=' The image is a black and white aerial view of a map. The map includes several lines and shapes, including a series of arrows pointing towards different points on the map. The arrows are labeled with different labels: one is labeled \"x\" and another labeled \"y\". The map also includes a series of arrows pointing towards different points on the map.<end_of_utterance>', token=2, logprobs=array([-27.625, -16.7812, 0, ..., -24.9844, -24.9844, -10.1719], dtype=float16), prompt_to...",
+    "intuition_summary": "",
+    "key_concepts": [],
+    "confidence": 0.6,
+    "agent_notes": "figure_type=? | ",
+    "validation": {
+      "verdict_score": 1.0,
+      "issues": [],
+      "corrected_text": null
+    }
+  },
+  {
+    "chunk_id": "5fa34d68-2da5-4d67-b412-d8123848748f",
+    "chunk_type": "figure",
+    "page_num": 2,
+    "source_file": "21_77.pdf",
+    "structured_text": "GenerationResult(text=' The image contains a diagram or chart that appears to be a network diagram or a network diagram. The diagram consists of multiple interconnected lines or nodes, each connected to the others. The lines or nodes are colored and appear to be arranged in a grid-like pattern. The diagram includes a grid-like structure, with a central axis that runs through the image. The central axis is intersected by a grid-like structure, which appears to be a network diagram or a network di...",
+    "intuition_summary": "",
+    "key_concepts": [],
+    "confidence": 0.6,
+    "agent_notes": "figure_type=? | ",
+    "validation": {
+      "verdict_score": 1.0,
+      "issues": [],
+      "corrected_text": null
+    }
+  },
+  {
+    "chunk_id": "8d9e0885-0f29-4de2-80a8-62d342b61905",
+    "chunk_type": "figure",
+    "page_num": 2,
+    "source_file": "21_77.pdf",
+    "structured_text": "GenerationResult(text=' The image is a black and white diagram or chart. The diagram consists of a series of concentric circles. The circles are arranged in a grid-like pattern. The circles are black and the grid lines are white. The circles are evenly spaced. The diagram consists of a series of concentric circles. The circles are black and the grid lines are white. The circles are evenly spaced.<end_of_utterance>', token=2, logprobs=array([-26.875, -16.75, 0, ..., -24.3125, -24.3125, -9.50781],...",
+    "intuition_summary": "",
+    "key_concepts": [],
+    "confidence": 0.6,
+    "agent_notes": "figure_type=? | ",
+    "validation": {
+      "verdict_score": 1.0,
+      "issues": [],
+      "corrected_text": null
+    }
+  },
+  {
+    "chunk_id": "380ef4c2-1dfe-4718-ae6e-3ab7bd8f6256",
+    "chunk_type": "figure",
+    "page_num": 2,
+    "source_file": "21_77.pdf",
+    "structured_text": "GenerationResult(text=' The image contains a black and white diagram or chart. The chart contains a series of lines and arrows, with text indicating different sections. The chart includes a title at the top, which reads: \"緊張\". The chart itself is a line chart, with a series of arrows pointing to different sections. The chart includes a title at the top, which reads: \"緊張\". The chart contains a series of lines and arrows, with text indicating different sections. The chart includes a title at the t...",
+    "intuition_summary": "",
+    "key_concepts": [],
+    "confidence": 0.6,
+    "agent_notes": "figure_type=? | ",
+    "validation": {
+      "verdict_score": 1.0,
+      "issues": [],
+      "corrected_text": null
+    }
+  },
+  {
+    "chunk_id": "f8ac49bb-f015-43c5-b34b-7f3b612dc7d8",
+    "chunk_type": "figure",
+    "page_num": 2,
+    "source_file": "21_77.pdf",
+    "structured_text": "GenerationResult(text=' The image contains a chart or diagram, specifically a flowchart or a diagram, with a white background. The chart or diagram consists of a series of interconnected lines or bars, each representing a different concept or idea. The lines or bars are color-coded, with the color coding being consistent throughout the chart. The chart or diagram includes a title at the top, which reads: \"The image contains a chart or diagram, specifically a flowchart or diagram, with a white ba...",
+    "intuition_summary": "",
+    "key_concepts": [],
+    "confidence": 0.6,
+    "agent_notes": "figure_type=? | ",
+    "validation": {
+      "verdict_score": 1.0,
+      "issues": [],
+      "corrected_text": null
+    }
+  },
+  {
+    "chunk_id": "2d15ed43-85e5-44f6-bf74-0a2e5d77ab79",
+    "chunk_type": "figure",
+    "page_num": 2,
+    "source_file": "21_77.pdf",
+    "structured_text": "GenerationResult(text=' The image is a black and white diagram showing a network diagram. The diagram consists of a series of interconnected lines and shapes, each of which represents a different type of network or data structure. The lines are connected and intersect each other, forming a grid-like structure. The diagram includes a central axis, labeled as \"x\", which is the axis of the diagram. The central axis is intersected by a series of arrows, labeled as \"y\", which are arrows that point to...",
+    "intuition_summary": "",
+    "key_concepts": [],
+    "confidence": 0.6,
+    "agent_notes": "figure_type=? | ",
+    "validation": {
+      "verdict_score": 1.0,
+      "issues": [],
+      "corrected_text": null
+    }
+  },
+  {
+    "chunk_id": "23633473-520b-4fd1-9337-7de66d18c07a",
+    "chunk_type": "text",
+    "page_num": 2,
+    "source_file": "21_77.pdf",
+    "structured_text": "(cid:3)\n(cid:2119)(cid:2140)(cid:2111)(cid:2173)(cid:15914)(cid:5127)(cid:7961)(cid:5469)(cid:2139)(cid:13370)(cid:9181)(cid:2123)(cid:2168)(cid:2125)(cid:2104)(cid:2140)(cid:2104)(cid:2106)(cid:14039)(cid:6244)(cid:2112)(cid:2102)(cid:2175)(cid:15916)(cid:2123) (cid:14143)(cid:7754)(cid:14192)(cid:5469)\n(cid:2111)(cid:2123)(cid:15914)(cid:12411)(cid:8196)(cid:9108)(cid:4675)(cid:2146)(cid:8194)(cid:5592)(cid:5482)(cid:2143)(cid:2172)(cid:2175)(cid:13362)(cid:12901)(cid:4773)(cid:10618)(cid:2205...",
+    "intuition_summary": "",
+    "key_concepts": [],
+    "confidence": 0.7,
+    "agent_notes": "",
+    "validation": {
+      "verdict_score": 1.0,
+      "issues": [],
+      "corrected_text": null
+    }
+  },
+  {
+    "chunk_id": "bbb4472c-5218-4262-93cb-ec6819e4aaaf",
+    "chunk_type": "figure",
+    "page_num": 3,
+    "source_file": "21_77.pdf",
+    "structured_text": "GenerationResult(text=' The image is a photograph taken at a night time. The landscape is dark with a few indistinct lines in the foreground. There are trees and bushes in the background. The sky is very dark with a few indistinct lines in the foreground. The ground is green with some bushes and grass.<end_of_utterance>', token=2, logprobs=array([-27.4844, -17.3125, 0, ..., -25.2031, -25.2031, -10.5391], dtype=float16), prompt_tokens=988, generation_tokens=61, total_tokens=1049, prompt_tps=2942....",
+    "intuition_summary": "",
+    "key_concepts": [],
+    "confidence": 0.6,
+    "agent_notes": "figure_type=? | ",
+    "validation": {
+      "verdict_score": 1.0,
+      "issues": [],
+      "corrected_text": null
+    }
+  },
+  {
+    "chunk_id": "317a4687-bd27-42ac-b2a1-2f30a7159573",
+    "chunk_type": "figure",
+    "page_num": 3,
+    "source_file": "21_77.pdf",
+    "structured_text": "GenerationResult(text=' The image shows a field with a few lines of arrows pointing in different directions. The arrows are blue and appear to be pointing towards a specific spot or a particular feature in the field. The field is green and grassy, with patches of grass interspersed. The horizon is visible in the distance, and the sky is dark, suggesting the image might be taken at night. The camera frame is slightly off-center, with the camera lens pointing towards the horizon. The ground is gre...",
+    "intuition_summary": "",
+    "key_concepts": [],
+    "confidence": 0.6,
+    "agent_notes": "figure_type=? | ",
+    "validation": {
+      "verdict_score": 1.0,
+      "issues": [],
+      "corrected_text": null
+    }
+  },
+  {
+    "chunk_id": "ec54dc52-42d0-44fa-9f67-9f19be642d02",
+    "chunk_type": "figure",
+    "page_num": 3,
+    "source_file": "21_77.pdf",
+    "structured_text": "GenerationResult(text=' The image is a photograph of a water and land scene. The water is in the foreground, with a series of elongated lines forming a grid-like pattern in the middle ground. The land in the background is mostly dark with patches of lighter vegetation. There are several houses and structures, including a tower and a few buildings. The sky is overcast and dark, suggesting the time is dark and likely nighttime. The lighting suggests the image was taken during the night, possibly i...",
+    "intuition_summary": "",
+    "key_concepts": [],
+    "confidence": 0.6,
+    "agent_notes": "figure_type=? | ",
+    "validation": {
+      "verdict_score": 1.0,
+      "issues": [],
+      "corrected_text": null
+    }
+  },
+  {
+    "chunk_id": "4720dc11-3bfe-4e19-87d6-ec87b138800d",
+    "chunk_type": "figure",
+    "page_num": 3,
+    "source_file": "21_77.pdf",
+    "structured_text": "GenerationResult(text=' The issue is a red chart titled \"What is the population distribution?\" in a red box.<end_of_utterance>', token=2, logprobs=array([-31.6406, -18.4531, 0, ..., -28.5938, -28.5938, -12.8984], dtype=float16), prompt_tokens=988, generation_tokens=21, total_tokens=1009, prompt_tps=1480.9542604322662, generation_tps=82.91898518972825, peak_memory=9.853078706)",
+    "intuition_summary": "",
+    "key_concepts": [],
+    "confidence": 0.6,
+    "agent_notes": "figure_type=? | ",
+    "validation": {
+      "verdict_score": 1.0,
+      "issues": [],
+      "corrected_text": null
+    }
+  },
+  {
+    "chunk_id": "76e8f7e0-3c53-4f70-95fa-2178e803853c",
+    "chunk_type": "figure",
+    "page_num": 3,
+    "source_file": "21_77.pdf",
+    "structured_text": "GenerationResult(text=' The issue is a small population.<end_of_utterance>', token=2, logprobs=array([-32.1562, -18.9688, 0, ..., -29.0312, -29.0312, -14.0312], dtype=float16), prompt_tokens=988, generation_tokens=9, total_tokens=997, prompt_tps=1439.6594353317316, generation_tps=74.49912253295705, peak_memory=9.853078706)",
+    "intuition_summary": "",
+    "key_concepts": [],
+    "confidence": 0.6,
+    "agent_notes": "figure_type=? | ",
+    "validation": {
+      "verdict_score": 1.0,
+      "issues": [],
+      "corrected_text": null
+    }
+  },
+  {
+    "chunk_id": "ff566e06-9e98-4459-946e-7ab645790992",
+    "chunk_type": "figure",
+    "page_num": 3,
+    "source_file": "21_77.pdf",
+    "structured_text": "GenerationResult(text=' The image is a diagram or a chart showing a network diagram. The diagram consists of a horizontal line representing a network, a vertical line representing a network, and a horizontal line representing a network. The horizontal line represents a network, and the vertical line represents a network. The diagram consists of a horizontal line representing a network, a vertical line representing a network, and a horizontal line representing a network. The diagram consists of a...",
+    "intuition_summary": "",
+    "key_concepts": [],
+    "confidence": 0.6,
+    "agent_notes": "figure_type=? | ",
+    "validation": {
+      "verdict_score": 1.0,
+      "issues": [],
+      "corrected_text": null
+    }
+  },
+  {
+    "chunk_id": "5a1320ca-194e-454e-8378-d87c72071cae",
+    "chunk_type": "figure",
+    "page_num": 3,
+    "source_file": "21_77.pdf",
+    "structured_text": "GenerationResult(text=' The image is a 2D scatter plot. The plot consists of a horizontal line that runs horizontally across the image. The line is a solid black line. The background is a light grey surface with a slight texture.<end_of_utterance>', token=2, logprobs=array([-28.3281, -17.4844, 0, ..., -25.4062, -25.4062, -10], dtype=float16), prompt_tokens=1253, generation_tokens=46, total_tokens=1299, prompt_tps=1335.7422761235425, generation_tps=66.43927267119014, peak_memory=9.853078706)",
+    "intuition_summary": "",
+    "key_concepts": [],
+    "confidence": 0.6,
+    "agent_notes": "figure_type=? | ",
+    "validation": {
+      "verdict_score": 1.0,
+      "issues": [],
+      "corrected_text": null
+    }
+  },
+  {
+    "chunk_id": "7dfae464-3131-49d7-9c44-9ed24682dafe",
+    "chunk_type": "figure",
+    "page_num": 3,
+    "source_file": "21_77.pdf",
+    "structured_text": "GenerationResult(text=' The image is a dark view of a star chart. The chart contains a grid of stars in a horizontal orientation, with a star in the center of the grid. The star in the center is a bright white star, and there are faint lines radiating out from it. The star in the center appears to be a blue star, and there are faint lines radiating out from it. The grid is horizontal and does not intersect itself.<end_of_utterance>', token=2, logprobs=array([-28.5938, -17.6562, 0, ..., -25.8438,...",
+    "intuition_summary": "",
+    "key_concepts": [],
+    "confidence": 0.6,
+    "agent_notes": "figure_type=? | ",
+    "validation": {
+      "verdict_score": 1.0,
+      "issues": [],
+      "corrected_text": null
+    }
+  },
+  {
+    "chunk_id": "5e32d37e-0163-4ab6-9895-4d668b5ea4f6",
+    "chunk_type": "figure",
+    "page_num": 3,
+    "source_file": "21_77.pdf",
+    "structured_text": "GenerationResult(text=' The image shows a dark, overcast landscape with a few houses and a few trees. The houses are lit up with lights, indicating that the night is likely to be dark. The houses are small and are arranged in a somewhat haphazard manner. The lighting in the houses is bright, with the lights illuminating the ground and the houses themselves. The houses are lit up with lights, indicating that the night is likely to be dark. The houses are also lit up with lights, indicating that t...",
+    "intuition_summary": "",
+    "key_concepts": [],
+    "confidence": 0.6,
+    "agent_notes": "figure_type=? | ",
+    "validation": {
+      "verdict_score": 1.0,
+      "issues": [],
+      "corrected_text": null
+    }
+  },
+  {
+    "chunk_id": "787f3b8d-b042-4e0f-9f9f-f7172f57962d",
+    "chunk_type": "text",
+    "page_num": 3,
+    "source_file": "21_77.pdf",
+    "structured_text": "Olympus Tough TG-310 ISO1600 Sony α7S ISO409600 Olympus Tough TG-310 -90 0 90 -90 0 90 Space-Time Image ISO1600 Sony α7S ISO409600 -90 0 90 -90 0 90",
+    "intuition_summary": "The passage lists ISO settings and camera models with specific angle ranges and frequency values for photography.",
+    "key_concepts": [
+      "ISO settings",
+      "Olympus Tough TG-310",
+      "Sony α7S",
+      "angle ranges",
+      "frequency values"
+    ],
+    "confidence": 0.95,
+    "agent_notes": "The text is mostly clear, but there are some formatting issues with the ISO settings and camera model names, which may cause confusion. Additionally, some camera model names are repeated, and the frequency values are not consistently formatted.",
+    "validation": {
+      "verdict_score": 1.0,
+      "issues": [],
+      "corrected_text": null
+    }
+  },
+  {
+    "chunk_id": "6cf52bb1-6f4e-4b40-9e55-9b84f880c2f8",
+    "chunk_type": "table",
+    "page_num": 4,
+    "source_file": "21_77.pdf",
+    "structured_text": "| 20000\n15000 (cid:6744)(cid:18297)(cid:18249)(cid:18237)(cid:18274)(cid:10610) (cid:17439) Difficult (cid:7025)(cid:5216)(cid:18454)7\n(cid:7025)(cid:4785)(cid:18454)68\n10000 (cid:5561)(cid:4498)(cid:18454)28.633\n(cid:7558)(cid:8253)(cid:3307)(cid:5482)(cid:18454)4.516\n5000\n0\n0 51 03 54 06 57 09 501 021 531 051 561 081 591 012 522 042 552\n(cid:13156)(cid:5592) |\n| --- |\n| 2500\n(cid:17440)\n2000 (cid:6744)(cid:18297)(cid:18249)(cid:18237)(cid:18274)(cid:10610) Critical (cid:7025)(cid:5216)(cid:184...",
+    "intuition_summary": "",
+    "key_concepts": [],
+    "confidence": 0.7,
+    "agent_notes": "",
+    "validation": {
+      "verdict_score": 1.0,
+      "issues": [],
+      "corrected_text": null
+    }
+  },
+  {
+    "chunk_id": "5625def9-e1f1-4c80-81de-a44d07169472",
+    "chunk_type": "figure",
+    "page_num": 4,
+    "source_file": "21_77.pdf",
+    "structured_text": "GenerationResult(text=' The text in the blue rectangular box reads: \"Difficult\".<end_of_utterance>', token=2, logprobs=array([-32.1875, -17.8594, 0, ..., -27.625, -27.625, -12.4219], dtype=float16), prompt_tokens=723, generation_tokens=15, total_tokens=738, prompt_tps=1461.888905036092, generation_tps=78.910872142585, peak_memory=9.853078706)",
+    "intuition_summary": "",
+    "key_concepts": [],
+    "confidence": 0.6,
+    "agent_notes": "figure_type=? | ",
+    "validation": {
+      "verdict_score": 1.0,
+      "issues": [],
+      "corrected_text": null
+    }
+  },
+  {
+    "chunk_id": "b085c2d9-d831-48fe-8107-4842fb8fa02c",
+    "chunk_type": "figure",
+    "page_num": 4,
+    "source_file": "21_77.pdf",
+    "structured_text": "GenerationResult(text=' The image contains a white rectangular label with black text. The text reads:\\n\"Critical\"\\n\\nThe image contains a white rectangular label with black text. The text reads:\\n\"Critical\"\\n\\nThe image contains a white rectangular label with black text. The text reads:\\n\"Critical\"\\n\\nThe image contains a white rectangular label with black text. The text reads:\\n\"Critical\"\\n\\nThe image contains a white rectangular label with black text. The text reads:\\n\"Critical\"\\n\\nThe image c...",
+    "intuition_summary": "",
+    "key_concepts": [],
+    "confidence": 0.6,
+    "agent_notes": "figure_type=? | ",
+    "validation": {
+      "verdict_score": 1.0,
+      "issues": [],
+      "corrected_text": null
+    }
+  },
+  {
+    "chunk_id": "bf4f47c4-a2dd-4231-ba12-c3a8a5d81cfe",
+    "chunk_type": "figure",
+    "page_num": 4,
+    "source_file": "21_77.pdf",
+    "structured_text": "GenerationResult(text=' The image contains a rectangular black-and-white sign with a bold, white, rectangular label in the upper left corner. The sign reads:\\n\\n\"Favorable\"\\n\\nThe sign contains a bold, white, rectangular block in the upper left corner. The text in the block reads:\\n\\n\"Favorable\"\\n\\nThe sign contains a bold, white, rectangular block in the upper left corner. The text in the block reads:\\n\\n\"Favorable\"\\n\\nThe sign contains a bold, white, rectangular block in the upper left corner....",
+    "intuition_summary": "",
+    "key_concepts": [],
+    "confidence": 0.6,
+    "agent_notes": "figure_type=? | ",
+    "validation": {
+      "verdict_score": 1.0,
+      "issues": [],
+      "corrected_text": null
+    }
+  },
+  {
+    "chunk_id": "176885a8-3071-4350-8a92-fb6f4aee496e",
+    "chunk_type": "figure",
+    "page_num": 4,
+    "source_file": "21_77.pdf",
+    "structured_text": "GenerationResult(text=' The image contains a rectangular black-and-white sign with a bold, white, rectangular label in the upper left corner. The sign reads:\\n\\n\"Favorable\"\\n\\nThe sign contains a bold, white, rectangular block in the upper left corner. The text in the block reads:\\n\\n\"Favorable\"\\n\\nThe sign contains a bold, white, rectangular block in the upper left corner. The text in the block reads:\\n\\n\"Favorable\"\\n\\nThe sign contains a bold, white, rectangular block in the upper left corner....",
+    "intuition_summary": "",
+    "key_concepts": [],
+    "confidence": 0.6,
+    "agent_notes": "figure_type=? | ",
+    "validation": {
+      "verdict_score": 1.0,
+      "issues": [],
+      "corrected_text": null
+    }
+  },
+  {
+    "chunk_id": "10391133-b223-4dbc-98f1-907b7313e6ee",
+    "chunk_type": "figure",
+    "page_num": 4,
+    "source_file": "21_77.pdf",
+    "structured_text": "GenerationResult(text=' The image contains a white rectangular label with black text. The text reads: \"Critical\" in a bold, sans-serif font. The lettering is centered and the letter itself is a rectangle. The letter itself is a rectangle with a black border. The letter is a rectangle with a black border. The letter is a rectangle with a black border. The letter is a rectangle with a black border. The letter is a rectangle with a black border. The letter is a rectangle with a black border. The le...",
+    "intuition_summary": "",
+    "key_concepts": [],
+    "confidence": 0.6,
+    "agent_notes": "figure_type=? | ",
+    "validation": {
+      "verdict_score": 1.0,
+      "issues": [],
+      "corrected_text": null
+    }
+  },
+  {
+    "chunk_id": "85387a8e-a09e-4df2-a16d-0e73c6e44b88",
+    "chunk_type": "text",
+    "page_num": 4,
+    "source_file": "21_77.pdf",
+    "structured_text": "ces/m((cid:13311)(cid:8054)(cid:5671)(cid:7996)(cid:14273) (cid:11432)(cid:5469)(cid:7595) (cid:6821)(cid:2949)(cid:3252)(cid:7595) (cid:6821)(cid:2949)(cid:3252)(cid:7595) STIV(cid:9196)(cid:3392)(cid:12430)(cid:7122)(cid:8054)(cid:13311)(cid:18436)m/sec) -80 -",
+    "intuition_summary": "The text provides a series of measurements in meters per second, likely related to speed or velocity, with varying values indicating different conditions or observations.",
+    "key_concepts": [
+      "meters per second",
+      "measurements",
+      "speed",
+      "velocity"
+    ],
+    "confidence": 0.85,
+    "agent_notes": "The text contains a mix of structured data and extraneous characters that do not contribute to the summary. The key concepts are clear, but the presence of non-standard characters and formatting issues reduce the confidence level. The structured data appears to be a series of velocity measurements, but the context is not fully clear without additional information.",
+    "validation": {
+      "verdict_score": 1.0,
+      "issues": [],
+      "corrected_text": null
+    }
+  },
+  {
+    "chunk_id": "8c27fe1b-7611-4128-b815-793d00d98ab7",
+    "chunk_type": "table",
+    "page_num": 5,
+    "source_file": "21_77.pdf",
+    "structured_text": "| 15.0\\(cid:11432)(cid:5469)(cid:7595)10.0\\(cid:3113)(cid:7880)5.0Q=101.01(H-178.36)2R² = 0.89810.0178.4 178.6 178.8 179 179.2\\sqrt{Q\\(cid:18436}m^3/sec)| | 15.0\\(cid:6821)(cid:2949)(cid:3252)(cid:7595)10.0\\(cid:3113)(cid:7880)5.0Q = 119.18(H-143.16)2R² = 0.89990.0143.20 143.40 143.60 143.80 144.00 144.20\\sqrt{Q\\(cid:18436}m^3/sec)| | 15.0\\(cid:12377)(cid:4785)(cid:7595)10.0\\(cid:3113)(cid:7880)5.0Q = 35.26(H-72.29)2R² = 0.9570.072.50 73.00 73.50 74.00 74.50 75.00\\sqrt{Q\\(cid:18436}m^3/sec)|\n<!-...",
+    "intuition_summary": "The table shows data for different values of Q and R², with the third column representing the value of Q.",
+    "key_concepts": [
+      "Q",
+      "R²",
+      "values"
+    ],
+    "confidence": 1.0,
+    "agent_notes": "",
+    "validation": {
+      "verdict_score": 1.0,
+      "issues": [],
+      "corrected_text": null
+    }
+  },
+  {
+    "chunk_id": "33ab1fb4-d75c-40b5-8eb8-f8d927031f33",
+    "chunk_type": "figure",
+    "page_num": 5,
+    "source_file": "21_77.pdf",
+    "structured_text": "GenerationResult(text=' The image is a black and white photograph of a river flowing through a forest. The river is wide and shallow, and the water is clear and shallow. The water is flowing towards the viewer, and the reflection of the sky and the trees in the river is visible. The trees are tall and green, and the forest is dense. The sky is overcast with clouds, and the trees are silhouetted against the sky. The river is flowing towards the viewer, and the reflection of the sky and the trees ...",
+    "intuition_summary": "",
+    "key_concepts": [],
+    "confidence": 0.6,
+    "agent_notes": "figure_type=? | ",
+    "validation": {
+      "verdict_score": 1.0,
+      "issues": [],
+      "corrected_text": null
+    }
+  },
+  {
+    "chunk_id": "6cfed347-1e34-4af2-809f-943fe7a71d36",
+    "chunk_type": "text",
+    "page_num": 5,
+    "source_file": "21_77.pdf",
+    "structured_text": "15.0, 10.0, 5.0, Q = 119.18(H-143.16)2, R² = 0.8999, 143.20, 143.40, 143.60, 143.80, 144.00, 144.20 - 81 -, Q = 35.26(H-72.29)2, R² = 0.957, 72.50, 73.00, 73.50, 74.00, 74.50, 75.00",
+    "intuition_summary": "The passage presents a series of measurements and calculations related to a quantity denoted as 'Q', with corresponding hydrogen (H) and square-rooted hydrogen (√Q) values, along with R-squared (R²) statistics indicating the fit quality of a model or regression analysis.",
+    "key_concepts": [
+      "measurements",
+      "Q",
+      "hydrogen",
+      "R-squared"
+    ],
+    "confidence": 0.95,
+    "agent_notes": "The text contains numerical data and scientific terms, but lacks a clear narrative or context. The JSON structure is correctly formatted, but the 'intuition_summary' is brief and may not fully capture the complexity of the data. The 'confidence' value is subjective and assumes a high level of understanding of the scientific content.",
+    "validation": {
+      "verdict_score": 1.0,
+      "issues": [],
+      "corrected_text": null
+    }
+  },
+  {
+    "chunk_id": "33bd5ca2-76b5-48db-8f4b-5b344d22f118",
+    "chunk_type": "text",
+    "page_num": 6,
+    "source_file": "21_77.pdf",
+    "structured_text": "(cid:3)\n179.4\n1) (cid:5469)(cid:5532)100m(cid:3048)(cid:2903)(cid:2146)(cid:7961)(cid:5469)(cid:2143)(cid:2110)(cid:2104)(cid:2138)(cid:15914)(cid:6353)(cid:5703)ISO409600(cid:2182)\n179.2\n(cid:3153)(cid:9181)(cid:2125)(cid:2175)(cid:2140)(cid:15914)(cid:14807)(cid:7880)(cid:6892)(cid:2139)(cid:2147)(cid:4778)(cid:14059)(cid:2139)(cid:2166)(cid:7961)(cid:5469)(cid:8054)(cid:2182)(cid:6850)(cid:9617)(cid:2143)\n179.0 (cid:2140)(cid:2173)(cid:2108)(cid:15914)STIV(cid:2143)(cid:2172)(cid:2175)(cid:80...",
+    "intuition_summary": "",
+    "key_concepts": [],
+    "confidence": 0.7,
+    "agent_notes": "",
+    "validation": {
+      "verdict_score": 1.0,
+      "issues": [],
+      "corrected_text": null
+    }
+  }
+]
