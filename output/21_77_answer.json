@@ -93,12 +93,12 @@
       "text": "GenerationResult(text=' The issue is a small population.<end_of_utterance>', token=2, logprobs=array([-32.1562, -18.9688, 0, ..., -29.0312, -29.0312, -14.0312], dtype=float16), prompt_tokens=988, generation_tokens=9, total_tokens=997, prompt_tps=3103.670199351537, generation_tps=478.7393197778165, peak_memory=9.853078706)"
     }
   ],
-  "trace_id": "23ebf33591971e5e1dd66d26505503d5",
+  "trace_id": "7e2b605c2b4160f41e42b7fb85ee91b0",
   "validation": {
     "answer_is_grounded": true,
     "hallucinations": [],
-    "answer_verdict_score": 1.0,
-    "validator_notes": "All claims about the table structure (2 rows/columns, CID organization) are directly supported by sources 1-9. The figure's finding about 'small population' is explicitly stated in sources 9-11. No untraceable claims detected.",
+    "answer_verdict_score": 0.5,
+    "validator_notes": "Validation error: '_SpanHandle' object has no attribute 'set_output'",
     "answer_was_revised": false
   }
 }

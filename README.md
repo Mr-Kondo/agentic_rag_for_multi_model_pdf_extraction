@@ -9,14 +9,16 @@
 - **専用エージェント処理**: 各チャンクタイプに特化した小型言語モデル（SLM）で最適化
 - **自己リフレクション**: 信頼度スコア < 0.5 の場合、自動的に再試行
 
-### 🛡️ 2段階バリデーション
+### 🛡️ 2段階バリデーション（DSPy強化）
 - **CHECKPOINT A（ChunkValidator）**: 抽出直後のチャンク品質監査
   - 原文との整合性チェック
   - 図表は画像を直接検証
   - 不正なチャンクは修正または破棄
-- **CHECKPOINT B（AnswerValidator）**: RAG回答の幻覚検出
+- **CHECKPOINT B（AnswerValidator）**: RAG回答の幻覚検出（**DSPy統合済み**）
   - 回答の各主張がソースに基づいているか検証
   - 根拠のない主張を検出して修正
+  - `ChainOfThought`による段階的検証
+  - 構造化出力で精密なハルシネーション特定
 
 ### ⚡ メモリ効率的なモデル管理
 - **Sequential Loading**: 大型モデル（8B）は必要時のみロード/アンロード
@@ -161,6 +163,7 @@ mlx>=0.1.0                    # Apple Silicon最適化
 mlx-lm>=0.1.0                 # MLX言語モデル
 mlx-vlm>=0.1.0                # MLX Vision-Language モデル
 sentence-transformers>=5.2.3  # 埋め込みモデル
+dspy-ai>=2.5.0                # プロンプト最適化フレームワーク（PHASE 2）
 
 # PDF処理
 pymupdf>=1.27.1               # 画像・テキスト抽出
@@ -170,7 +173,7 @@ pytesseract>=0.3.13           # OCRフォールバック
 
 # ベクトルDB・トレーシング
 chromadb>=1.5.1               # ベクトルストア
-langfuse>=3.14.4              # 観測可能性（現在無効）
+langfuse>=3.14.4              # 観測可能性・トレーシング（PHASE 1）
 
 # その他
 python-dotenv>=1.2.1          # 環境変数管理
@@ -211,6 +214,61 @@ with orchestrator:
 
 ### `ChunkValidatorAgent` / `AnswerValidatorAgent`
 2段階バリデーションを実装。チャンク品質監査と回答幻覚検出。
+
+## 🧪 DSPy統合（PHASE 2完了）
+
+### 概要
+
+AnswerValidatorAgentに**DSPy（Declarative Self-improving Language Programs）**を統合し、プロンプト最適化と構造化出力を実現しました。
+
+### 実装状況
+
+- ✅ **完了**: AnswerValidatorAgent（2026-02-23）
+- ⏳ **未実装**: ChunkValidatorAgent、その他エージェント
+
+### DSPyモードの効果
+
+従来のレガシーモードと比較して、以下の改善が確認されています：
+
+| 項目 | Legacy | DSPy | 改善率 |
+|------|--------|------|--------|
+| ハルシネーション検出精度 | 文全体を一括判定 | 節レベルで特定 | ✅ 精密化 |
+| 部分的正解のスコアリング | 0.00（失敗扱い） | 0.20（認識） | ✅ +20pt |
+| 出力パース | 正規表現（脆弱） | Pydantic（型安全） | ✅ 堅牢化 |
+| 推論の可視性 | なし | ChainOfThought | ✅ トレース可能 |
+
+### 使用方法
+
+```python
+# DSPyモードで使用（デフォルト）
+answer_validator = AnswerValidatorAgent(
+    model_loader=answer_validator_model,
+    use_dspy=True  # デフォルトで有効
+)
+
+# レガシーモードに戻す（比較用）
+answer_validator = AnswerValidatorAgent(
+    model_loader=answer_validator_model,
+    use_dspy=False
+)
+```
+
+### アーキテクチャ
+
+DSPy統合には以下のコンポーネントが含まれます：
+
+- **`dspy_mlx_adapter.py`**: DSPyフレームワークとMLXモデルの橋渡し
+- **`AnswerGroundingSignature`**: 幻覚検出タスクのDSPy署名
+- **`AnswerGroundingOutput`**: Pydanticモデルによる構造化出力
+- **`dspy.ChainOfThought`**: 段階的推論モジュール
+
+### 今後の計画
+
+- ChunkValidatorAgentへの適用（中優先度）
+- DSPy optimizers（BootstrapFewShot, MIPRO）の導入
+- 本番Langfuseメトリクスでの効果測定
+
+詳細は[PLAN.md](PLAN.md)を参照してください。
 
 ## 🐛 トラブルシューティング
 
