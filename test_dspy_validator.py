@@ -31,11 +31,12 @@ log = logging.getLogger(__name__)
 def test_dspy_validator():
     """Test DSPy AnswerValidatorAgent with a simple example."""
 
-    # Use a smaller model for quick testing
-    model_id = "mlx-community/Qwen2.5-7B-Instruct-4bit"
+    # Use a smaller model for quick testing (3B is faster than 7B)
+    model_id = "mlx-community/Qwen2.5-3B-Instruct-4bit"
 
     log.info("=" * 70)
     log.info("Testing DSPy AnswerValidatorAgent")
+    log.info(f"Model: {model_id}")
     log.info("=" * 70)
 
     # Test question and context

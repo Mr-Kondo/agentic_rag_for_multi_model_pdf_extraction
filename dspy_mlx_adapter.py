@@ -88,16 +88,22 @@ class MLXLM(dspy.LM):
         # DSPy expects a history attribute for tracking interactions
         self.history: list[dict[str, Any]] = []
 
-    def __call__(self, prompt: str | list[dict[str, str]], **kwargs: Any) -> list[str]:
+    def __call__(
+        self,
+        prompt: str | list[dict[str, str]] | None = None,
+        messages: str | list[dict[str, str]] | None = None,
+        **kwargs: Any,
+    ) -> list[str]:
         """
         Generate text completion for the given prompt.
 
         This is the main interface method required by DSPy. It accepts either
         a string prompt or a list of message dicts (OpenAI chat format).
+        DSPy adapters call this with `messages` kwarg, but direct calls can use `prompt`.
 
         Args:
-            prompt: Either a raw string or list of chat messages
-                   [{"role": "system", "content": "..."}, {"role": "user", "content": "..."}]
+            prompt: Either a raw string or list of chat messages (positional/keyword)
+            messages: Alternative parameter name used by DSPy adapters
             **kwargs: Generation parameters (max_tokens, temperature, etc.)
 
         Returns:
@@ -108,29 +114,41 @@ class MLXLM(dspy.LM):
             log.error("Model not loaded. Call load() first or reinitialize MLXLM.")
             return [""]
 
-        # Merge kwargs
+        # DSPy adapters use 'messages' kwarg, but allow 'prompt' for direct calls
+        input_prompt = messages if messages is not None else prompt
+        if input_prompt is None:
+            log.error("No prompt or messages provided to MLXLM.__call__")
+            return [""]
+
+        # Merge kwargs - only include parameters that mlx-lm supports
         gen_kwargs = {
             "max_tokens": kwargs.get("max_tokens", self.max_tokens),
-            "temp": kwargs.get("temperature", self.temperature),
             "verbose": False,
         }
+
+        # Only add temperature if explicitly requested and non-zero
+        # (mlx-lm may not support it in all versions/configurations)
+        temp = kwargs.get("temperature", self.temperature)
+        if temp != 0.0:
+            gen_kwargs["temp"] = temp
+
         gen_kwargs.update(self.kwargs)
         gen_kwargs.update(kwargs)
 
         # Remove DSPy-specific kwargs that mlx-lm doesn't understand
-        for key in ["n", "stop", "top_p", "frequency_penalty", "presence_penalty"]:
+        for key in ["n", "stop", "top_p", "frequency_penalty", "presence_penalty", "messages"]:
             gen_kwargs.pop(key, None)
 
         # Handle both string prompts and message lists
-        if isinstance(prompt, list):
+        if isinstance(input_prompt, list):
             # Chat format: apply chat template
             formatted_prompt = self._tokenizer.apply_chat_template(
-                prompt,
+                input_prompt,
                 add_generation_prompt=True,
                 tokenize=False,
             )
         else:
-            formatted_prompt = prompt
+            formatted_prompt = input_prompt
 
         # Generate using mlx-lm
         try:
@@ -144,7 +162,7 @@ class MLXLM(dspy.LM):
             # Record interaction in history (for DSPy introspection)
             self.history.append(
                 {
-                    "prompt": prompt,
+                    "prompt": input_prompt,
                     "output": output,
                     "kwargs": gen_kwargs,
                 }
@@ -160,7 +178,8 @@ class MLXLM(dspy.LM):
 
     def basic_request(
         self,
-        prompt: str | list[dict[str, str]],
+        prompt: str | list[dict[str, str]] | None = None,
+        messages: str | list[dict[str, str]] | None = None,
         **kwargs: Any,
     ) -> dict[str, Any]:
         """
@@ -168,12 +187,13 @@ class MLXLM(dspy.LM):
 
         Args:
             prompt: String or chat message list
+            messages: Alternative parameter name used by DSPy adapters
             **kwargs: Generation parameters
 
         Returns:
             Dict with 'choices' key containing list of completion dicts
         """
-        completions = self(prompt, **kwargs)
+        completions = self(prompt=prompt, messages=messages, **kwargs)
 
         # Format as OpenAI-style response for DSPy compatibility
         return {"choices": [{"text": completion, "message": {"content": completion}} for completion in completions]}

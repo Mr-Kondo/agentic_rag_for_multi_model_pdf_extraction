@@ -689,17 +689,34 @@ class AnswerValidatorAgent(BaseLoadableModel):
                 )
 
             # Extract structured output (DSPy handles parsing)
-            is_grounded = prediction.is_grounded
-            hallucinations = prediction.hallucinations if isinstance(prediction.hallucinations, list) else []
+            # Safely extract fields with defaults
+            is_grounded = bool(getattr(prediction, "is_grounded", True))
 
-            # Handle 'null' string vs actual None
+            # Handle hallucinations list
+            hallucinations = []
+            if hasattr(prediction, "hallucinations"):
+                if isinstance(prediction.hallucinations, list):
+                    hallucinations = prediction.hallucinations
+                elif isinstance(prediction.hallucinations, str):
+                    # Parse string representation if needed
+                    hallucinations = [prediction.hallucinations] if prediction.hallucinations else []
+
+            # Handle 'null' string vs actual None for revised_answer
             revised_answer = None
             if hasattr(prediction, "revised_answer"):
                 if prediction.revised_answer and prediction.revised_answer.lower() != "null":
                     revised_answer = prediction.revised_answer
 
-            verdict_score = float(prediction.verdict_score) if hasattr(prediction, "verdict_score") else 1.0
-            validator_notes = prediction.validator_notes if hasattr(prediction, "validator_notes") else ""
+            # Safely convert verdict_score to float
+            verdict_score = 1.0
+            if hasattr(prediction, "verdict_score") and prediction.verdict_score is not None:
+                try:
+                    verdict_score = float(prediction.verdict_score)
+                except (ValueError, TypeError):
+                    log.warning(f"Invalid verdict_score: {prediction.verdict_score}, using default 1.0")
+                    verdict_score = 1.0
+
+            validator_notes = str(getattr(prediction, "validator_notes", ""))
 
             return AnswerValidationResult(
                 is_grounded=is_grounded,
