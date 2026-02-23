@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "chromadb>=1.5.1",
+    "dspy-ai>=2.5.0",
     "langfuse>=3.14.4",
     "mlx>=0.1.0",
     "mlx-lm>=0.1.0",

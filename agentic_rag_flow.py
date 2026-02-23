@@ -973,8 +973,8 @@ class AgenticRAGPipeline:
         log.info("  ✓ Chunk validator initialized")
 
         log.info("  📋 Answer validator: %s", answer_validator_model)
-        obj.answer_validator = AnswerValidatorAgent(answer_validator_model)
-        log.info("  ✓ Answer validator initialized")
+        obj.answer_validator = AnswerValidatorAgent(answer_validator_model, use_dspy=True)
+        log.info("  ✓ Answer validator initialized (DSPy-enhanced)")
 
         log.info("\n" + "=" * 70)
         log.info("✅ Pipeline ready for ingestion and querying")

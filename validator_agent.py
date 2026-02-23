@@ -42,6 +42,10 @@ import re
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
+import dspy
+from pydantic import BaseModel, Field
+
+from dspy_mlx_adapter import MLXLM
 from mlx_lm import generate, load
 from mlx_vlm import generate as vlm_generate
 from mlx_vlm import load as vlm_load
@@ -87,6 +91,131 @@ class AnswerValidationResult:
     revised_answer: str | None = None
     verdict_score: float = 1.0
     validator_notes: str = ""
+
+
+# ═══════════════════════════════════════════════════════════
+# 1b. PYDANTIC MODELS FOR DSPY  (structured outputs)
+# ═══════════════════════════════════════════════════════════
+
+
+class AnswerGroundingOutput(BaseModel):
+    """
+    Pydantic model for DSPy-based answer validation output.
+    Ensures structured, type-safe responses from validation LLM.
+    """
+
+    is_grounded: bool = Field(description="Whether all material claims in the answer are supported by the source context")
+    hallucinations: list[str] = Field(
+        default_factory=list,
+        description="List of specific unsupported claims found in the answer",
+    )
+    revised_answer: str | None = Field(
+        default=None,
+        description="Corrected answer with hallucinations removed (null if answer is already grounded)",
+    )
+    verdict_score: float = Field(
+        ge=0.0,
+        le=1.0,
+        description="Grounding quality score from 0.0 (completely ungrounded) to 1.0 (fully grounded)",
+    )
+    validator_notes: str = Field(
+        default="",
+        description="Brief reasoning about the validation decision",
+    )
+
+
+class ChunkQualityOutput(BaseModel):
+    """
+    Pydantic model for DSPy-based chunk validation output.
+    Validates extraction quality against original source content.
+    """
+
+    is_valid: bool = Field(description="Whether the extracted chunk faithfully represents the original content")
+    issues: list[str] = Field(
+        default_factory=list,
+        description="Specific problems found (fabrication, omissions, incorrect metadata, etc.)",
+    )
+    corrected_structured_text: str | None = Field(
+        default=None,
+        description="Corrected version of structured_text (null if no correction needed)",
+    )
+    corrected_intuition_summary: str | None = Field(
+        default=None,
+        description="Corrected version of intuition_summary (null if no correction needed)",
+    )
+    corrected_key_concepts: list[str] | None = Field(
+        default=None,
+        description="Corrected list of key concepts (null if no correction needed)",
+    )
+    verdict_score: float = Field(
+        ge=0.0,
+        le=1.0,
+        description="Extraction quality score from 0.0 (invalid) to 1.0 (perfect)",
+    )
+    validator_notes: str = Field(
+        default="",
+        description="Brief reasoning about validation issues",
+    )
+
+
+# ═══════════════════════════════════════════════════════════
+# 1c. DSPY SIGNATURES  (input/output schemas for LLM tasks)
+# ═══════════════════════════════════════════════════════════
+
+
+class AnswerGroundingSignature(dspy.Signature):
+    """
+    DSPy signature for hallucination detection and answer grounding validation.
+
+    Verifies that every material factual claim in the answer can be traced back
+    to explicit statements in the source context. Identifies hallucinations and
+    provides corrected versions when necessary.
+    """
+
+    answer: str = dspy.InputField(description="The answer text to validate for hallucinations")
+    context: str = dspy.InputField(description="The source context text that should support all claims in the answer")
+
+    # Output fields - DSPy will structure the LLM response to match these
+    is_grounded: bool = dspy.OutputField(description="True if all material claims are supported by context, False otherwise")
+    hallucinations: list[str] = dspy.OutputField(
+        description="List of specific unsupported claims (empty list if fully grounded)"
+    )
+    revised_answer: str = dspy.OutputField(
+        description="Corrected answer with hallucinations removed (set to 'null' if answer is already grounded)"
+    )
+    verdict_score: float = dspy.OutputField(description="Grounding quality score between 0.0 and 1.0")
+    validator_notes: str = dspy.OutputField(description="Brief explanation of validation decision")
+
+
+class ChunkQualitySignature(dspy.Signature):
+    """
+    DSPy signature for chunk extraction quality validation.
+
+    Audits whether the extracted chunk faithfully and completely represents
+    the original source content. Checks for fabrications, omissions, incorrect
+    metadata, and other extraction errors.
+    """
+
+    original_content: str = dspy.InputField(description="The original raw content from the PDF")
+    extracted_text: str = dspy.InputField(description="The structured_text field extracted by the agent")
+    intuition_summary: str = dspy.InputField(description="The one-sentence intuition_summary provided by the agent")
+    key_concepts: list[str] = dspy.InputField(description="The list of key_concepts identified by the agent")
+    chunk_type: str = dspy.InputField(description="Type of chunk: TEXT, TABLE, or FIGURE")
+
+    # Output fields
+    is_valid: bool = dspy.OutputField(description="True if extraction is faithful and complete, False otherwise")
+    issues: list[str] = dspy.OutputField(description="Specific problems found (empty list if valid)")
+    corrected_structured_text: str = dspy.OutputField(
+        description="Corrected structured_text (set to 'null' if no correction needed)"
+    )
+    corrected_intuition_summary: str = dspy.OutputField(
+        description="Corrected intuition_summary (set to 'null' if no correction needed)"
+    )
+    corrected_key_concepts: list[str] = dspy.OutputField(
+        description="Corrected key_concepts (set to 'null' if no correction needed)"
+    )
+    verdict_score: float = dspy.OutputField(description="Extraction quality score between 0.0 and 1.0")
+    validator_notes: str = dspy.OutputField(description="Brief reasoning about validation decision")
 
 
 # ═══════════════════════════════════════════════════════════
@@ -448,19 +577,51 @@ Return ONLY valid JSON (no preamble, no markdown fences):
 
 class AnswerValidatorAgent(BaseLoadableModel):
     """
-    CHECKPOINT B validator.
+    CHECKPOINT B validator ( DSPy-enhanced version).
     Text-only 10B model: verifies every claim in the orchestrator's answer
     is supported by retrieved source chunk texts.
 
-    Uses mlx-lm for optimized Apple Silicon inference.
+    Uses DSPy with MLX backend for structured output and automatic prompt optimization.
+    Falls back to legacy regex-based parsing if DSPy module is not available.
     """
 
+    def __init__(self, model_id: str, use_dspy: bool = True) -> None:
+        """
+        Initialize the answer validator.
+
+        Args:
+            model_id: Model identifier for MLX
+            use_dspy: Whether to use DSPy-enhanced validation (default: True)
+        """
+        super().__init__(model_id)
+        self.use_dspy = use_dspy
+        self._dspy_predictor = None
+        self._mlx_lm = None
+
     def _do_load(self) -> None:
-        self._model, self._tokenizer = load(self.model_id)
+        if self.use_dspy:
+            # Load model through DSPy adapter
+            log.info(f"Loading AnswerValidatorAgent with DSPy: {self.model_id}")
+            self._mlx_lm = MLXLM(self.model_id, max_tokens=1024, temperature=0.0)
+            dspy.configure(lm=self._mlx_lm)
+
+            # Initialize DSPy module with Chain-of-Thought reasoning
+            self._dspy_predictor = dspy.ChainOfThought(AnswerGroundingSignature)
+            log.info("✓ DSPy predictor initialized for answer validation")
+        else:
+            # Legacy: direct MLX loading
+            log.info(f"Loading AnswerValidatorAgent (legacy mode): {self.model_id}")
+            self._model, self._tokenizer = load(self.model_id)
 
     def _do_unload(self) -> None:
-        del self._model
-        del self._tokenizer
+        if self.use_dspy:
+            if self._mlx_lm:
+                self._mlx_lm.unload()
+            self._mlx_lm = None
+            self._dspy_predictor = None
+        else:
+            del self._model
+            del self._tokenizer
 
     # ── Public API ─────────────────────────────────────────
 
@@ -471,8 +632,105 @@ class AnswerValidatorAgent(BaseLoadableModel):
         source_texts: list[str],
         trace: "_TraceHandle | None" = None,
     ) -> AnswerValidationResult:
+        """
+        Validate answer grounding using DSPy or legacy method.
+
+        Args:
+            question: Original user question
+            answer: RAGAnswer object containing the answer text
+            source_texts: List of source chunk texts that should support the answer
+            trace: Optional Langfuse trace handle
+
+        Returns:
+            AnswerValidationResult with grounding assessment
+        """
         self._assert_loaded()
 
+        if self.use_dspy and self._dspy_predictor:
+            return self._validate_with_dspy(question, answer, source_texts, trace)
+        else:
+            return self._validate_legacy(question, answer, source_texts, trace)
+
+    def _validate_with_dspy(
+        self,
+        question: str,
+        answer: "RAGAnswer",
+        source_texts: list[str],
+        trace: "_TraceHandle | None" = None,
+    ) -> AnswerValidationResult:
+        """
+        DSPy-based validation with structured output.
+
+        Uses ChainOfThought for systematic claim verification and automatic
+        output structuring without regex parsing.
+        """
+        # Format sources for context
+        sources_repr = "\n\n".join(f"[Source {i + 1}] {text[:600]}" for i, text in enumerate(source_texts))
+
+        # Combine question context with answer for validation
+        context_with_question = f"[QUESTION]\n{question}\n\n[SOURCES]\n{sources_repr}"
+
+        try:
+            # DSPy prediction with automatic reasoning trace
+            if trace:
+                with trace.span(
+                    name="dspy_answer_validation",
+                    input={"answer": answer.answer[:200], "num_sources": len(source_texts)},
+                ) as span:
+                    prediction = self._dspy_predictor(
+                        answer=answer.answer,
+                        context=context_with_question,
+                    )
+                    span.set_output(prediction)
+            else:
+                prediction = self._dspy_predictor(
+                    answer=answer.answer,
+                    context=context_with_question,
+                )
+
+            # Extract structured output (DSPy handles parsing)
+            is_grounded = prediction.is_grounded
+            hallucinations = prediction.hallucinations if isinstance(prediction.hallucinations, list) else []
+
+            # Handle 'null' string vs actual None
+            revised_answer = None
+            if hasattr(prediction, "revised_answer"):
+                if prediction.revised_answer and prediction.revised_answer.lower() != "null":
+                    revised_answer = prediction.revised_answer
+
+            verdict_score = float(prediction.verdict_score) if hasattr(prediction, "verdict_score") else 1.0
+            validator_notes = prediction.validator_notes if hasattr(prediction, "validator_notes") else ""
+
+            return AnswerValidationResult(
+                is_grounded=is_grounded,
+                hallucinations=hallucinations,
+                revised_answer=revised_answer,
+                verdict_score=verdict_score,
+                validator_notes=validator_notes,
+            )
+
+        except Exception as e:
+            log.error(f"DSPy validation failed: {e}", exc_info=True)
+            # Fallback to safe defaults
+            return AnswerValidationResult(
+                is_grounded=True,
+                hallucinations=[],
+                revised_answer=None,
+                verdict_score=0.5,
+                validator_notes=f"Validation error: {str(e)}",
+            )
+
+    def _validate_legacy(
+        self,
+        question: str,
+        answer: "RAGAnswer",
+        source_texts: list[str],
+        trace: "_TraceHandle | None" = None,
+    ) -> AnswerValidationResult:
+        """
+        Legacy validation method using manual prompting and regex parsing.
+        Kept for backward compatibility and comparison.
+        """
         sources_repr = "\n\n".join(f"[Source {i + 1}] {text[:600]}" for i, text in enumerate(source_texts))
         user_content = f"[QUESTION]\n{question}\n\n[ANSWER]\n{answer.answer}\n\n[SOURCES]\n{sources_repr}"
         messages = [

@@ -1,6 +1,6 @@
 [
   {
-    "chunk_id": "2542c31a-9dd4-49bf-b5f0-00180cd9348b",
+    "chunk_id": "8401e2ba-d199-4ef0-b48c-f0a550d72ba8",
     "chunk_type": "text",
     "page_num": 1,
     "source_file": "21_77.pdf",
@@ -22,7 +22,7 @@
     }
   },
   {
-    "chunk_id": "44cec930-ba67-4d30-8d0c-5698bd3cf227",
+    "chunk_id": "a9fae1eb-f8a1-4658-bd35-096f45b45567",
     "chunk_type": "table",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -41,7 +41,7 @@
     }
   },
   {
-    "chunk_id": "e45001ef-784e-45ce-9fe3-723615586c6e",
+    "chunk_id": "cf9550e3-ed77-4ae6-adc4-cc976bb36e5d",
     "chunk_type": "table",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -60,7 +60,7 @@
     }
   },
   {
-    "chunk_id": "c5006587-26d7-401d-8e8c-2ab8940c21a8",
+    "chunk_id": "0cd4a149-a6a1-4971-bc4a-0235046eb4b7",
     "chunk_type": "table",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -79,7 +79,7 @@
     }
   },
   {
-    "chunk_id": "677508f3-ab42-4fda-a195-1f62718e7815",
+    "chunk_id": "fa94a2b3-ac07-420e-b2ff-5b0c72afe5aa",
     "chunk_type": "table",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -95,7 +95,7 @@
     }
   },
   {
-    "chunk_id": "dad0abab-334c-4fd4-9cac-b9ecc3137187",
+    "chunk_id": "6a569f03-8b06-4d5a-bc6b-0e12d11e5b4d",
     "chunk_type": "table",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -114,7 +114,7 @@
     }
   },
   {
-    "chunk_id": "0305f72c-0763-4494-88e9-1a65bcb63ffd",
+    "chunk_id": "63854a66-8e3c-4f4e-b8d4-e57ffc12b550",
     "chunk_type": "table",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -133,7 +133,7 @@
     }
   },
   {
-    "chunk_id": "7ac1ce82-af5c-46d3-9dbd-433d7a442d4b",
+    "chunk_id": "92167774-3358-410e-896e-8ae0880e331c",
     "chunk_type": "table",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -149,7 +149,7 @@
     }
   },
   {
-    "chunk_id": "b87c5e40-1de1-40a1-833e-9760204b6de5",
+    "chunk_id": "24fa9f4c-64e8-4019-be84-d535a7ebfd61",
     "chunk_type": "table",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -168,7 +168,7 @@
     }
   },
   {
-    "chunk_id": "cdf93ea0-0ecf-4539-852e-9e5abd09a014",
+    "chunk_id": "9a9ec365-0a89-479d-b2f6-e03736b70eb6",
     "chunk_type": "table",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -187,7 +187,7 @@
     }
   },
   {
-    "chunk_id": "4a83883c-822a-41c1-8423-3a9ee68de137",
+    "chunk_id": "3d022c00-8c91-47d3-9680-4e2eb2efa323",
     "chunk_type": "table",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -206,7 +206,7 @@
     }
   },
   {
-    "chunk_id": "65bf1991-5a91-40a1-a1a1-41e73c1b7ee9",
+    "chunk_id": "8eea2e6c-03a3-44cf-b478-d0bfa549c4e0",
     "chunk_type": "figure",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -222,7 +222,7 @@
     }
   },
   {
-    "chunk_id": "5293aa65-85e7-4da5-90b8-8100708df273",
+    "chunk_id": "83113d4d-e55d-4dbf-b4a2-289e8cee76af",
     "chunk_type": "figure",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -238,7 +238,7 @@
     }
   },
   {
-    "chunk_id": "3a94ffe4-e583-4f7a-9c7a-8941c13e55c6",
+    "chunk_id": "8706db75-2391-4883-a2d4-7d0592596b35",
     "chunk_type": "figure",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -254,7 +254,7 @@
     }
   },
   {
-    "chunk_id": "0524f85f-69c5-4b5d-a86f-8f4f23d49653",
+    "chunk_id": "856e5adb-3db0-4713-8b9f-1ab32d3ca1b6",
     "chunk_type": "figure",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -270,7 +270,7 @@
     }
   },
   {
-    "chunk_id": "684b8158-9529-4dfd-ac48-b32629e4f3e7",
+    "chunk_id": "d75f7003-ae7d-4c3b-a2ac-9cab9f1ee14d",
     "chunk_type": "figure",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -286,7 +286,7 @@
     }
   },
   {
-    "chunk_id": "9dc8b0c3-2fd4-47c9-9b9e-f948d3928555",
+    "chunk_id": "056d13cb-e2f6-4188-aad4-de4f8d7af341",
     "chunk_type": "figure",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -302,7 +302,7 @@
     }
   },
   {
-    "chunk_id": "f5f460b6-fb16-461d-a424-3080afd9c1ac",
+    "chunk_id": "c3e0bc29-5c61-4a41-a01b-fe093a4fb10f",
     "chunk_type": "figure",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -318,7 +318,7 @@
     }
   },
   {
-    "chunk_id": "0290bc06-badf-4225-83be-ca098b3d1fe1",
+    "chunk_id": "b5897aa6-4f02-4d1e-b534-ccfb6a9405c1",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -334,11 +334,11 @@
     }
   },
   {
-    "chunk_id": "2bec6b05-4b3d-454e-95f1-7b9da10b4489",
+    "chunk_id": "3da2a1da-4663-4a98-8540-f011e8797911",
     "chunk_type": "figure",
     "page_num": 3,
     "source_file": "21_77.pdf",
-    "structured_text": "GenerationResult(text=' The image is a photograph taken at a night time. The landscape is dark with a few indistinct lines in the foreground. There are trees and bushes in the background. The sky is very dark with a few indistinct lines in the foreground. The ground is green with some bushes and grass.<end_of_utterance>', token=2, logprobs=array([-27.4844, -17.3125, 0, ..., -25.2031, -25.2031, -10.5391], dtype=float16), prompt_tokens=988, generation_tokens=61, total_tokens=1049, prompt_tps=3107....",
+    "structured_text": "GenerationResult(text=' The image is a photograph taken at a night time. The landscape is dark with a few indistinct lines in the foreground. There are trees and bushes in the background. The sky is very dark with a few indistinct lines in the foreground. The ground is green with some bushes and grass.<end_of_utterance>', token=2, logprobs=array([-27.4844, -17.3125, 0, ..., -25.2031, -25.2031, -10.5391], dtype=float16), prompt_tokens=988, generation_tokens=61, total_tokens=1049, prompt_tps=3036....",
     "intuition_summary": "",
     "key_concepts": [],
     "confidence": 0.6,
@@ -350,7 +350,7 @@
     }
   },
   {
-    "chunk_id": "486a78db-ebde-46bc-a4cc-45dfbd1e4aca",
+    "chunk_id": "b662cf1e-31d3-4262-9894-365de98d00d1",
     "chunk_type": "figure",
     "page_num": 3,
     "source_file": "21_77.pdf",
@@ -366,7 +366,7 @@
     }
   },
   {
-    "chunk_id": "641442eb-eed3-4a81-8489-0fc848bd8ede",
+    "chunk_id": "61cc9793-7a5b-4540-a686-d96126e6abae",
     "chunk_type": "figure",
     "page_num": 3,
     "source_file": "21_77.pdf",
@@ -382,11 +382,11 @@
     }
   },
   {
-    "chunk_id": "b3f18619-5ce7-4faf-aa8e-3632b3aee4b5",
+    "chunk_id": "60af087b-f35e-4aac-9ede-7ff692d10235",
     "chunk_type": "figure",
     "page_num": 3,
     "source_file": "21_77.pdf",
-    "structured_text": "GenerationResult(text=' The issue is a red chart titled \"What is the population distribution?\" in a red box.<end_of_utterance>', token=2, logprobs=array([-31.6406, -18.4531, 0, ..., -28.5938, -28.5938, -12.8984], dtype=float16), prompt_tokens=988, generation_tokens=21, total_tokens=1009, prompt_tps=3106.9528355971806, generation_tps=534.8439227371504, peak_memory=9.853078706)",
+    "structured_text": "GenerationResult(text=' The issue is a red chart titled \"What is the population distribution?\" in a red box.<end_of_utterance>', token=2, logprobs=array([-31.6406, -18.4531, 0, ..., -28.5938, -28.5938, -12.8984], dtype=float16), prompt_tokens=988, generation_tokens=21, total_tokens=1009, prompt_tps=3066.170948342764, generation_tps=526.3817521007428, peak_memory=9.853078706)",
     "intuition_summary": "",
     "key_concepts": [],
     "confidence": 0.6,
@@ -398,11 +398,11 @@
     }
   },
   {
-    "chunk_id": "ea2859dc-8d02-4dbc-8963-e66fed5cfc79",
+    "chunk_id": "ba027990-7479-4b46-ab37-40e4c5c4afd6",
     "chunk_type": "figure",
     "page_num": 3,
     "source_file": "21_77.pdf",
-    "structured_text": "GenerationResult(text=' The issue is a small population.<end_of_utterance>', token=2, logprobs=array([-32.1562, -18.9688, 0, ..., -29.0312, -29.0312, -14.0312], dtype=float16), prompt_tokens=988, generation_tokens=9, total_tokens=997, prompt_tps=3085.89637537528, generation_tps=506.27926926875256, peak_memory=9.853078706)",
+    "structured_text": "GenerationResult(text=' The issue is a small population.<end_of_utterance>', token=2, logprobs=array([-32.1562, -18.9688, 0, ..., -29.0312, -29.0312, -14.0312], dtype=float16), prompt_tokens=988, generation_tokens=9, total_tokens=997, prompt_tps=3036.69078257004, generation_tps=497.7623921226156, peak_memory=9.853078706)",
     "intuition_summary": "",
     "key_concepts": [],
     "confidence": 0.6,
@@ -414,7 +414,7 @@
     }
   },
   {
-    "chunk_id": "e821dc44-8ecf-43e6-a039-8168d73e43d8",
+    "chunk_id": "b50543cc-75cc-40f5-956b-05043c5a5ace",
     "chunk_type": "figure",
     "page_num": 3,
     "source_file": "21_77.pdf",
@@ -430,11 +430,11 @@
     }
   },
   {
-    "chunk_id": "e6a627a9-3496-47bd-830f-0c5bb74bc721",
+    "chunk_id": "a23009bb-c212-47b8-9002-672fc03ebc44",
     "chunk_type": "figure",
     "page_num": 3,
     "source_file": "21_77.pdf",
-    "structured_text": "GenerationResult(text=' The image is a 2D scatter plot. The plot consists of a horizontal line that runs horizontally across the image. The line is a solid black line. The background is a light grey surface with a slight texture.<end_of_utterance>', token=2, logprobs=array([-28.3281, -17.4844, 0, ..., -25.4062, -25.4062, -10], dtype=float16), prompt_tokens=1253, generation_tokens=46, total_tokens=1299, prompt_tps=3023.4431435248184, generation_tps=521.6050335698653, peak_memory=9.853078706)",
+    "structured_text": "GenerationResult(text=' The image is a 2D scatter plot. The plot consists of a horizontal line that runs horizontally across the image. The line is a solid black line. The background is a light grey surface with a slight texture.<end_of_utterance>', token=2, logprobs=array([-28.3281, -17.4844, 0, ..., -25.4062, -25.4062, -10], dtype=float16), prompt_tokens=1253, generation_tokens=46, total_tokens=1299, prompt_tps=2975.6176842050254, generation_tps=515.622330988532, peak_memory=9.853078706)",
     "intuition_summary": "",
     "key_concepts": [],
     "confidence": 0.6,
@@ -446,7 +446,7 @@
     }
   },
   {
-    "chunk_id": "d4ee8d12-685d-40fe-b687-37ccc98efbe1",
+    "chunk_id": "21d05674-f8bd-4325-9928-f221174dcdfc",
     "chunk_type": "figure",
     "page_num": 3,
     "source_file": "21_77.pdf",
@@ -462,7 +462,7 @@
     }
   },
   {
-    "chunk_id": "4f890996-adaf-4080-9df4-b7fc81b5f1d7",
+    "chunk_id": "b4c52a28-25aa-4f43-9b66-2eb73db5967a",
     "chunk_type": "figure",
     "page_num": 3,
     "source_file": "21_77.pdf",
@@ -478,7 +478,7 @@
     }
   },
   {
-    "chunk_id": "c8901c9a-1bda-48ad-a7f3-ceb6447f3e88",
+    "chunk_id": "dba537d4-cedc-4ac6-abdf-89f0c42b5e5f",
     "chunk_type": "text",
     "page_num": 3,
     "source_file": "21_77.pdf",
@@ -500,7 +500,7 @@
     }
   },
   {
-    "chunk_id": "fbb04be9-8b0d-4153-8862-91612df8c3ba",
+    "chunk_id": "f462ca7e-3273-4755-86aa-7c5cf377d4b9",
     "chunk_type": "table",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -516,11 +516,11 @@
     }
   },
   {
-    "chunk_id": "b3111121-81a9-4df3-b9a9-00d741b81904",
+    "chunk_id": "abc4a3c8-0a9b-496a-8a7c-581ffb08027a",
     "chunk_type": "figure",
     "page_num": 4,
     "source_file": "21_77.pdf",
-    "structured_text": "GenerationResult(text=' The text in the blue rectangular box reads: \"Difficult\".<end_of_utterance>', token=2, logprobs=array([-32.1875, -17.8594, 0, ..., -27.625, -27.625, -12.4219], dtype=float16), prompt_tokens=723, generation_tokens=15, total_tokens=738, prompt_tps=3268.830816529465, generation_tps=520.8205298295671, peak_memory=9.853078706)",
+    "structured_text": "GenerationResult(text=' The text in the blue rectangular box reads: \"Difficult\".<end_of_utterance>', token=2, logprobs=array([-32.1875, -17.8594, 0, ..., -27.625, -27.625, -12.4219], dtype=float16), prompt_tokens=723, generation_tokens=15, total_tokens=738, prompt_tps=3231.848232763237, generation_tps=511.05874917387473, peak_memory=9.853078706)",
     "intuition_summary": "",
     "key_concepts": [],
     "confidence": 0.6,
@@ -532,7 +532,7 @@
     }
   },
   {
-    "chunk_id": "2416c251-3c5b-4872-b50c-82e835b50b6b",
+    "chunk_id": "70cfe8b1-60e4-4e63-9f14-616a93680ae2",
     "chunk_type": "figure",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -548,7 +548,7 @@
     }
   },
   {
-    "chunk_id": "d21784cf-fb79-4892-8d2e-956378c8cd31",
+    "chunk_id": "cebbcb70-99a5-4c0d-90db-c52789a6dd6e",
     "chunk_type": "figure",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -564,7 +564,7 @@
     }
   },
   {
-    "chunk_id": "090fe0b0-0204-475e-868a-f881d886fa48",
+    "chunk_id": "fb064731-7f44-478b-b86e-04453745eb92",
     "chunk_type": "figure",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -580,7 +580,7 @@
     }
   },
   {
-    "chunk_id": "d3cc2b04-68fe-4407-832a-067d7810f355",
+    "chunk_id": "56447f88-3075-475e-aa9e-a7a608f6ade3",
     "chunk_type": "figure",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -596,7 +596,7 @@
     }
   },
   {
-    "chunk_id": "c33c5928-60fd-42ed-b90d-53c034e0915e",
+    "chunk_id": "49779831-3cc6-4a8e-9499-8b513d32c2f8",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -617,7 +617,7 @@
     }
   },
   {
-    "chunk_id": "9f4115a2-b573-4709-a018-295a7462baf6",
+    "chunk_id": "5ec45f52-4a15-40a1-b1a3-ee515a5e70ba",
     "chunk_type": "table",
     "page_num": 5,
     "source_file": "21_77.pdf",
@@ -637,7 +637,7 @@
     }
   },
   {
-    "chunk_id": "c70eb12e-9493-43cd-80f0-9878b7c327b9",
+    "chunk_id": "9df740a1-bffe-4a0f-ab3d-98b6e767a998",
     "chunk_type": "figure",
     "page_num": 5,
     "source_file": "21_77.pdf",
@@ -653,7 +653,7 @@
     }
   },
   {
-    "chunk_id": "6d72aca3-9c71-498f-911c-b8a4e5a37f94",
+    "chunk_id": "44ed72cf-d82c-43f6-88db-f5ba5365e288",
     "chunk_type": "text",
     "page_num": 5,
     "source_file": "21_77.pdf",
@@ -674,7 +674,7 @@
     }
   },
   {
-    "chunk_id": "fde87e0d-332d-4847-9b6c-4dde5ff8c9b8",
+    "chunk_id": "8c2fe592-d25d-4f1b-a138-68e27f2d351f",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
