@@ -236,11 +236,11 @@ echo "HF_TOKEN=your_token_here" >> .env
 - Camelot（latticeモード）やAWS Textractの使用を検討してください
 - デジタルネイティブPDFでも、複雑な結合セルは誤検出されることがあります
 
-### Langfuseトレーシングが動作しない
+### Langfuseトレーシング
 
-- **現在、Langfuse SDK API非互換により無効化されています**
-- トレーシング機能は`no-op`として動作し、処理には影響しません
-- 将来のSDKアップデートで再有効化される予定です
+- Langfuse SDK v3.14.4と完全に統合されています
+- 環境変数`LANGFUSE_PUBLIC_KEY`と`LANGFUSE_SECRET_KEY`を設定すると、自動的にトレースが記録されます
+- 詳細な実装情報については[attics/PHASE_1_LANGFUSE_FIXES.md](attics/PHASE_1_LANGFUSE_FIXES.md)を参照してください
 
 ## 📚 詳細ドキュメント
 
