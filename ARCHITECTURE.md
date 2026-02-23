@@ -19,7 +19,7 @@
 | **Orchestrator** | Phi-3.5-mini (3.8B) | **DeepSeek-R1-Distill-Llama-8B** (8B)<br>推論能力強化、CoT出力 |
 | **Validator構成** | 単一ValidatorAgent | **2つの専用バリデーター**:<br>• ChunkValidatorAgent<br>• AnswerValidatorAgent |
 | **Vision検証** | テキストベースのみ | **画像を直接検証**（VLMモデル） |
-| **トレーシング** | Langfuse完全実装 | ⚠️ **現在無効化**（SDK非互換） |
+| **トレーシング** | Langfuse完全実装 | ✅ **完全動作**（v3.14.4対応） |
 
 ---
 
@@ -376,23 +376,24 @@ MLXエコシステム内でのモデル交換は容易です。
 - 人間の監査ループを組み込む
 - CHECKPOINT A/Bバリデーションで二重チェック
 
-### 5. Langfuseトレーシングの無効化
+### 5. Langfuseトレーシングの実装状態
 
-**問題**: Langfuse Python SDK (v3.14.4)のAPI仕様変更により、トレーシング機能が無効化されている。
+**ステータス**: ✅ **完全動作中**（Langfuse SDK v3.14.4対応）
 
-**現状**:
-- `LangfuseTracer`クラスは`no-op`として動作
-- 処理には一切影響なし
-- 将来のSDKアップデートで再有効化予定
+**実装内容**:
+- Phase 1で完全に修正・統合済み（[詳細](attics/PHASE_1_LANGFUSE_FIXES.md)）
+- トレース、スパン、ジェネレーション、スコアリングAPIがすべて正常動作
+- トークンカウントも正確に記録
 
-**詳細**:
-```python
-# langfuse_tracer.py
-class LangfuseTracer:
-    def trace(self, name: str):
-        # SDK非互換のため、単純なno-opハンドラーを返す
-        return _NoOpTraceHandle()
+**使用方法**:
+```bash
+# .envファイルで環境変数を設定
+LANGFUSE_PUBLIC_KEY=pk-lf-...
+LANGFUSE_SECRET_KEY=sk-lf-...
+LANGFUSE_HOST=https://cloud.langfuse.com
 ```
+
+環境変数が未設定の場合、トレーシングは自動的にスキップされ、処理には影響しません。
 
 ---
 

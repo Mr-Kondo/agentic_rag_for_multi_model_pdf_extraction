@@ -192,10 +192,38 @@ class BaseLoadableModel:
         messages: list[dict],
         output: str,
     ) -> None:
-        """Post a Langfuse Generation node if a trace handle is active."""
+        """
+        Post a Langfuse Generation node if a trace handle is active.
+        Uses tokenizer for accurate token counting if available.
+        """
         if trace is None:
             return
-        prompt_flat = " ".join(m["content"] if isinstance(m["content"], str) else str(m["content"]) for m in messages)
+
+        # Try to use tokenizer for accurate token counting
+        input_tokens = None
+        output_tokens = None
+
+        if hasattr(self, "_tokenizer") and self._tokenizer is not None:
+            try:
+                # Accurate token counting using tokenizer
+                # apply_chat_template returns token IDs array
+                prompt_tokens = self._tokenizer.apply_chat_template(messages, add_generation_prompt=True)
+                input_tokens = (
+                    len(prompt_tokens) if isinstance(prompt_tokens, list) else len(self._tokenizer.encode(prompt_tokens))
+                )
+                # Rough estimate for output: ~1 token per word
+                output_tokens = len(output.split())
+            except Exception:
+                # Fallback to word count if tokenizer fails
+                prompt_flat = " ".join(m["content"] if isinstance(m["content"], str) else str(m["content"]) for m in messages)
+                input_tokens = len(prompt_flat.split())
+                output_tokens = len(output.split())
+        else:
+            # Fallback to word count for VLM models without direct tokenizer access
+            prompt_flat = " ".join(m["content"] if isinstance(m["content"], str) else str(m["content"]) for m in messages)
+            input_tokens = len(prompt_flat.split())
+            output_tokens = len(output.split())
+
         with trace.generation(
             name=span_name,
             model=self.model_id,
@@ -203,11 +231,7 @@ class BaseLoadableModel:
             model_params={"do_sample": False},
             metadata={"role": self.__class__.__name__},
         ) as g:
-            g.set_output(
-                output,
-                input_tokens=len(prompt_flat.split()),
-                output_tokens=len(output.split()),
-            )
+            g.set_output(output, input_tokens=input_tokens, output_tokens=output_tokens)
 
 
 # ═══════════════════════════════════════════════════════════
