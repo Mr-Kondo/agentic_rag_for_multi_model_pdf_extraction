@@ -425,20 +425,20 @@ class BaseAgent:
                 f"agent_{chunk.chunk_type.value}",
                 input={"page": chunk.page_num},
             ) as s:
-                result = self._run_with_retry(chunk)
+                result = self._run_with_retry(chunk, trace)
                 s.update(output={"confidence": result.confidence})
         else:
-            result = self._run_with_retry(chunk)
+            result = self._run_with_retry(chunk, None)
         return result
 
-    def _run_with_retry(self, chunk: RawChunk) -> ProcessedChunk:
-        result = self._run(chunk, retry=False)
+    def _run_with_retry(self, chunk: RawChunk, trace: _TraceHandle | None) -> ProcessedChunk:
+        result = self._run(chunk, retry=False, trace=trace)
         if result.confidence < self.CONFIDENCE_THRESHOLD:
             log.warning("%s: retrying p.%d (conf=%.2f)", self.__class__.__name__, chunk.page_num, result.confidence)
-            result = self._run(chunk, retry=True)
+            result = self._run(chunk, retry=True, trace=trace)
         return result
 
-    def _run(self, chunk: RawChunk, retry: bool = False) -> ProcessedChunk:
+    def _run(self, chunk: RawChunk, retry: bool = False, trace: _TraceHandle | None = None) -> ProcessedChunk:
         raise NotImplementedError
 
     @staticmethod
@@ -479,14 +479,32 @@ class TextAgent(BaseAgent):
     def _load_model(self):
         self._model, self._tokenizer = _model_cache.load_text_model(self.model_id)
 
-    def _run(self, chunk: RawChunk, retry: bool = False) -> ProcessedChunk:
+    def _run(self, chunk: RawChunk, retry: bool = False, trace: _TraceHandle | None = None) -> ProcessedChunk:
         content = str(chunk.raw_content) + (self.RETRY_SUFFIX if retry else "")
         messages = [
             {"role": "system", "content": _TEXT_SYSTEM},
             {"role": "user", "content": f"PASSAGE:\n{content}"},
         ]
         prompt = self._tokenizer.apply_chat_template(messages, add_generation_prompt=True)
-        raw = generate(self._model, self._tokenizer, prompt=prompt, max_tokens=512, verbose=False)
+
+        # Token計測: apply_chat_template returns token IDs array
+        input_tokens = len(prompt) if isinstance(prompt, list) else len(self._tokenizer.encode(prompt))
+
+        # Generation with tracing
+        if trace:
+            with trace.generation(
+                name="text_extraction",
+                model=self.model_id,
+                input={"messages": messages},
+                model_params={"max_tokens": 512},
+            ) as g:
+                raw = generate(self._model, self._tokenizer, prompt=prompt, max_tokens=512, verbose=False)
+                # Estimate output tokens from response text
+                output_tokens = len(raw.split())  # Rough estimate: ~1 token per word
+                g.set_output(raw, input_tokens=input_tokens, output_tokens=output_tokens)
+        else:
+            raw = generate(self._model, self._tokenizer, prompt=prompt, max_tokens=512, verbose=False)
+
         p = self._safe_json(raw)
         return ProcessedChunk(
             chunk_type=ChunkType.TEXT,
@@ -516,14 +534,31 @@ class TableAgent(BaseAgent):
     def _load_model(self):
         self._model, self._tokenizer = _model_cache.load_text_model(self.model_id)
 
-    def _run(self, chunk: RawChunk, retry: bool = False) -> ProcessedChunk:
+    def _run(self, chunk: RawChunk, retry: bool = False, trace: _TraceHandle | None = None) -> ProcessedChunk:
         content = str(chunk.raw_content) + (self.RETRY_SUFFIX if retry else "")
         messages = [
             {"role": "system", "content": _TABLE_SYSTEM},
             {"role": "user", "content": f"TABLE:\n{content}"},
         ]
         prompt = self._tokenizer.apply_chat_template(messages, add_generation_prompt=True)
-        raw = generate(self._model, self._tokenizer, prompt=prompt, max_tokens=768, verbose=False)
+
+        # Token計測: apply_chat_template returns token IDs array
+        input_tokens = len(prompt) if isinstance(prompt, list) else len(self._tokenizer.encode(prompt))
+
+        # Generation with tracing
+        if trace:
+            with trace.generation(
+                name="table_extraction",
+                model=self.model_id,
+                input={"messages": messages},
+                model_params={"max_tokens": 768},
+            ) as g:
+                raw = generate(self._model, self._tokenizer, prompt=prompt, max_tokens=768, verbose=False)
+                output_tokens = len(raw.split())  # Rough estimate: ~1 token per word
+                g.set_output(raw, input_tokens=input_tokens, output_tokens=output_tokens)
+        else:
+            raw = generate(self._model, self._tokenizer, prompt=prompt, max_tokens=768, verbose=False)
+
         p = self._safe_json(raw)
         schema_ann = f"\n<!-- schema: {json.dumps(p.get('schema', {}), ensure_ascii=False)} -->"
         return ProcessedChunk(
@@ -559,7 +594,7 @@ class VisionAgent(BaseAgent):
             log.warning("VisionAgent: vision model failed (%s). OCR fallback.", e)
             self._use_vision = False
 
-    def _run(self, chunk: RawChunk, retry: bool = False) -> ProcessedChunk:
+    def _run(self, chunk: RawChunk, retry: bool = False, trace: _TraceHandle | None = None) -> ProcessedChunk:
         if not self._use_vision:
             return self._ocr_fallback(chunk)
         img = chunk.raw_content
@@ -570,9 +605,23 @@ class VisionAgent(BaseAgent):
         full_prompt = f"{_VISION_SYSTEM}\n\n{user_text}"
         prompt = apply_chat_template(self._processor, self._config, full_prompt, num_images=1)
 
-        result = vlm_generate(self._model, self._processor, prompt, [img], verbose=False)
-        # Extract text from GenerationResult object
-        output = result if isinstance(result, str) else str(result)
+        # Generation with tracing (VLM - token count not available)
+        if trace:
+            with trace.generation(
+                name="vision_extraction",
+                model=self.model_id,
+                input={"prompt": full_prompt, "has_image": True},
+                model_params={},
+            ) as g:
+                result = vlm_generate(self._model, self._processor, prompt, [img], verbose=False)
+                # Extract text from GenerationResult object
+                output = result if isinstance(result, str) else str(result)
+                # Token count not available for VLM models
+                g.set_output(output, input_tokens=None, output_tokens=None)
+        else:
+            result = vlm_generate(self._model, self._processor, prompt, [img], verbose=False)
+            output = result if isinstance(result, str) else str(result)
+
         p = self._safe_json(output)
         return ProcessedChunk(
             chunk_type=ChunkType.FIGURE,
@@ -768,8 +817,13 @@ class ReasoningOrchestratorAgent(BaseLoadableModel):
         messages = [{"role": "user", "content": prompt}]
 
         formatted_prompt = self._tokenizer.apply_chat_template(messages, add_generation_prompt=True)
-        output = generate(self._model, self._tokenizer, prompt=formatted_prompt, max_tokens=2048, verbose=False)
 
+        # Token計測: apply_chat_template returns token IDs array
+        input_tokens = (
+            len(formatted_prompt) if isinstance(formatted_prompt, list) else len(self._tokenizer.encode(formatted_prompt))
+        )
+
+        # Generation with tracing
         if trace:
             with trace.generation(
                 name="orchestrator_reasoning",
@@ -777,7 +831,11 @@ class ReasoningOrchestratorAgent(BaseLoadableModel):
                 input={"messages": messages},
                 model_params={"max_tokens": 2048},
             ) as g:
-                g.set_output(output, input_tokens=len(prompt.split()), output_tokens=len(output.split()))
+                output = generate(self._model, self._tokenizer, prompt=formatted_prompt, max_tokens=2048, verbose=False)
+                output_tokens = len(output.split())  # Rough estimate: ~1 token per word
+                g.set_output(output, input_tokens=input_tokens, output_tokens=output_tokens)
+        else:
+            output = generate(self._model, self._tokenizer, prompt=formatted_prompt, max_tokens=2048, verbose=False)
 
         reasoning, answer = self._strip_reasoning(output)
         return RAGAnswer(
