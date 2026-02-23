@@ -19,7 +19,8 @@
 | **Orchestrator** | Phi-3.5-mini (3.8B) | **DeepSeek-R1-Distill-Llama-8B** (8B)<br>推論能力強化、CoT出力 |
 | **Validator構成** | 単一ValidatorAgent | **2つの専用バリデーター**:<br>• ChunkValidatorAgent<br>• AnswerValidatorAgent |
 | **Vision検証** | テキストベースのみ | **画像を直接検証**（VLMモデル） |
-| **トレーシング** | Langfuse完全実装 | ✅ **完全動作**（v3.14.4対応） |
+| **トレーシング** | Langfuse完全実装 | ✅ **完全動作**（v3.14.4対応・PHASE 1） |
+| **プロンプト最適化** | 手動調整 | ✅ **DSPy統合**（PHASE 2・Part 1完了）<br>AnswerValidator自動最適化対応 |
 
 ---
 
@@ -395,6 +396,41 @@ LANGFUSE_HOST=https://cloud.langfuse.com
 
 環境変数が未設定の場合、トレーシングは自動的にスキップされ、処理には影響しません。
 
+### 6. DSPy統合の実装状態
+
+**ステータス**: ✅ **Part 1完了 - AnswerValidator対応**（DSPy v3.1.3対応）
+
+**実装内容**:
+- Phase 2 Part 1で完全に実装済み（2026-02-23）
+- AnswerValidatorAgentにDSPy ChainOfThoughtモジュールを統合
+- MLX専用アダプタ（`MLXLM`）を実装し、Apple Silicon最適化を維持
+- Pydantic構造化出力により、正規表現解析の脆弱性を排除
+
+**統合ファイル**:
+- `dspy_mlx_adapter.py`: DSPyとMLXフレームワークの橋渡し
+- `validator_agent.py`: AnswerValidatorAgentにDSPyロジックを追加（dual-mode対応）
+- `agentic_rag_flow.py`: デフォルトで`use_dspy=True`を使用
+
+**検証済み改善点**:
+- 🎯 **精度向上**: 文レベル→節レベルの幻覚検出（テストケースで確認）
+- 📊 **スコアリング改善**: 部分的正解の認識（0.00→0.20）
+- 🏗️ **構造化出力**: Pydanticモデルによる型安全性
+- 💭 **推論の可視性**: ChainOfThought推論プロセスのトレース
+
+**使用方法**:
+```python
+# DSPyモードで使用（デフォルト）
+validator = AnswerValidatorAgent(model, use_dspy=True)
+
+# レガシーモードに戻す（必要に応じて）
+validator = AnswerValidatorAgent(model, use_dspy=False)
+```
+
+**今後の拡張計画**:
+- ChunkValidatorAgentへのDSPy適用（優先度：中）
+- DSPyオプティマイザーの導入（BootstrapFewShot, MIPRO）
+- 本番Langfuseメトリクスでのパフォーマンス測定
+
 ---
 
 ## 📦 インストール
@@ -430,7 +466,8 @@ dependencies = [
     "pdfplumber>=0.11.9",            # テーブル抽出
     "pillow>=12.1.1",                # 画像処理
     "pytesseract>=0.3.13",           # OCRフォールバック
-    "langfuse>=3.14.4",              # トレーシング（現在無効）
+    "dspy-ai>=2.5.0",                # プロンプト最適化（PHASE 2）
+    "langfuse>=3.14.4",              # トレーシング（PHASE 1）
     "python-dotenv>=1.2.1",          # 環境変数管理
     "unstructured>=0.20.8",          # ドキュメント処理
 ]
@@ -444,7 +481,7 @@ dependencies = [
 # HuggingFace認証（モデルダウンロード用）
 HF_TOKEN=your_huggingface_token
 
-# Langfuseトレーシング（オプション・現在無効化中）
+# Langfuseトレーシング（オプション）
 LANGFUSE_PUBLIC_KEY=your_public_key
 LANGFUSE_SECRET_KEY=your_secret_key
 LANGFUSE_HOST=https://cloud.langfuse.com
