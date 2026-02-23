@@ -50,6 +50,26 @@ self._client.create_score(
 )
 ```
 
+### 5. ✅ Score data_type Normalization Warning
+**Problem:** Warning logged every time scores are created: `"Normalizing score data_type from 'numeric' to 'NUMERIC' for score 'answer_grounding'"`
+
+**Root Cause:** The `score()` method's default parameter used lowercase `data_type="numeric"`, but Langfuse SDK expects uppercase enum-style strings (`"NUMERIC"`, `"BOOLEAN"`, etc.). The normalization function would convert it and log a warning on every score creation.
+
+**Solution:** Changed the default parameter to uppercase:
+```python
+# langfuse_tracer.py (line 204)
+def score(
+    self,
+    trace_id: str,
+    name: str,
+    value: float | int,
+    comment: str | None = None,
+    data_type: str = "NUMERIC",  # Changed from "numeric" to "NUMERIC"
+) -> None:
+```
+
+**Impact:** Both existing scores (`chunk_quality` and `answer_grounding`) now inherit the correct uppercase default, eliminating the normalization warning while maintaining backward compatibility through the existing normalization logic.
+
 ## Current Status
 
 ### Working Features
@@ -62,6 +82,7 @@ self._client.create_score(
 
 ### Minor Warnings (Non-blocking)
 - **"No active span in current context"** - Informational warning from Langfuse about nested context propagation. Operations complete successfully despite the warning.
+- ~~**Score data_type normalization warning**~~ - ✅ **Fixed** (2026-02-23): Changed default parameter to uppercase `"NUMERIC"`.
 
 ### Implementation Pattern (Langfuse v3.14.4)
 

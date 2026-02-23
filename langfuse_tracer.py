@@ -201,7 +201,7 @@ class LangfuseTracer:
         name: str,
         value: float | int,
         comment: str | None = None,
-        data_type: str = "numeric",
+        data_type: str = "NUMERIC",
     ) -> None:
         """
         Score a trace using Langfuse's scoring API.
