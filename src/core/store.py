@@ -18,10 +18,10 @@ log = logging.getLogger(__name__)
 class ChunkStore:
     """
     Manages chunk storage and retrieval using ChromaDB vector database.
-    
+
     Embeds chunks using multilingual e5-small model and stores in persistent
     ChromaDB collection with cosine similarity search.
-    
+
     Attributes:
         EMBED_MODEL: Sentence transformer model for embeddings
         _embedder: SentenceTransformer instance
@@ -34,7 +34,7 @@ class ChunkStore:
     def __init__(self, persist_dir: str = "./chroma_db"):
         """
         Initialize chunk store with persistent ChromaDB.
-        
+
         Args:
             persist_dir: Directory for ChromaDB persistence
         """
@@ -45,9 +45,9 @@ class ChunkStore:
     def upsert(self, chunks: list[ProcessedChunk]) -> None:
         """
         Insert or update chunks in the vector database.
-        
+
         Embeds chunk text and upserts with metadata for filtering.
-        
+
         Args:
             chunks: List of ProcessedChunk objects to upsert
         """
@@ -79,12 +79,12 @@ class ChunkStore:
     def query(self, question: str, n_results: int = 6, chunk_type: ChunkType | None = None) -> list[dict]:
         """
         Query the vector store for relevant chunks.
-        
+
         Args:
             question: Query text to search for
             n_results: Number of results to return
             chunk_type: Optional filter for specific chunk type
-            
+
         Returns:
             List of dicts with 'text', 'meta', and 'score' keys
         """
