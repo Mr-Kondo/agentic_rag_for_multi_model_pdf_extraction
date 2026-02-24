@@ -253,7 +253,7 @@ class AgenticRAGPipeline:
                     # ← ChunkValidatorAgent.unload() called here automatically
                     log.info("  [UNLOAD] ChunkValidatorAgent unloaded")
                     log.info("✓ Chunk validation complete: %d corrected, %d discarded", corrected_count, discarded_count)
-                
+
                 except (TypeError, Exception) as e:
                     # Vision model loading failed - fallback to confidence-based filtering
                     log.error(
