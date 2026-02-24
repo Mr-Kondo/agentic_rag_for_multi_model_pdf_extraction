@@ -31,6 +31,7 @@ from pathlib import Path
 from src.core.cache import _model_cache
 from src.core.models import ChunkType
 from src.core.pipeline import AgenticRAGPipeline
+from src.core.langgraph_pipeline import LangGraphQueryPipeline
 from src.utils.serialization import save_answer, save_chunks
 
 # Configure logging
@@ -126,23 +127,38 @@ def cmd_query(args: argparse.Namespace) -> int:
     """
     question = args.question
 
-    log.info("Building RAG pipeline...")
-    pipeline = AgenticRAGPipeline.build(
-        text_model=args.text_model,
-        table_model=args.table_model,
-        vision_model=args.vision_model,
-        orchestrator_model=args.orchestrator_model,
-        chunk_validator_model=args.chunk_validator_model,
-        answer_validator_model=args.answer_validator_model,
-        persist_dir=args.storage_dir,
-        lazy_agents=args.lazy_agents,
-    )
+    # Choose pipeline implementation
+    if args.use_langgraph:
+        log.info("Building LangGraph RAG pipeline...")
+        pipeline = LangGraphQueryPipeline.build(
+            orchestrator_model=args.orchestrator_model,
+            answer_validator_model=args.answer_validator_model,
+            persist_dir=args.storage_dir,
+        )
 
-    log.info(f"\n{'=' * 70}")
-    log.info(f"🔍 Query: {question}")
-    log.info(f"{'=' * 70}\n")
+        log.info(f"\n{'=' * 70}")
+        log.info(f"🔍 Query (LangGraph): {question}")
+        log.info(f"{'=' * 70}\n")
 
-    result = pipeline.query(question, session_id=args.session_id, validates=args.validate)
+        result = pipeline.query(question, session_id=args.session_id, validates=args.validate)
+    else:
+        log.info("Building RAG pipeline...")
+        pipeline = AgenticRAGPipeline.build(
+            text_model=args.text_model,
+            table_model=args.table_model,
+            vision_model=args.vision_model,
+            orchestrator_model=args.orchestrator_model,
+            chunk_validator_model=args.chunk_validator_model,
+            answer_validator_model=args.answer_validator_model,
+            persist_dir=args.storage_dir,
+            lazy_agents=args.lazy_agents,
+        )
+
+        log.info(f"\n{'=' * 70}")
+        log.info(f"🔍 Query: {question}")
+        log.info(f"{'=' * 70}\n")
+
+        result = pipeline.query(question, session_id=args.session_id, validates=args.validate)
 
     # Display answer
     print("\n" + "=" * 70)
@@ -236,7 +252,17 @@ def cmd_pipeline(args: argparse.Namespace) -> int:
     log.info(f"🔍 PHASE 2: QUERYING")
     log.info(f"{'=' * 70}\n")
 
-    result = pipeline.query(question, session_id=args.session_id, validates=args.validate)
+    # Use LangGraph for query if requested
+    if args.use_langgraph:
+        log.info("Using LangGraph pipeline for query phase...")
+        langgraph_pipeline = LangGraphQueryPipeline.build(
+            orchestrator_model=args.orchestrator_model,
+            answer_validator_model=args.answer_validator_model,
+            persist_dir=args.storage_dir,
+        )
+        result = langgraph_pipeline.query(question, session_id=args.session_id, validates=args.validate)
+    else:
+        result = pipeline.query(question, session_id=args.session_id, validates=args.validate)
 
     # Display answer
     print("\n" + "=" * 70)
@@ -374,6 +400,12 @@ For more information, see: https://github.com/yourusername/agentic-rag
         action="store_false",
         help="Skip hallucination detection (faster, less reliable)",
     )
+    query_parser.add_argument(
+        "--use-langgraph",
+        action="store_true",
+        default=False,
+        help="Use LangGraph-based pipeline (improved workflow visibility)",
+    )
     query_parser.set_defaults(func=cmd_query)
 
     # ── PIPELINE SUBCOMMAND ──
@@ -409,6 +441,12 @@ For more information, see: https://github.com/yourusername/agentic-rag
         dest="validate",
         action="store_false",
         help="Skip all validation (fastest, least reliable)",
+    )
+    pipeline_parser.add_argument(
+        "--use-langgraph",
+        action="store_true",
+        default=False,
+        help="Use LangGraph-based pipeline for query phase (improved workflow)",
     )
     pipeline_parser.set_defaults(func=cmd_pipeline)
 

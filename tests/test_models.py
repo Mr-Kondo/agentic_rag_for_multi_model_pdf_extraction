@@ -52,7 +52,7 @@ class TestRawChunk:
             source_file="test.pdf",
             raw_content="Sample text content",
         )
-        
+
         assert chunk.chunk_type == ChunkType.TEXT
         assert chunk.page_num == 1
         assert chunk.source_file == "test.pdf"
@@ -61,16 +61,16 @@ class TestRawChunk:
     def test_raw_chunk_with_image(self):
         """Test RawChunk can hold image content."""
         from PIL import Image
-        
+
         img = Image.new("RGB", (100, 100), color="red")
-        
+
         chunk = RawChunk(
             chunk_type=ChunkType.FIGURE,
             page_num=2,
             source_file="test.pdf",
             raw_content=img,
         )
-        
+
         assert chunk.chunk_type == ChunkType.FIGURE
         assert isinstance(chunk.raw_content, Image.Image)
 
@@ -96,7 +96,7 @@ class TestProcessedChunk:
             key_concepts=["concept"],
             confidence=0.8,
         )
-        
+
         # Check default values
         assert chunk.agent_notes == ""
         assert chunk.validation is None
@@ -119,7 +119,7 @@ class TestRAGAnswer:
             reasoning_trace="",
             source_chunks=[],
         )
-        
+
         assert answer.trace_id is None
         assert answer.validation_summary is None
 
@@ -136,7 +136,7 @@ class TestValidationResults:
             verdict_score=0.6,
             validator_notes="Needs improvement",
         )
-        
+
         assert result.is_valid is False
         assert len(result.issues) == 1
         assert result.verdict_score == 0.6
@@ -150,7 +150,7 @@ class TestValidationResults:
             verdict_score=0.95,
             validator_notes="All claims supported",
         )
-        
+
         assert result.is_grounded is True
         assert len(result.hallucinations) == 0
         assert result.verdict_score == 0.95
@@ -164,7 +164,7 @@ class TestValidationResults:
             validator_notes="Clean",
             answer_was_revised=False,
         )
-        
+
         assert summary.answer_is_grounded is True
         assert summary.answer_was_revised is False
 
@@ -180,7 +180,7 @@ def test_all_models_import():
         RawChunk,
         ValidationSummary,
     )
-    
+
     # Verify all imports are available
     assert ChunkType is not None
     assert RawChunk is not None
