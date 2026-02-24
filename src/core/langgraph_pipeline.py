@@ -550,8 +550,8 @@ class LangGraphQueryPipeline:
             with orchestrator:
                 log.info("  [LOAD] OrchestratorAgent loaded (~16GB)")
                 result = orchestrator.generate(
-                    query=state["question"],
-                    context_chunks=state["retrieved_hits"],
+                    question=state["question"],
+                    hits=state["retrieved_hits"],
                     trace=trace,
                 )
                 log.info("  ✓ Answer generated (%d chars)", len(result.answer))
