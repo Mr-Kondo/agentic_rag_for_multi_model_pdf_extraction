@@ -494,19 +494,13 @@ class LangGraphQueryPipeline:
         Returns:
             Initialized LangGraphQueryPipeline
         """
-        from src.core.cache import _model_cache
-
         log.info("Building LangGraphQueryPipeline...")
 
         # Initialize components
-        orchestrator = ReasoningOrchestratorAgent(
-            model_loader=_model_cache.load_text_model,
-            model_id=orchestrator_model,
-        )
+        orchestrator = ReasoningOrchestratorAgent(orchestrator_model)
 
         answer_validator = AnswerValidatorAgent(
-            model_loader=_model_cache.load_text_model,
-            model_id=answer_validator_model,
+            answer_validator_model,
             use_dspy=True,
         )
 
