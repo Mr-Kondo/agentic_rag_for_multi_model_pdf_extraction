@@ -71,14 +71,22 @@ HF_HOME=./models
 ### 基本的な使い方
 
 ```bash
-# PDFを処理してチャンクを抽出・保存
-uv run ./agentic_rag_flow.py ./input/your_paper.pdf
+# PDFインジェスト（チャンク抽出・保存）
+python app.py ingest ./input/your_paper.pdf
 
-# バリデーションを有効化して処理
-uv run ./agentic_rag_flow.py ./input/your_paper.pdf --validate
+# バリデーション付きインジェスト
+python app.py ingest ./input/your_paper.pdf --validate
 
-# RAGクエリを実行
-uv run ./agentic_rag_flow.py ./input/your_paper.pdf --query "図2は何を示していますか？"
+# RAGクエリ実行
+python app.py query "図2は何を示していますか？"
+
+# フルパイプライン（インジェスト + クエリ）
+python app.py pipeline ./input/your_paper.pdf "図2は何を示していますか？" --validate
+
+# ヘルプを表示
+python app.py --help
+python app.py ingest --help
+python app.py query --help
 ```
 
 ### 出力ファイル
@@ -136,20 +144,46 @@ RAGAnswer (validation, sources, reasoning)
 
 ```
 agentic_rag_for_multi_model_pdf_extraction/
-├── agentic_rag_flow.py      # メインパイプライン（1172行）
-├── validator_agent.py        # バリデーションエージェント（473行）
-├── langfuse_tracer.py        # トレーシング（現在無効化）
-├── pyproject.toml            # 依存関係定義
+├── app.py                    # CLIエントリーポイント（540行）
+├── agentic_rag_flow.py      # 後方互換ラッパー（非推奨）
+├── pyproject.toml            # 依存関係・パッケージ定義
 ├── README.md                 # このファイル
 ├── ARCHITECTURE.md           # 技術詳細ドキュメント
+├── MIGRATION.md              # v0.3.0移行ガイド
 ├── .env                      # 環境変数（要作成）
 ├── .gitignore                # Git除外設定
+│
+├── src/                      # メインパッケージ
+│   ├── core/                 # コア機能
+│   │   ├── models.py         # データ構造（ChunkType, RAGAnswerなど）
+│   │   ├── cache.py          # モデルキャッシュ管理
+│   │   ├── parser.py         # PDFParser（pdfplumber + PyMuPDF）
+│   │   ├── store.py          # ChromaDB ベクトルストア
+│   │   └── pipeline.py       # AgenticRAGPipeline メイン実装
+│   ├── agents/               # AIエージェント
+│   │   ├── base.py           # BaseAgent, BaseLoadableModel
+│   │   ├── extraction.py     # Text/Table/Visionエージェント
+│   │   ├── router.py         # AgentRouter（チャンク振り分け）
+│   │   ├── orchestrator.py   # ReasoningOrchestratorAgent（RAG推論）
+│   │   └── validation.py     # Chunk/Answer バリデーター
+│   ├── integrations/         # 外部統合
+│   │   ├── dspy_modules.py   # DSPy Signatures & Pydantic モデル
+│   │   ├── dspy_adapter.py   # MLXLM（DSPy ⇔ MLX ブリッジ）
+│   │   └── langfuse.py       # LangfuseTracer（オブザーバビリティ）
+│   └── utils/                # ユーティリティ
+│       └── serialization.py  # JSON出力ヘルパー
+│
+├── tests/                    # pytestテストスイート
+│   ├── conftest.py           # 共通フィクスチャ
+│   ├── test_models.py        # データ構造のユニットテスト
+│   ├── test_pipeline.py      # パイプライン統合テスト
+│   └── test_dspy_validator.py # DSPy検証テスト
 │
 ├── input/                    # 処理対象のPDFファイルを配置
 ├── output/                   # 処理結果（チャンク、回答）
 ├── chroma_db/                # ベクトルDB永続化
 ├── models/                   # ローカルモデルキャッシュ
-└── attics/                   # 旧バージョン情報
+└── attics/                   # 旧バージョン情報・ドキュメント
 ```
 
 ## 🔧 技術スタック
@@ -186,6 +220,11 @@ unstructured>=0.20.8          # ドキュメント処理ユーティリティ
 メインのパイプラインクラス。PDF処理、チャンク抽出、ベクトルストアへの保存、RAGクエリを統合。
 
 ```python
+from src.core.pipeline import AgenticRAGPipeline
+from src.core.parser import PDFParser
+from src.agents.router import AgentRouter
+from src.core.store import ChunkStore
+
 rag = AgenticRAGPipeline(
     pdf_parser=PDFParser(),
     router=AgentRouter(...),
@@ -201,6 +240,8 @@ chunks = rag.ingest(pdf_path, validates=True)
 # RAGクエリ
 answer = rag.query(question, validates=True)
 ```
+
+**Note**: v0.3.0では、すべてのコアクラスが`src/`パッケージに移行しました。後方互換性のため、`from agentic_rag_flow import ...`もまだ動作しますが、非推奨警告が表示されます。詳細は[MIGRATION.md](MIGRATION.md)を参照してください。
 
 ### `BaseLoadableModel`
 モデルのライフサイクル管理Mixin。明示的なload/unloadでメモリ効率化。
@@ -240,6 +281,8 @@ AnswerValidatorAgentに**DSPy（Declarative Self-improving Language Programs）*
 ### 使用方法
 
 ```python
+from src.agents.validation import AnswerValidatorAgent
+
 # DSPyモードで使用（デフォルト）
 answer_validator = AnswerValidatorAgent(
     model_loader=answer_validator_model,
@@ -257,10 +300,11 @@ answer_validator = AnswerValidatorAgent(
 
 DSPy統合には以下のコンポーネントが含まれます：
 
-- **`dspy_mlx_adapter.py`**: DSPyフレームワークとMLXモデルの橋渡し
-- **`AnswerGroundingSignature`**: 幻覚検出タスクのDSPy署名
-- **`AnswerGroundingOutput`**: Pydanticモデルによる構造化出力
-- **`dspy.ChainOfThought`**: 段階的推論モジュール
+- **[src/integrations/dspy_adapter.py](src/integrations/dspy_adapter.py)**: DSPyフレームワークとMLXモデルの橋渡し（`MLXLM`クラス）
+- **[src/integrations/dspy_modules.py](src/integrations/dspy_modules.py)**: DSPy SignaturesとPydanticモデル
+  - `AnswerGroundingSignature`: 幻覚検出タスクのDSPy署名
+  - `AnswerGroundingOutput`: 構造化出力用Pydanticモデル
+- **`dspy.ChainOfThought`**: 段階的推論モジュール（DSPyフレームワーク組み込み）
 
 ### 今後の計画
 
