@@ -504,7 +504,7 @@ class LangGraphQueryPipeline:
             use_dspy=True,
         )
 
-        store = ChunkStore(persist_directory=persist_dir)
+        store = ChunkStore(persist_dir)
         tracer = LangfuseTracer()
 
         return cls(
