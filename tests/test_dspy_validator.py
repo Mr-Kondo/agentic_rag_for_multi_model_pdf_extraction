@@ -1,24 +1,26 @@
 """
 test_dspy_validator.py
 ======================
-Simple test script to verify DSPy integration with AnswerValidatorAgent.
+Test suite for DSPy integration with AnswerValidatorAgent.
 
-This script tests:
+This test verifies:
 1. MLXLM adapter initialization
 2. DSPy AnswerValidator loading and inference
 3. Structured output generation
-4. Comparison with legacy method
+4. Comparison with legacy validation method
 
 Usage:
-    python test_dspy_validator.py
+    pytest tests/test_dspy_validator.py -v
+    # or directly
+    python tests/test_dspy_validator.py
 """
 
 from __future__ import annotations
 
 import logging
 
-from validator_agent import AnswerValidatorAgent
-from agentic_rag_flow import RAGAnswer
+from src.agents.validation import AnswerValidatorAgent
+from src.core.models import RAGAnswer
 
 # Configure logging
 logging.basicConfig(
@@ -133,10 +135,75 @@ def test_dspy_validator():
     return True
 
 
+def test_dspy_validator_no_hallucination():
+    """Test DSPy validator with a properly grounded answer."""
+
+    model_id = "mlx-community/Qwen2.5-3B-Instruct-4bit"
+
+    question = "What is the capital of France?"
+
+    # Create a properly grounded answer
+    answer = RAGAnswer(
+        question=question,
+        answer="The capital of France is Paris.",
+        reasoning_trace="Based on the provided sources.",
+        source_chunks=[],
+    )
+
+    # Source context that fully supports the answer
+    source_texts = [
+        "France is a country in Western Europe. Its capital city is Paris.",
+    ]
+
+    log.info("\n" + "=" * 70)
+    log.info("Testing well-grounded answer (no hallucination expected)")
+    log.info("=" * 70)
+
+    validator = AnswerValidatorAgent(model_id, use_dspy=True)
+
+    with validator:
+        result = validator.validate_answer(
+            question=question,
+            answer=answer,
+            source_texts=source_texts,
+            trace=None,
+        )
+
+    log.info(f"\n✅ Result:")
+    log.info(f"  is_grounded: {result.is_grounded}")
+    log.info(f"  verdict_score: {result.verdict_score:.2f}")
+    log.info(f"  hallucinations: {result.hallucinations}")
+
+    # Assert that the answer is properly grounded
+    assert result.is_grounded, "Expected well-grounded answer to be marked as grounded"
+    assert result.verdict_score >= 0.8, f"Expected high verdict score, got {result.verdict_score}"
+    assert len(result.hallucinations) == 0, "Expected no hallucinations"
+
+    log.info("✅ Well-grounded answer test passed!")
+    return True
+
+
 if __name__ == "__main__":
     try:
-        success = test_dspy_validator()
-        exit(0 if success else 1)
+        log.info("\n" + "=" * 70)
+        log.info("Starting DSPy Validator Test Suite")
+        log.info("=" * 70 + "\n")
+
+        # Run test with hallucination
+        success1 = test_dspy_validator()
+
+        # Run test without hallucination
+        success2 = test_dspy_validator_no_hallucination()
+
+        if success1 and success2:
+            log.info("\n" + "=" * 70)
+            log.info("✅ ALL TESTS PASSED")
+            log.info("=" * 70)
+            exit(0)
+        else:
+            log.error("\n❌ SOME TESTS FAILED")
+            exit(1)
+
     except KeyboardInterrupt:
         log.info("\n⚠️  Test interrupted by user")
         exit(130)

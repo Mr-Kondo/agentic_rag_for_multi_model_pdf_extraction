@@ -1,13 +1,15 @@
 [project]
 name = "agentic-rag-for-multi-model-pdf-extraction"
-version = "0.1.0"
-description = "Add your description here"
+version = "0.3.0"
+description = "MLX-powered multi-modal RAG system for PDF documents with quality validation - Apple Silicon optimized"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "chromadb>=1.5.1",
     "dspy-ai>=2.5.0",
+    "langchain-core>=0.3.0",
     "langfuse>=3.14.4",
+    "langgraph>=0.2.0",
     "mlx>=0.1.0",
     "mlx-lm>=0.1.0",
     "mlx-vlm>=0.1.0",
@@ -16,7 +18,18 @@ dependencies = [
     "pydantic>=2.12.5",
     "pymupdf>=1.27.1",
     "pytesseract>=0.3.13",
+    "pytest>=9.0.2",
     "python-dotenv>=1.2.1",
     "sentence-transformers>=5.2.3",
     "unstructured>=0.20.8",
 ]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.1.0",
+    "pytest-mock>=3.12.0",
+]
+
+[project.scripts]
+agentic-rag = "app:main"

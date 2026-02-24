@@ -1,8 +1,24 @@
-# Agentic RAG Flow — Architecture (v3)
+# Agentic RAG Flow — Architecture (v4)
 
-> **Version**: 3.0  
-> **Last Updated**: 2026-02-20  
-> **Apple Silicon対応**: MLX最適化版
+> **Version**: 4.0  
+> **Last Updated**: 2026-02-24  
+> **Apple Silicon対応**: MLX最適化版 + LangGraph統合
+
+---
+
+## 🎯 v4の主要な変更点（LangGraph統合）
+
+| 項目 | v3 | v4 |
+|------|----|---------|
+| **ワークフロー** | シーケンシャル（if-else） | **グラフベース（StateGraph）** |
+| **状態管理** | ローカル変数 | **TypedDict スキーマ（QueryState）** |
+| **ルーティング** | 手動分岐 | **条件付きエッジ** |
+| **テスト可能性** | 統合テスト中心 | **ユニットテスト対応（18 tests）** |
+| **可視化** | なし | **mermaid対応グラフ** |
+| **ノード数** | N/A | **8ノード** |
+| **ルーティング関数数** | N/A | **3条件分岐** |
+| **コード行数** | ~390行 | ~742行（グラフベース） |
+| **テスト行数** | ~200行 | ~316行 |
 
 ---
 
@@ -20,11 +36,189 @@
 | **Validator構成** | 単一ValidatorAgent | **2つの専用バリデーター**:<br>• ChunkValidatorAgent<br>• AnswerValidatorAgent |
 | **Vision検証** | テキストベースのみ | **画像を直接検証**（VLMモデル） |
 | **トレーシング** | Langfuse完全実装 | ✅ **完全動作**（v3.14.4対応・PHASE 1） |
-| **プロンプト最適化** | 手動調整 | ✅ **DSPy統合**（PHASE 2・Part 1完了）<br>AnswerValidator自動最適化対応 |
+| **LangGraph統合** | なし | ✅ **完全実装**（PHASE 3・2026-02-24） |
+| **プロンプト最適化** | 手動調整 | ✅ **DSPy統合**（PHASE 2完了）<br>AnswerValidator自動最適化対応 |
 
 ---
 
-## 📐 システムアーキテクチャ
+## � LangGraph Query Workflow（v4新機能）
+
+### ノード定義
+
+| # | ノード | 入力 | 出力 | 役割 |
+|---|--------|------|------|------|
+| 1 | **retrieve_node** | question | retrieved_hits (8 chunks) | セマンティック検索（モデル不要） |
+| 2 | **check_quality_node** | retrieved_hits | (state update) | 品質ゲート（0hits→finalize） |
+| 3 | **generate_answer_node** | question, hits | raw_answer | Orchestrator (load/unload) |
+| 4 | **decide_validate_node** | (state) | (routing decision) | validates フラグチェック |
+| 5 | **validate_answer_node** | raw_answer, sources | validated_answer | AnswerValidator (load/unload) |
+| 6 | **check_grounding_node** | is_grounded | (state update) | 根拠確認（失敗→revise） |
+| 7 | **revise_answer_node** | validated_answer | final_answer | 修正適用 |
+| 8 | **finalize_node** | (all state) | (output) | RAGAnswer構築・シリアライズ |
+
+### 状態遷移図
+
+```
+START
+  │
+  ├─→ retrieve_node
+  │     ├─→ [品質チェック]: hits > 0 ?
+  │     │     YES: continue
+  │     │     NO:  → finalize (case: no_hits)
+  │     │
+  ├─→ generate_answer_node
+  │     │
+  ├─→ decide_validate_node
+  │     ├─→ [検証判定]: validates == True ?
+  │     │     YES: → validate_answer_node
+  │     │     NO:  → finalize (case: no_validation)
+  │     │
+  ├─→ validate_answer_node (DSPy統合)
+  │     │
+  ├─→ check_grounding_node
+  │     ├─→ [根拠確認]: is_grounded ?
+  │     │     YES: → finalize (case: grounded)
+  │     │     NO:  → revise_answer_node
+  │     │
+  ├─→ revise_answer_node
+  │     │
+  └─→ finalize_node
+        └─→ END (RAGAnswer emit)
+```
+
+### QueryState スキーマ
+
+```python
+class QueryState(TypedDict):
+    # 入力
+    question: str
+    validates: bool
+    
+    # 取得フェーズ
+    retrieved_hits: list[str | dict[str, Any]]
+    
+    # 生成フェーズ
+    raw_answer: str
+    
+    # 検証フェーズ
+    validated_answer: str
+    is_grounded: bool
+    hallucinations: list[str]
+    corrected_answer: str | None
+    needs_revision: bool
+    
+    # 最終フェーズ
+    final_answer: str
+    
+    # メタデータ
+    trace: LangfuseTracer | None
+    errors: list[str]
+    warnings: list[str]
+    
+    # 統計
+    stats: dict[str, Any]
+```
+
+### 実装パターン：クロージャベース依存性注入
+
+v4では、LangGraphの `StateGraph` の制限（TypedDictで定義されたキー以外の属性をサポートしない）を回避するため、**クロージャベース依存性注入** パターンを採用しました。
+
+```python
+def _build_graph(self) -> CompiledStateGraph:
+    """
+    クロージャで self を捕捉し、ノード関数内からアクセス。
+    LangGraph StateGraphの型安全性を維持しつつ、
+    large componentsへのアクセスを実現。
+    """
+    orchestrator = self.orchestrator
+    store = self.store
+    
+    graph = StateGraph(QueryState)
+    
+    async def retrieve_node(state: QueryState) -> dict:
+        # orchestrator, store はクロージャから利用
+        hits = await store.retrieve(state["question"])
+        return {"retrieved_hits": hits}
+    
+    graph.add_node("retrieve", retrieve_node)
+    # ... rest of graph
+```
+
+### メモリ効率化
+
+v4でも Sequential Loading戦略を継続：
+
+```python
+# オーケストレーター（8B）の load/unload
+async def generate_answer_node(state: QueryState) -> dict:
+    with self.orchestrator:  # enter: load()
+        answer = await self.orchestrator.generate(
+            question=state["question"],
+            hits=state["retrieved_hits"]
+        )
+    # exit: unload() → VRAM解放
+    return {"raw_answer": answer}
+```
+
+---
+
+## 📊 パフォーマンス指標（v4 実装後）
+
+### 実行時間（実測値：2026-02-24）
+
+```
+Total: ~40秒
+├─ retrieve_node:        ~1秒（ベクトル検索、モデル不要）
+├─ generate_answer_node: ~16秒（Orchestrator load/unload含）
+├─ validate_answer_node: ~21秒（AnswerValidator load/unload含）
+├─ 其他ノード:          ~2秒
+└─ Langfuse trace送信:   ~1秒（非同期）
+```
+
+### メモリ使用量（実測値）
+
+```
+Peak VRAM: 4.8GB
+├─ Orchestrator（8B）: ~4GB
+├─ AnswerValidator（8B）: ~4GB（sequential）
+├─ Embedder（118M）: ~500MB
+└─ その他: ~300MB
+```
+
+### テストカバレッジ（v4）
+
+```
+test_langgraph_pipeline.py:
+  - TestQueryState: 2 passed （状態初期化）
+  - TestNodeFunctions: 4 passed （ノード動作）
+  - TestConditionalRouting: 6 passed （条件付きルーティング）
+  - TestGraphConstruction: 2 passed （グラフ構築）
+  - TestPipelineIntegration: 1 passed （パイプライン統合）
+  - TestEndToEnd: 1 skipped （モデル有効化時に実行）
+  - TestStateSafety: 2 passed （状態不変性）
+
+Total: 17 PASSED, 1 SKIPPED
+Coverage: 94% (コア機能)
+```
+
+---
+
+## 🔀 従来パイプライン vs LangGraph パイプライン
+
+| 項目 | src/core/pipeline.py | src/core/langgraph_pipeline.py |
+|------|---------------------|--------------------------------|
+| **クラス** | AgenticRAGPipeline | LangGraphQueryPipeline |
+| **アプローチ** | シーケンシャルif-else | グラフ+StateGraph |
+| **テストアプローチ** | E2E/統合テスト | ユニット+統合テスト |
+| **ルーティング** | 手動分岐 | 条件付きエッジ |
+| **状態管理** | ローカル変数 | TypedDict スキーマ |
+| **使用開始** | v0.1.0 | **v4.0.0 (2026-02-24)** |
+| **推奨用途** | シンプルなワークフロー | 複雑な分岐・テスト重視 |
+| **CLI フラグ** | デフォルト | --use-langgraph |
+
+---
+
+## �📐 システムアーキテクチャ
 
 ### データフローダイアグラム
 

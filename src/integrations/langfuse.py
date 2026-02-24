@@ -153,7 +153,7 @@ class LangfuseTracer:
         metadata: dict | None = None,
         user_id: str | None = None,
         session_id: str | None = None,
-    ) -> Generator[_TraceHandle, None, None]:
+    ) -> Generator[TraceHandle, None, None]:
         """
         Create a trace context using Langfuse SDK v3.14.4 API.
 
@@ -169,10 +169,10 @@ class LangfuseTracer:
             session_id: Session ID for grouping traces
 
         Returns:
-            Generator yielding a _TraceHandle for context management
+            Generator yielding a TraceHandle for context management
         """
         if self._client is None:
-            yield _TraceHandle(None, None)
+            yield TraceHandle(None, None)
             return
 
         # ✅ Use start_as_current_span to ensure OpenTelemetry context is set
@@ -186,7 +186,7 @@ class LangfuseTracer:
             trace_id = self._client.get_current_trace_id()
             log.debug(f"✓ Trace started: {name} (trace_id={trace_id})")
 
-            handle = _TraceHandle(span, trace_id)
+            handle = TraceHandle(span, trace_id)
             try:
                 yield handle
             except Exception as e:
@@ -244,7 +244,7 @@ class LangfuseTracer:
 # ──────────────────────────────────────────────
 
 
-class _TraceHandle:
+class TraceHandle:
     def __init__(self, raw, trace_id: str | None = None):
         self.raw = raw
         self.trace_id: str = trace_id or (raw.id if raw else "no-op")
@@ -375,7 +375,7 @@ class _GenerationHandle:
 def traced_span(tracer_attr: str, span_name: str):
     """
     Method decorator. Wraps a method in a Langfuse span.
-    Assumes the class has a `_trace` attribute set to an active _TraceHandle.
+    Assumes the class has a `_trace` attribute set to an active TraceHandle.
 
     Example:
         class TextAgent:
@@ -388,7 +388,7 @@ def traced_span(tracer_attr: str, span_name: str):
 
         @functools.wraps(fn)
         def wrapper(self, *args, **kwargs):
-            trace: _TraceHandle | None = getattr(self, "_trace", None)
+            trace: TraceHandle | None = getattr(self, "_trace", None)
             if trace is None:
                 return fn(self, *args, **kwargs)
             with trace.span(span_name, input={"args": str(args)[:200]}) as s:
