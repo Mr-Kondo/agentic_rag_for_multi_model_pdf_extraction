@@ -4,7 +4,7 @@ Validation agents for quality assurance at two checkpoints.
 CHECKPOINT A (ChunkValidatorAgent):
     Audits extraction quality by comparing ProcessedChunk against original RawChunk.
     Uses vision-language model (Qwen2-VL-7B) to validate ALL chunk types including figures.
-    
+
 CHECKPOINT B (AnswerValidatorAgent):
     Detects hallucinations by verifying RAGAnswer claims against source chunk texts.
     Uses DSPy-enhanced text model (~10B) with ChainOfThought for systematic validation.
@@ -84,13 +84,13 @@ class ChunkValidatorAgent(BaseLoadableModel):
     - TEXT chunks: Text-only validation against source
     - TABLE chunks: Schema and content correctness
     - FIGURE chunks: Direct image inspection with vision encoder
-    
-    The vision capability enables detection of figure_type errors that 
+
+    The vision capability enables detection of figure_type errors that
     text-only agents cannot identify.
 
     Memory: ~14 GB VRAM (FP16)
     Backend: mlx-vlm optimized for Apple Silicon
-    
+
     Usage:
         >>> validator = ChunkValidatorAgent("mlx-community/Qwen2-VL-7B-Instruct")
         >>> with validator:
@@ -136,7 +136,7 @@ class ChunkValidatorAgent(BaseLoadableModel):
     ) -> ChunkValidationResult:
         """
         Validate ProcessedChunk against its RawChunk source.
-        
+
         For FIGURE chunks, passes the actual PIL.Image to the vision encoder.
         For TEXT/TABLE chunks, validates via text-only comparison.
 
@@ -185,7 +185,7 @@ class ChunkValidatorAgent(BaseLoadableModel):
     def _infer_figure(self, img: "PILImage", extracted_repr: str) -> str:
         """
         Run validation inference on figure chunk with vision model.
-        
+
         Passes PIL.Image directly to mlx-vlm for visual content verification.
         """
         user_text = (
@@ -220,7 +220,7 @@ class ChunkValidatorAgent(BaseLoadableModel):
     def _build_result(self, parsed: dict, original: ProcessedChunk) -> ChunkValidationResult:
         """
         Construct ChunkValidationResult from parsed JSON output.
-        
+
         Creates corrected ProcessedChunk if validation fails.
         """
         is_valid = bool(parsed.get("is_valid", True))
@@ -290,13 +290,13 @@ class AnswerValidatorAgent(BaseLoadableModel):
 
     Memory: ~16 GB VRAM for 10B text model (FP16)
     Backend: MLX via DSPy adapter, optimized for Apple Silicon
-    
+
     Features:
         - DSPy ChainOfThought for step-by-step reasoning
         - Automatic prompt optimization support
         - Structured output via AnswerGroundingSignature
         - Legacy fallback for non-DSPy mode
-    
+
     Usage:
         >>> validator = AnswerValidatorAgent("mlx-community/Qwen2.5-7B-Instruct", use_dspy=True)
         >>> with validator:
@@ -466,7 +466,7 @@ class AnswerValidatorAgent(BaseLoadableModel):
     ) -> AnswerValidationResult:
         """
         Legacy validation method using manual prompting and regex parsing.
-        
+
         Kept for backward compatibility and comparison with DSPy approach.
         """
         sources_repr = "\n\n".join(f"[Source {i + 1}] {text[:600]}" for i, text in enumerate(source_texts))
@@ -478,7 +478,7 @@ class AnswerValidatorAgent(BaseLoadableModel):
 
         prompt = self._tokenizer.apply_chat_template(messages, add_generation_prompt=True)
         output = generate(self._model, self._tokenizer, prompt=prompt, max_tokens=1024, verbose=False)
-        
+
         # Remove <think> blocks
         _THINK_RE = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)
         output = _THINK_RE.sub("", output).strip()
