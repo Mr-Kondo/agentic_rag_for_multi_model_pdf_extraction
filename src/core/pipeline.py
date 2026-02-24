@@ -215,43 +215,53 @@ class AgenticRAGPipeline:
 
             if validates:
                 log.info("✅ CHECKPOINT A: Starting chunk validation...")
-                with self.chunk_validator:  # ← load on enter, unload on exit
-                    log.info("  [LOAD] ChunkValidatorAgent loaded")
-                    for idx, (raw, processed) in enumerate(extracted, 1):
-                        val = self.chunk_validator.validate_chunk(raw=raw, processed=processed, trace=trace)
-                        processed.validation = val
+                try:
+                    with self.chunk_validator:  # ← load on enter, unload on exit
+                        log.info("  [LOAD] ChunkValidatorAgent loaded")
+                        for idx, (raw, processed) in enumerate(extracted, 1):
+                            val = self.chunk_validator.validate_chunk(raw=raw, processed=processed, trace=trace)
+                            processed.validation = val
 
-                        self.tracer.score(
-                            trace_id=trace.trace_id,
-                            name="chunk_quality",
-                            value=val.verdict_score,
-                            comment=f"p.{processed.page_num} {processed.chunk_type.value} | " + "; ".join(val.issues),
-                        )
+                            self.tracer.score(
+                                trace_id=trace.trace_id,
+                                name="chunk_quality",
+                                value=val.verdict_score,
+                                comment=f"p.{processed.page_num} {processed.chunk_type.value} | " + "; ".join(val.issues),
+                            )
 
-                        if not val.is_valid:
-                            if val.corrected is not None:
-                                val.corrected.validation = val
-                                accepted.append(val.corrected)
-                                corrected_count += 1
-                                log.debug(
-                                    "  ↻ p.%d %s — corrected by validator",
-                                    processed.page_num,
-                                    processed.chunk_type.value,
-                                )
+                            if not val.is_valid:
+                                if val.corrected is not None:
+                                    val.corrected.validation = val
+                                    accepted.append(val.corrected)
+                                    corrected_count += 1
+                                    log.debug(
+                                        "  ↻ p.%d %s — corrected by validator",
+                                        processed.page_num,
+                                        processed.chunk_type.value,
+                                    )
+                                else:
+                                    discarded_count += 1
+                                    log.debug(
+                                        "  ✗ p.%d %s — discarded",
+                                        processed.page_num,
+                                        processed.chunk_type.value,
+                                    )
+                            elif processed.confidence >= 0.25:
+                                accepted.append(processed)
                             else:
                                 discarded_count += 1
-                                log.debug(
-                                    "  ✗ p.%d %s — discarded",
-                                    processed.page_num,
-                                    processed.chunk_type.value,
-                                )
-                        elif processed.confidence >= 0.25:
-                            accepted.append(processed)
-                        else:
-                            discarded_count += 1
-                # ← ChunkValidatorAgent.unload() called here automatically
-                log.info("  [UNLOAD] ChunkValidatorAgent unloaded")
-                log.info("✓ Chunk validation complete: %d corrected, %d discarded", corrected_count, discarded_count)
+                    # ← ChunkValidatorAgent.unload() called here automatically
+                    log.info("  [UNLOAD] ChunkValidatorAgent unloaded")
+                    log.info("✓ Chunk validation complete: %d corrected, %d discarded", corrected_count, discarded_count)
+                
+                except (TypeError, Exception) as e:
+                    # Vision model loading failed - fallback to confidence-based filtering
+                    log.error(
+                        f"❌ Chunk validation failed (vision model error): {e}\n"
+                        f"   Falling back to confidence-based filtering (>= 0.25)"
+                    )
+                    accepted = [p for (_, p) in extracted if p.confidence >= 0.25]
+                    log.warning(f"⚠️  Accepted {len(accepted)} chunks without validation")
 
             else:
                 # Skip validation — accept all chunks above confidence floor
