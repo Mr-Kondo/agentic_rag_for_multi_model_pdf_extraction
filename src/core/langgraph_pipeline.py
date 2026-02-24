@@ -329,11 +329,11 @@ def finalize_node(state: QueryState) -> QueryState:
         # Case 1: No context found
         log.info("  → Insufficient context case")
         final = RAGAnswer(
+            question=state["question"],
             answer="[No relevant context found] I couldn't find relevant information in the document to answer your question.",
+            reasoning_trace="No chunks retrieved from vector store",
             source_chunks=[],
-            reasoning="No chunks retrieved from vector store",
-            confidence=0.0,
-            trace_id=state.get("trace").trace_id if state.get("trace") else None,
+            trace_id=state.get("trace").trace_id if state.get("trace") else "",
         )
 
     elif state.get("validated_answer"):
@@ -361,10 +361,11 @@ def finalize_node(state: QueryState) -> QueryState:
         log.error("  ⚠️  No answer available - this should not happen")
         state["errors"].append("No answer generated")
         final = RAGAnswer(
+            question=state["question"],
             answer="[Error] Failed to generate answer",
+            reasoning_trace="Pipeline error",
             source_chunks=[],
-            reasoning="Pipeline error",
-            confidence=0.0,
+            trace_id="",
         )
 
     state["final_answer"] = final
@@ -373,7 +374,7 @@ def finalize_node(state: QueryState) -> QueryState:
     log.info("✅ [finalize] Answer finalized")
     log.info("  - Answer length: %d chars", len(final.answer))
     log.info("  - Source chunks: %d", len(final.source_chunks))
-    log.info("  - Confidence: %.2f", final.confidence)
+    log.info("  - Trace ID: %s", final.trace_id)
 
     return state
 
