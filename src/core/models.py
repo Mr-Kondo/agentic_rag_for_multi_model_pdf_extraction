@@ -30,7 +30,7 @@ class ChunkType(str, Enum):
 class RawChunk:
     """
     Raw content extracted from PDF before LLM processing.
-    
+
     Attributes:
         chunk_type: Type of content (text/table/figure)
         page_num: Page number in source PDF (1-indexed)
@@ -55,10 +55,10 @@ class RawChunk:
 class ChunkValidationResult:
     """
     Result of Checkpoint A: chunk extraction quality audit.
-    
+
     Used by ChunkValidatorAgent to assess and correct extraction quality
     before storing in vector database.
-    
+
     Attributes:
         is_valid: Whether chunk passes validation
         issues: List of detected problems
@@ -78,9 +78,9 @@ class ChunkValidationResult:
 class AnswerValidationResult:
     """
     Result of Checkpoint B: hallucination/grounding check.
-    
+
     Used by AnswerValidatorAgent to detect unsupported claims in RAG answers.
-    
+
     Attributes:
         is_grounded: Whether answer is grounded in source chunks
         hallucinations: List of ungrounded claims detected
@@ -105,9 +105,9 @@ class AnswerValidationResult:
 class ProcessedChunk:
     """
     Structured content after LLM extraction and validation.
-    
+
     Stored in vector database and retrieved for RAG queries.
-    
+
     Attributes:
         chunk_id: Unique identifier (UUID)
         chunk_type: Type of content
@@ -144,9 +144,9 @@ class ProcessedChunk:
 class ValidationSummary:
     """
     Summary of answer validation results.
-    
+
     Attached to RAGAnswer to show validation status to user.
-    
+
     Attributes:
         answer_is_grounded: Whether answer is grounded in sources
         hallucinations: List of detected hallucinations
@@ -166,9 +166,9 @@ class ValidationSummary:
 class RAGAnswer:
     """
     Final RAG answer with metadata and validation.
-    
+
     Returned by AgenticRAGPipeline.query() and displayed to user.
-    
+
     Attributes:
         question: User's original question
         answer: Generated answer text
