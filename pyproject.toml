@@ -1,7 +1,7 @@
 [project]
 name = "agentic-rag-for-multi-model-pdf-extraction"
-version = "0.1.0"
-description = "Add your description here"
+version = "0.3.0"
+description = "MLX-powered multi-modal RAG system for PDF documents with quality validation - Apple Silicon optimized"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
