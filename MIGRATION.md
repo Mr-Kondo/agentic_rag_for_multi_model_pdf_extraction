@@ -6,7 +6,7 @@ Guide for migrating from the old flat file structure to the new modular `src/` p
 
 The repository has been restructured from a flat 5-file structure into a modular package organization. All functionality remains the same, but imports and CLI usage have changed.
 
-**Good news**: Backward compatibility wrappers are in place, so existing code will continue to work with deprecation warnings until v1.0.0.
+**Important**: As of v0.3.0, backward compatibility wrappers have been **removed**. You must update your imports to use the new `src.*` paths. The migration is straightforward and this guide will help you through it.
 
 ## Key Changes
 
@@ -202,64 +202,88 @@ python app.py ingest paper.pdf --storage-dir ./custom_db
 
 ## Migration Strategies
 
-### Strategy 1: Keep Using Old Imports (Easiest)
+### Strategy 1: Direct Import Migration (Required)
 
-**Timeline**: Immediate, works until v1.0.0
+**Timeline**: 30-60 minutes for typical projects
+**Status**: v0.3.0+ requires new imports
 
-Your existing code will continue to work with deprecation warnings:
-
-```python
-# This still works, but shows warnings
-from agentic_rag_flow import AgenticRAGPipeline
-from validator_agent import AnswerValidatorAgent
-
-# Run your code as before
-pipeline = AgenticRAGPipeline.build()
-# ... rest of your code unchanged
-```
-
-**Pros**:
-- Zero code changes required
-- Immediate compatibility
-
-**Cons**:
-- Deprecation warnings in logs
-- Will break in v1.0.0
-
-### Strategy 2: Gradual Migration (Recommended)
-
-**Timeline**: 1-2 hours per module
-
-Migrate one module at a time:
+Update all imports to use the new `src.*` paths:
 
 ```python
-# Step 1: Update imports
+# Step 1: Update pipeline imports
+# OLD (no longer works):
 # from agentic_rag_flow import AgenticRAGPipeline
+# NEW (required):
 from src.core.pipeline import AgenticRAGPipeline
 
 # Step 2: Update data structure imports
+# OLD:
 # from agentic_rag_flow import ProcessedChunk, RAGAnswer
-from src.core.models import ProcessedChunk, RAGAnswer
+# NEW:
+from src.core.models import ProcessedChunk, RAGAnswer, ChunkType
 
 # Step 3: Update validation imports
-# from validator_agent import AnswerValidatorAgent
-from src.agents.validation import AnswerValidatorAgent
+# OLD:
+# from validator_agent import AnswerValidatorAgent, ChunkValidatorAgent
+# NEW:
+from src.agents.validation import AnswerValidatorAgent, ChunkValidatorAgent
 from src.core.models import AnswerValidationResult
 
 # Step 4: Update utility imports
+# OLD:
 # from agentic_rag_flow import save_chunks
-from src.utils.serialization import save_chunks
+# NEW:
+from src.utils.serialization import save_chunks, save_answer
 
-# Rest of your code unchanged
+# Step 5: Update DSPy imports
+# OLD:
+# from dspy_mlx_adapter import MLXLM
+# NEW:
+from src.integrations.dspy_adapter import MLXLM
+
+# Step 6: Update Langfuse imports
+# OLD:
+# from langfuse_tracer import LangfuseTracer, _TraceHandle
+# NEW:
+from src.integrations.langfuse import LangfuseTracer, TraceHandle  # Note: no underscore
+```
+
+**Pros**:
+- Future-proof code
+- Better IDE support
+- Clearer module boundaries
+
+**Cons**:
+- Requires updating all import statements
+
+### Strategy 2: Gradual Module Migration
+
+**Timeline**: 1-2 hours per module
+
+Migrate one module at a time, testing after each change:
+
+```python
+# Module 1: Core pipeline
+from src.core.pipeline import AgenticRAGPipeline
+from src.core.models import ProcessedChunk, RAGAnswer
+# Test this module
+
+# Module 2: Validation
+from src.agents.validation import AnswerValidatorAgent
+from src.core.models import AnswerValidationResult
+# Test this module
+
+# Continue for other modules...
 ```
 
 **Pros**:
 - Low risk, incremental changes
 - Can test after each step
-- Forward compatible
+- Easier to debug issues
 
 **Cons**:
-- Takes some time
+- Takes more time
+- Mixed import styles during migration
 
 ### Strategy 3: Switch to New CLI (Fastest for scripts)
 
@@ -283,22 +307,25 @@ python app.py pipeline ./input/paper.pdf "My question?"
 - Only works for simple workflows
 - Can't customize programmatically
 
-## Breaking Changes (v1.0.0 - Future)
+## Breaking Changes in v0.3.0
 
-These changes will happen in v1.0.0 (estimated: 6+ months):
+These changes are **already in effect** as of v0.3.0:
 
-1. **Old files removed**:
-   - `agentic_rag_flow.py` → Use `src.core.pipeline`
-   - `validator_agent.py` → Use `src.agents.validation`
-   - `dspy_mlx_adapter.py` → Use `src.integrations.dspy_adapter`
-   - `langfuse_tracer.py` → Use `src.integrations.langfuse`
+1. **Old files removed** (deleted in v0.3.0):
+   - ❌ `agentic_rag_flow.py` → Use `src.core.pipeline`
+   - ❌ `validator_agent.py` → Use `src.agents.validation`
+   - ❌ `dspy_mlx_adapter.py` → Use `src.integrations.dspy_adapter`
+   - ❌ `langfuse_tracer.py` → Use `src.integrations.langfuse`
+   - ❌ All `*_original.py` backup files
 
-2. **`_TraceHandle` removed**:
-   - Already renamed to `TraceHandle` in new code
-   - Backward compatible wrapper via `langfuse_tracer.py`
+2. **`_TraceHandle` renamed to `TraceHandle`**:
+   - Old name: `_TraceHandle` (with underscore)
+   - New name: `TraceHandle` (no underscore)
+   - Update type hints: `trace: TraceHandle | None`
 
 3. **Old import paths removed**:
-   - Must use `src.*` imports
+   - Must use `src.*` imports exclusively
+   - No backward compatibility wrappers
 
 ## Testing Your Migration
 
@@ -354,18 +381,23 @@ python your_script.py
 pip install -e .
 ```
 
-### Issue 2: Old imports still working but warnings everywhere
+### Issue 2: ModuleNotFoundError for old imports
 
 **Problem:**
-Log spam with deprecation warnings
+```python
+ModuleNotFoundError: No module named 'agentic_rag_flow'
+# or
+ModuleNotFoundError: No module named 'validator_agent'
+```
 
 **Solution:**
-Either:
-1. Migrate imports to new structure (recommended)
-2. Suppress warnings (not recommended):
+Backward compatibility wrappers were removed in v0.3.0. Update to new imports:
 ```python
-import warnings
-warnings.filterwarnings("ignore", category=DeprecationWarning)
+# Replace old imports with new ones
+from src.core.pipeline import AgenticRAGPipeline  # was: from agentic_rag_flow import ...
+from src.agents.validation import AnswerValidatorAgent  # was: from validator_agent import ...
+from src.integrations.dspy_adapter import MLXLM  # was: from dspy_mlx_adapter import ...
+from src.integrations.langfuse import LangfuseTracer  # was: from langfuse_tracer import ...
 ```
 
 ### Issue 3: TraceHandle vs _TraceHandle
@@ -426,12 +458,18 @@ def my_func(trace: TraceHandle | None = None): ...
 
 ## Version Support Timeline
 
-| Version | Old Imports | New Imports | CLI | Status |
-|---------|-------------|-------------|-----|--------|
-| v0.2.x  | ✅ Only     | ❌          | Old | Legacy |
-| v0.3.x  | ✅ (warns)  | ✅          | Both| Current|
-| v1.0.0  | ❌          | ✅ Only     | New | Future |
+| Version | Old Imports | New Imports | Old Files | CLI | Status |
+|---------|-------------|-------------|-----------|-----|--------|
+| v0.2.x  | ✅ Only     | ❌          | ✅ Present | Old | Legacy |
+| v0.3.0+ | ❌ Removed  | ✅ Required | ❌ Deleted | New | **Current** |
+| v1.0.0  | ❌          | ✅ Only     | ❌         | New | Future |
 
 **Current version**: v0.3.0  
-**Deprecation period**: At least 6 months  
-**Hard removal**: v1.0.0 (TBD)
+**Migration status**: Required (old imports removed)  
+**Backward compatibility**: None (clean break in v0.3.0)
+
+### Timeline Summary
+
+- **v0.2.x** (Legacy): Flat file structure, old imports only
+- **v0.3.0** (Current): Modular `src/` structure, new imports required, old files deleted
+- **v1.0.0** (Future): Additional features, same import structure as v0.3.0
