@@ -20,12 +20,12 @@ OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 def serialize_chunk(chunk: ProcessedChunk) -> dict:
     """
     Convert ProcessedChunk to JSON-serializable dict.
-    
+
     Truncates long text fields to keep file size manageable.
-    
+
     Args:
         chunk: ProcessedChunk to serialize
-        
+
     Returns:
         Dictionary with chunk data
     """
@@ -54,7 +54,7 @@ def serialize_chunk(chunk: ProcessedChunk) -> dict:
 def save_chunks(chunks: list[ProcessedChunk], pdf_name: str) -> None:
     """
     Save processed chunks to JSON file.
-    
+
     Args:
         chunks: List of ProcessedChunk objects
         pdf_name: Source PDF filename (used for output filename)
@@ -71,7 +71,7 @@ def save_chunks(chunks: list[ProcessedChunk], pdf_name: str) -> None:
 def save_answer(result: RAGAnswer, pdf_name: str | Path, question: str) -> None:
     """
     Save RAG answer to JSON file.
-    
+
     Args:
         result: RAGAnswer object with answer and metadata
         pdf_name: Source PDF filename (str or Path)
@@ -79,7 +79,7 @@ def save_answer(result: RAGAnswer, pdf_name: str | Path, question: str) -> None:
     """
     # Convert Path to string for JSON serialization
     pdf_name_str = str(pdf_name) if isinstance(pdf_name, Path) else pdf_name
-    
+
     answer_data = {
         "pdf_file": pdf_name_str,
         "question": question,

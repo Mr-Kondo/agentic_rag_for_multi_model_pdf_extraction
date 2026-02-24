@@ -401,7 +401,14 @@ class AnswerValidatorAgent(BaseLoadableModel):
                         answer=answer.answer,
                         context=context_with_question,
                     )
-                    span.set_output(prediction)
+                    # Update span with prediction output
+                    span.update(
+                        output={
+                            "is_grounded": getattr(prediction, "is_grounded", None),
+                            "hallucinations": getattr(prediction, "hallucinations", []),
+                            "revised_answer": getattr(prediction, "revised_answer", None),
+                        }
+                    )
             else:
                 prediction = self._dspy_predictor(
                     answer=answer.answer,

@@ -9,7 +9,14 @@
 - **専用エージェント処理**: 各チャンクタイプに特化した小型言語モデル（SLM）で最適化
 - **自己リフレクション**: 信頼度スコア < 0.5 の場合、自動的に再試行
 
-### 🛡️ 2段階バリデーション（DSPy強化）
+### � LangGraph統合（✅ PHASE 3完了）
+- **グラフベースのワークフロー**: 状態管理とノード処理で可視化・保守性向上
+- **条件付きルーティング**: 品質ゲート、バリデーション分岐、修正ループを自動化
+- **メモリ効率的な設計**: Sequential loadingとコンテキストマネージャーパターン
+- **統合テスト環境**: 18個のテストケース（17 PASSED、1 SKIPPED）
+- **--use-langgraph フラグ**: 従来のパイプラインとの簡単な切替
+
+### �🛡️ 2段階バリデーション（DSPy強化）
 - **CHECKPOINT A（ChunkValidator）**: 抽出直後のチャンク品質監査
   - 原文との整合性チェック
   - 図表は画像を直接検証
@@ -77,15 +84,20 @@ python app.py ingest ./input/your_paper.pdf
 # バリデーション付きインジェスト
 python app.py ingest ./input/your_paper.pdf --validate
 
-# RAGクエリ実行
+# RAGクエリ実行（従来のパイプライン）
 python app.py query "図2は何を示していますか？"
 
-# フルパイプライン（インジェスト + クエリ）
-python app.py pipeline ./input/your_paper.pdf "図2は何を示していますか？" --validate
+# RAGクエリ実行（LangGraph版）
+python app.py query "図2は何を示していますか？" --use-langgraph
+
+# バリデーション付きLangGraphクエリ
+python app.py query "図2は何を示していますか？" --validate --use-langgraph
+
+# フルパイプライン（インジェスト + LangGraphクエリ）
+python app.py pipeline ./input/your_paper.pdf "図2は何を示していますか？" --validate --use-langgraph
 
 # ヘルプを表示
 python app.py --help
-python app.py ingest --help
 python app.py query --help
 ```
 
@@ -99,7 +111,7 @@ output/
 
 ## 🏗️ アーキテクチャ
 
-### データフロー
+### データフロー（LangGraph版）
 
 ```
 PDF入力
@@ -113,17 +125,19 @@ RawChunk (TEXT | TABLE | FIGURE)
 │ (MLX 4B)    │ (MLX 3B)    │ (MLX 256M)  │
 └─────────────┴─────────────┴─────────────┘
   ↓
-ProcessedChunk (structured_text, key_concepts, confidence)
+ProcessedChunk
   ↓
-[ChunkValidator] CHECKPOINT A (MLX 256M)
+[LangGraph Query Workflow]
+  ├─→ retrieve_node         (ベクトル検索)
+  ├─→ check_quality_node   (品質ゲート)
+  ├─→ generate_answer_node (回答生成)
+  ├─→ decide_validate_node (検証判定)
+  ├─→ validate_answer_node (幻覚検出)
+  ├─→ check_grounding_node (根拠確認)
+  ├─→ revise_answer_node   (回答修正)
+  └─→ finalize_node        (完成化)
   ↓
-[ChromaDB Store] e5-small-multilingual embeddings
-  ↓
-[ReasoningOrchestrator] RAG検索 + 回答生成 (MLX 8B)
-  ↓
-[AnswerValidator] CHECKPOINT B (MLX 8B)
-  ↓
-RAGAnswer (validation, sources, reasoning)
+RAGAnswer (validation, sources, reasoning, trace)
 ```
 
 ### 使用モデル（MLX最適化・4-bit量子化）
@@ -155,11 +169,13 @@ agentic_rag_for_multi_model_pdf_extraction/
 │
 ├── src/                      # メインパッケージ
 │   ├── core/                 # コア機能
-│   │   ├── models.py         # データ構造（ChunkType, RAGAnswerなど）
+│   │   ├── models.py         # データ構造
+│   │   ├── graph_state.py    # LangGraph状態スキーマ（✅ PHASE 3）
 │   │   ├── cache.py          # モデルキャッシュ管理
-│   │   ├── parser.py         # PDFParser（pdfplumber + PyMuPDF）
+│   │   ├── parser.py         # PDFParser
 │   │   ├── store.py          # ChromaDB ベクトルストア
-│   │   └── pipeline.py       # AgenticRAGPipeline メイン実装
+│   │   ├── pipeline.py       # 従来のシーケンシャルパイプライン
+│   │   └── langgraph_pipeline.py  # LangGraphワークフロー（✅ PHASE 3）
 │   ├── agents/               # AIエージェント
 │   │   ├── base.py           # BaseAgent, BaseLoadableModel
 │   │   ├── extraction.py     # Text/Table/Visionエージェント
@@ -175,9 +191,10 @@ agentic_rag_for_multi_model_pdf_extraction/
 │
 ├── tests/                    # pytestテストスイート
 │   ├── conftest.py           # 共通フィクスチャ
-│   ├── test_models.py        # データ構造のユニットテスト
+│   ├── test_models.py        # ユニットテスト
 │   ├── test_pipeline.py      # パイプライン統合テスト
-│   └── test_dspy_validator.py # DSPy検証テスト
+│   ├── test_dspy_validator.py # DSPy検証テスト
+│   └── test_langgraph_pipeline.py  # LangGraph統合テスト（✅ PHASE 3）
 │
 ├── input/                    # 処理対象のPDFファイルを配置
 ├── output/                   # 処理結果（チャンク、回答）
@@ -197,7 +214,9 @@ mlx>=0.1.0                    # Apple Silicon最適化
 mlx-lm>=0.1.0                 # MLX言語モデル
 mlx-vlm>=0.1.0                # MLX Vision-Language モデル
 sentence-transformers>=5.2.3  # 埋め込みモデル
-dspy-ai>=2.5.0                # プロンプト最適化フレームワーク（PHASE 2）
+dspy-ai>=2.5.0                # プロンプト最適化フレームワーク
+langgraph>=0.2.0              # グラフベースワークフロー（✅ PHASE 3）
+langchain-core>=0.3.0         # LangGraph基盤
 
 # PDF処理
 pymupdf>=1.27.1               # 画像・テキスト抽出
@@ -256,16 +275,93 @@ with orchestrator:
 ### `ChunkValidatorAgent` / `AnswerValidatorAgent`
 2段階バリデーションを実装。チャンク品質監査と回答幻覚検出。
 
-## 🧪 DSPy統合（PHASE 2完了）
+## 🔄 LangGraph統合（PHASE 3 ✅ 完了）
 
 ### 概要
 
-AnswerValidatorAgentに**DSPy（Declarative Self-improving Language Programs）**を統合し、プロンプト最適化と構造化出力を実現しました。
+LangGraphを統合し、グラフベースの宣言的ワークフローを実現しました。これにより、複雑な分岐ロジック・バリデーション・修正ループが自動化され、コードの可視化と保守性が大幅に向上しました。
+
+### 実装状況（2026-02-24完了）
+
+- ✅ **QueryState定義** (src/core/graph_state.py, 315行)
+  - 20+ フィールド: question, validates, retrieved_hits, raw_answer, validated_answer, final_answer, trace, errors, warnings, statistics...
+  
+- ✅ **LangGraphQueryPipeline実装** (src/core/langgraph_pipeline.py, 742行)
+  - 8ノード: retrieve → check_quality → generate → decide_validate → validate → check_grounding → revise → finalize
+  - 3ルーティング関数: route_after_quality_check, route_after_decide_validate, route_after_grounding_check
+  - 環境依存性の解決: クロージャベース依存性注入
+  
+- ✅ **テストスイート** (tests/test_langgraph_pipeline.py, 316行)
+  - 18テストケース、17 PASSED、1 SKIPPED
+  - ユニットテスト、条件付きルーティング、グラフ構築、E2E統合テスト
+  
+- ✅ **CLI統合** (app.py)
+  - `query` コマンドに `--use-langgraph` オプションを追加
+  - `pipeline` コマンドにも対応
+  
+- ✅ **バグ固定**
+  - オーケストレーターのパラメータ名修正
+  - ChunkStoreのパラメータ名修正
+  - RAGAnswerの構築修正
+  - Path オブジェクトのJSON シリアライゼーション
+  - Langfuse API互換性修正 (span.set_output() → span.update())
+
+### LangGraphモード使用方法
+
+```python
+# LangGraphモードでクエリ実行
+from src.core.langgraph_pipeline import LangGraphQueryPipeline
+
+pipeline = LangGraphQueryPipeline.build()  # デフォルトモデルで構築
+answer = pipeline.query(question="質問？", validates=True)
+```
+
+### アーキテクチャ
+
+```
+START → retrieve → check_quality ─→ finalize (品質不足)
+                  ├─→ generate → decide_validate ─→ finalize (検証不要)
+                                ├─→ validate → check_grounding ─→ finalize (根拠OK)
+                                              └─→ revise → finalize (修正あり)
+```
+
+### 実装の効果
+
+| 項目 | 従来 | LangGraph | 改善 |
+|------|------|-----------|------|
+| コード可視性 | フロー散在 | グラフ構造で明示 | ✅ |
+| ルーティング | if-else分岐 | 宣言的エッジ | ✅ 保守性向上 |
+| テスト容易性 | 統合テスト中心 | ユニットテスト可能 | ✅ +17テスト |
+| パフォーマンス | ベースライン | 同等 | ≈ (品質優先) |
+
+### 実行例
+
+```bash
+# 標準的なLangGraphクエリ
+$ uv run app.py query "質問内容？" --validate --use-langgraph
+
+# 出力
+2026-02-24 22:53:44 [INFO] ▶️  Executing LangGraph workflow...
+2026-02-24 22:53:45 [INFO] ✓ [retrieve_node] Retrieved 8 chunks
+2026-02-24 22:53:45 [INFO] ✓ [check_quality] Sufficient context available
+2026-02-24 22:54:02 [INFO] ✓ Answer generated (605 chars)
+2026-02-24 22:54:24 [INFO] ✓ Validation complete - Grounded: True
+✅ VALIDATION SUMMARY
+  Grounded       : True
+  Was revised    : False
+  Trace ID       : a48dca2b0977e6bbdd4756429f44f105
+```
+
+## 🧪 DSPy統合（PHASE 2 ✅ 完了）
+
+### 概要
+
+AnswerValidatorAgentに**DSPy（Declarative Self-improving Language Programs）**を統合し、プロンプト自動最適化と構造化出力を実現しました。
 
 ### 実装状況
 
-- ✅ **完了**: AnswerValidatorAgent（2026-02-23）
-- ⏳ **未実装**: ChunkValidatorAgent、その他エージェント
+- ✅ **AnswerValidatorAgent** (2026-02-20)
+- ⏳ **その他エージェント** (低優先度)
 
 ### DSPyモードの効果
 
@@ -280,39 +376,12 @@ AnswerValidatorAgentに**DSPy（Declarative Self-improving Language Programs）*
 
 ### 使用方法
 
-```python
-from src.agents.validation import AnswerValidatorAgent
+```bash
+# DSPyモードで検証（デフォルト）
+uv run app.py query "質問？" --validate --use-langgraph
 
-# DSPyモードで使用（デフォルト）
-answer_validator = AnswerValidatorAgent(
-    model_loader=answer_validator_model,
-    use_dspy=True  # デフォルトで有効
-)
-
-# レガシーモードに戻す（比較用）
-answer_validator = AnswerValidatorAgent(
-    model_loader=answer_validator_model,
-    use_dspy=False
-)
+# 出力にChainOfThoughtの推論プロセスが反映されます
 ```
-
-### アーキテクチャ
-
-DSPy統合には以下のコンポーネントが含まれます：
-
-- **[src/integrations/dspy_adapter.py](src/integrations/dspy_adapter.py)**: DSPyフレームワークとMLXモデルの橋渡し（`MLXLM`クラス）
-- **[src/integrations/dspy_modules.py](src/integrations/dspy_modules.py)**: DSPy SignaturesとPydanticモデル
-  - `AnswerGroundingSignature`: 幻覚検出タスクのDSPy署名
-  - `AnswerGroundingOutput`: 構造化出力用Pydanticモデル
-- **`dspy.ChainOfThought`**: 段階的推論モジュール（DSPyフレームワーク組み込み）
-
-### 今後の計画
-
-- ChunkValidatorAgentへの適用（中優先度）
-- DSPy optimizers（BootstrapFewShot, MIPRO）の導入
-- 本番Langfuseメトリクスでの効果測定
-
-詳細は[PLAN.md](PLAN.md)を参照してください。
 
 ## 🐛 トラブルシューティング
 
@@ -338,15 +407,18 @@ echo "HF_TOKEN=your_token_here" >> .env
 - Camelot（latticeモード）やAWS Textractの使用を検討してください
 - デジタルネイティブPDFでも、複雑な結合セルは誤検出されることがあります
 
-### Langfuseトレーシング
+### LangGraphワークフロー実行エラー
 
-- Langfuse SDK v3.14.4と完全に統合されています
-- 環境変数`LANGFUSE_PUBLIC_KEY`と`LANGFUSE_SECRET_KEY`を設定すると、自動的にトレースが記録されます
-- 詳細な実装情報については[attics/PHASE_1_LANGFUSE_FIXES.md](attics/PHASE_1_LANGFUSE_FIXES.md)を参照してください
+- Langfuse トレーシングを無効化してテスト（環境変数を未設定）
+- `test_langgraph_pipeline.py` で各ノードが独立して動作することを確認
+- `uv run app.py --help query` で最新のフラグを確認
 
 ## 📚 詳細ドキュメント
 
-より詳細な技術仕様、設計判断、メモリ管理戦略については、[ARCHITECTURE.md](ARCHITECTURE.md)を参照してください。
+より詳細な技術仕様については、以下を参照してください：
+
+- [ARCHITECTURE.md](ARCHITECTURE.md) - システム設計、メモリ管理戦略
+- [PLAN.md](PLAN.md) - 開発ロードマップ、Phase実装記録
 
 ## 🤝 貢献
 
@@ -359,3 +431,9 @@ echo "HF_TOKEN=your_token_here" >> .env
 ---
 
 **Note**: このプロジェクトはApple Silicon（M1/M2/M3）向けに最適化されており、MLXライブラリを使用しています。Intel MacやLinux/Windowsでは、transformersライブラリへの移行が必要な場合があります。
+
+**Latest Updates**: 
+- ✅ Phase 1 (Langfuse): 完了（2026-02-20）
+- ✅ Phase 2 (DSPy): 完了（2026-02-23）
+- ✅ Phase 3 (LangGraph): 完了（2026-02-24）
+- ⏳ Phase 4 (CrewAI): 検討中
