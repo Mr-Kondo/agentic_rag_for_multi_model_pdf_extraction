@@ -68,17 +68,20 @@ def save_chunks(chunks: list[ProcessedChunk], pdf_name: str) -> None:
     log.info(f"✓ Saved {len(chunks)} chunks to {output_path}")
 
 
-def save_answer(result: RAGAnswer, pdf_name: str, question: str) -> None:
+def save_answer(result: RAGAnswer, pdf_name: str | Path, question: str) -> None:
     """
     Save RAG answer to JSON file.
     
     Args:
         result: RAGAnswer object with answer and metadata
-        pdf_name: Source PDF filename
+        pdf_name: Source PDF filename (str or Path)
         question: Original question
     """
+    # Convert Path to string for JSON serialization
+    pdf_name_str = str(pdf_name) if isinstance(pdf_name, Path) else pdf_name
+    
     answer_data = {
-        "pdf_file": pdf_name,
+        "pdf_file": pdf_name_str,
         "question": question,
         "answer": result.answer,
         "reasoning_trace": result.reasoning_trace[:1000] + "..."
