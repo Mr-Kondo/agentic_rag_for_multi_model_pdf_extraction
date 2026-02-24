@@ -523,15 +523,93 @@ class LangGraphQueryPipeline:
         """
         log.info("Building LangGraph query workflow...")
 
+        # Define node functions with dependency injection via closure
+        # This allows nodes to access self.orchestrator, self.store, etc.
+
+        def _retrieve(state: QueryState) -> QueryState:
+            """Retrieve chunks using orchestrator and store from closure."""
+            orchestrator = self.orchestrator
+            store = self.store
+            trace = state.get("trace")
+
+            log.info("📚 [retrieve_node] Retrieving chunks for question: %s", state["question"][:60])
+            hits = orchestrator.retrieve(state["question"], store, trace=trace)
+            log.info("✓ [retrieve_node] Retrieved %d chunks", len(hits))
+
+            state["retrieved_hits"] = hits
+            state["current_phase"] = "check_quality"
+            state["stats"]["retrieved_count"] = len(hits)
+            return state
+
+        def _generate(state: QueryState) -> QueryState:
+            """Generate answer using orchestrator from closure."""
+            orchestrator = self.orchestrator
+            trace = state.get("trace")
+
+            log.info("🤖 [generate_answer] Generating answer with orchestrator...")
+            with orchestrator:
+                log.info("  [LOAD] OrchestratorAgent loaded (~16GB)")
+                result = orchestrator.generate(
+                    query=state["question"],
+                    context_chunks=state["retrieved_hits"],
+                    trace=trace,
+                )
+                log.info("  ✓ Answer generated (%d chars)", len(result.answer))
+            log.info("  [UNLOAD] OrchestratorAgent unloaded")
+
+            if trace:
+                result.trace_id = trace.trace_id
+
+            state["raw_answer"] = result
+            state["current_phase"] = "decide_validate"
+            state["stats"]["answer_length"] = len(result.answer)
+            return state
+
+        def _validate(state: QueryState) -> QueryState:
+            """Validate answer using answer_validator from closure."""
+            answer_validator = self.answer_validator
+            tracer = self.tracer
+            trace = state.get("trace")
+            result = state["raw_answer"]
+
+            log.info("✅ [validate_answer] CHECKPOINT B: Starting answer validation...")
+            source_texts = [sc["text"] for sc in result.source_chunks]
+
+            with answer_validator:
+                log.info("  [LOAD] AnswerValidatorAgent loaded (~16GB)")
+                ans_val = answer_validator.validate_answer(
+                    question=state["question"],
+                    answer=result,
+                    source_texts=source_texts,
+                    trace=trace,
+                )
+                log.info("  ✓ Validation complete - Grounded: %s", ans_val.is_grounded)
+            log.info("  [UNLOAD] AnswerValidatorAgent unloaded")
+
+            if trace:
+                tracer.score(
+                    trace_id=trace.trace_id,
+                    name="answer_grounding",
+                    value=ans_val.verdict_score,
+                    comment=f"grounded={ans_val.is_grounded} | " + "; ".join(ans_val.hallucinations),
+                )
+
+            state["_validation_result"] = ans_val  # type: ignore
+            state["needs_revision"] = not ans_val.is_grounded and ans_val.revised_answer is not None
+            state["current_phase"] = "check_grounding"
+            state["stats"]["is_grounded"] = ans_val.is_grounded
+            state["stats"]["hallucination_count"] = len(ans_val.hallucinations)
+            return state
+
         # Initialize graph with QueryState schema
         builder = StateGraph(QueryState)
 
         # ──────── Add Nodes ────────
-        builder.add_node("retrieve", retrieve_node)
+        builder.add_node("retrieve", _retrieve)
         builder.add_node("check_quality", check_retrieval_quality_node)
-        builder.add_node("generate", generate_answer_node)
+        builder.add_node("generate", _generate)
         builder.add_node("decide_validate", decide_validate_node)
-        builder.add_node("validate", validate_answer_node)
+        builder.add_node("validate", _validate)
         builder.add_node("check_grounding", check_grounding_node)
         builder.add_node("revise", revise_answer_node)
         builder.add_node("finalize", finalize_node)
@@ -620,13 +698,7 @@ class LangGraphQueryPipeline:
                 trace=trace,
             )
 
-            # Inject dependencies into state (not part of TypedDict, prefixed with _)
-            state["_orchestrator"] = self.orchestrator  # type: ignore
-            state["_answer_validator"] = self.answer_validator  # type: ignore
-            state["_store"] = self.store  # type: ignore
-            state["_tracer"] = self.tracer  # type: ignore
-
-            # Execute graph
+            # Execute graph (dependencies injected via closure in _build_graph)
             log.info("▶️  Executing LangGraph workflow...")
             final_state = self.graph.invoke(state)
 
