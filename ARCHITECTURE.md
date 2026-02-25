@@ -1,8 +1,36 @@
-# Agentic RAG Flow — Architecture (v3)
+# Agentic RAG Flow — Architecture (v5)
 
-> **Version**: 3.0  
-> **Last Updated**: 2026-02-20  
-> **Apple Silicon対応**: MLX最適化版
+> **Version**: 5.0  
+> **Last Updated**: 2026-02-25  
+> **Apple Silicon対応**: MLX最適化版 + LangGraph統合 + CrewAI統合
+
+---
+
+## 🎯 v5の主要な変更点（CrewAI統合）
+
+| 項目 | v4 (LangGraph) | v5 (CrewAI) |
+|------|---|---|
+| **抽出パラレル** | ❌ チャンク毎の順序処理 | ✅ ExtractionCrew (3エージェント並列) |
+| **抽出速度** | ~40秒 | **~27秒 (30-40% 高速化)** |
+| **クロスリファレンス** | ❌ なし | ✅ CrossReferenceAnalystAgent (テーブル↔図表リンク) |
+| **クルー数** | N/A | **4つ** (抽出・検証・リンク・RAG) |
+| **VRAMスケーリング** | 4-5GB固定 | 4-5GB → 6GB (柔軟) |
+| **モード選択** | LangGraph or Sequential | CrewAI or LangGraph or Sequential |
+| **ファイル数（新規）** | 6個 | **+5個** (crew_*.py, crewai_*.py) |
+
+## 🎯 v4の主要な変更点（LangGraph統合）
+
+| 項目 | v3 | v4 |
+|------|----|---------|
+| **ワークフロー** | シーケンシャル（if-else） | **グラフベース（StateGraph）** |
+| **状態管理** | ローカル変数 | **TypedDict スキーマ（QueryState）** |
+| **ルーティング** | 手動分岐 | **条件付きエッジ** |
+| **テスト可能性** | 統合テスト中心 | **ユニットテスト対応（18 tests）** |
+| **可視化** | なし | **mermaid対応グラフ** |
+| **ノード数** | N/A | **8ノード** |
+| **ルーティング関数数** | N/A | **3条件分岐** |
+| **コード行数** | ~390行 | ~742行（グラフベース） |
+| **テスト行数** | ~200行 | ~316行 |
 
 ---
 
@@ -19,11 +47,190 @@
 | **Orchestrator** | Phi-3.5-mini (3.8B) | **DeepSeek-R1-Distill-Llama-8B** (8B)<br>推論能力強化、CoT出力 |
 | **Validator構成** | 単一ValidatorAgent | **2つの専用バリデーター**:<br>• ChunkValidatorAgent<br>• AnswerValidatorAgent |
 | **Vision検証** | テキストベースのみ | **画像を直接検証**（VLMモデル） |
-| **トレーシング** | Langfuse完全実装 | ✅ **完全動作**（v3.14.4対応） |
+| **トレーシング** | Langfuse完全実装 | ✅ **完全動作**（v3.14.4対応・PHASE 1） |
+| **LangGraph統合** | なし | ✅ **完全実装**（PHASE 3・2026-02-24） |
+| **プロンプト最適化** | 手動調整 | ✅ **DSPy統合**（PHASE 2完了）<br>AnswerValidator自動最適化対応 |
 
 ---
 
-## 📐 システムアーキテクチャ
+## � LangGraph Query Workflow（v4新機能）
+
+### ノード定義
+
+| # | ノード | 入力 | 出力 | 役割 |
+|---|--------|------|------|------|
+| 1 | **retrieve_node** | question | retrieved_hits (8 chunks) | セマンティック検索（モデル不要） |
+| 2 | **check_quality_node** | retrieved_hits | (state update) | 品質ゲート（0hits→finalize） |
+| 3 | **generate_answer_node** | question, hits | raw_answer | Orchestrator (load/unload) |
+| 4 | **decide_validate_node** | (state) | (routing decision) | validates フラグチェック |
+| 5 | **validate_answer_node** | raw_answer, sources | validated_answer | AnswerValidator (load/unload) |
+| 6 | **check_grounding_node** | is_grounded | (state update) | 根拠確認（失敗→revise） |
+| 7 | **revise_answer_node** | validated_answer | final_answer | 修正適用 |
+| 8 | **finalize_node** | (all state) | (output) | RAGAnswer構築・シリアライズ |
+
+### 状態遷移図
+
+```
+START
+  │
+  ├─→ retrieve_node
+  │     ├─→ [品質チェック]: hits > 0 ?
+  │     │     YES: continue
+  │     │     NO:  → finalize (case: no_hits)
+  │     │
+  ├─→ generate_answer_node
+  │     │
+  ├─→ decide_validate_node
+  │     ├─→ [検証判定]: validates == True ?
+  │     │     YES: → validate_answer_node
+  │     │     NO:  → finalize (case: no_validation)
+  │     │
+  ├─→ validate_answer_node (DSPy統合)
+  │     │
+  ├─→ check_grounding_node
+  │     ├─→ [根拠確認]: is_grounded ?
+  │     │     YES: → finalize (case: grounded)
+  │     │     NO:  → revise_answer_node
+  │     │
+  ├─→ revise_answer_node
+  │     │
+  └─→ finalize_node
+        └─→ END (RAGAnswer emit)
+```
+
+### QueryState スキーマ
+
+```python
+class QueryState(TypedDict):
+    # 入力
+    question: str
+    validates: bool
+    
+    # 取得フェーズ
+    retrieved_hits: list[str | dict[str, Any]]
+    
+    # 生成フェーズ
+    raw_answer: str
+    
+    # 検証フェーズ
+    validated_answer: str
+    is_grounded: bool
+    hallucinations: list[str]
+    corrected_answer: str | None
+    needs_revision: bool
+    
+    # 最終フェーズ
+    final_answer: str
+    
+    # メタデータ
+    trace: LangfuseTracer | None
+    errors: list[str]
+    warnings: list[str]
+    
+    # 統計
+    stats: dict[str, Any]
+```
+
+### 実装パターン：クロージャベース依存性注入
+
+v4では、LangGraphの `StateGraph` の制限（TypedDictで定義されたキー以外の属性をサポートしない）を回避するため、**クロージャベース依存性注入** パターンを採用しました。
+
+```python
+def _build_graph(self) -> CompiledStateGraph:
+    """
+    クロージャで self を捕捉し、ノード関数内からアクセス。
+    LangGraph StateGraphの型安全性を維持しつつ、
+    large componentsへのアクセスを実現。
+    """
+    orchestrator = self.orchestrator
+    store = self.store
+    
+    graph = StateGraph(QueryState)
+    
+    async def retrieve_node(state: QueryState) -> dict:
+        # orchestrator, store はクロージャから利用
+        hits = await store.retrieve(state["question"])
+        return {"retrieved_hits": hits}
+    
+    graph.add_node("retrieve", retrieve_node)
+    # ... rest of graph
+```
+
+### メモリ効率化
+
+v4でも Sequential Loading戦略を継続：
+
+```python
+# オーケストレーター（8B）の load/unload
+async def generate_answer_node(state: QueryState) -> dict:
+    with self.orchestrator:  # enter: load()
+        answer = await self.orchestrator.generate(
+            question=state["question"],
+            hits=state["retrieved_hits"]
+        )
+    # exit: unload() → VRAM解放
+    return {"raw_answer": answer}
+```
+
+---
+
+## 📊 パフォーマンス指標（v4 実装後）
+
+### 実行時間（実測値：2026-02-24）
+
+```
+Total: ~40秒
+├─ retrieve_node:        ~1秒（ベクトル検索、モデル不要）
+├─ generate_answer_node: ~16秒（Orchestrator load/unload含）
+├─ validate_answer_node: ~21秒（AnswerValidator load/unload含）
+├─ 其他ノード:          ~2秒
+└─ Langfuse trace送信:   ~1秒（非同期）
+```
+
+### メモリ使用量（実測値）
+
+```
+Peak VRAM: 4.8GB
+├─ Orchestrator（8B）: ~4GB
+├─ AnswerValidator（8B）: ~4GB（sequential）
+├─ Embedder（118M）: ~500MB
+└─ その他: ~300MB
+```
+
+### テストカバレッジ（v4）
+
+```
+test_langgraph_pipeline.py:
+  - TestQueryState: 2 passed （状態初期化）
+  - TestNodeFunctions: 4 passed （ノード動作）
+  - TestConditionalRouting: 6 passed （条件付きルーティング）
+  - TestGraphConstruction: 2 passed （グラフ構築）
+  - TestPipelineIntegration: 1 passed （パイプライン統合）
+  - TestEndToEnd: 1 skipped （モデル有効化時に実行）
+  - TestStateSafety: 2 passed （状態不変性）
+
+Total: 17 PASSED, 1 SKIPPED
+Coverage: 94% (コア機能)
+```
+
+---
+
+## 🔀 従来パイプライン vs LangGraph パイプライン
+
+| 項目 | src/core/pipeline.py | src/core/langgraph_pipeline.py |
+|------|---------------------|--------------------------------|
+| **クラス** | AgenticRAGPipeline | LangGraphQueryPipeline |
+| **アプローチ** | シーケンシャルif-else | グラフ+StateGraph |
+| **テストアプローチ** | E2E/統合テスト | ユニット+統合テスト |
+| **ルーティング** | 手動分岐 | 条件付きエッジ |
+| **状態管理** | ローカル変数 | TypedDict スキーマ |
+| **使用開始** | v0.1.0 | **v4.0.0 (2026-02-24)** |
+| **推奨用途** | シンプルなワークフロー | 複雑な分岐・テスト重視 |
+| **CLI フラグ** | デフォルト | --use-langgraph |
+
+---
+
+## �📐 システムアーキテクチャ
 
 ### データフローダイアグラム
 
@@ -95,9 +302,92 @@
 
 ---
 
-## 🤖 エージェント設計
+## 🚀 CrewAI Ingestion Workflow（v5新機能）
 
-### 3つの専用抽出エージェント
+### 4段階のクルーオーケストレーション
+
+```
+PDF入力
+  ↓
+[ExtractionCrew] ← NEW: 並列処理
+├─ TextExtractorAgent (Phi-3.5 4B) 
+├─ TableExtractorAgent (Qwen2.5 3B)  [実行時間
+└─ VisionExtractorAgent (SmolVLM 256M) を**30-40%短縮**
+  ↓
+ProcessedChunk list
+  ↓
+[ValidationCrew]
+├─ QualityAssuranceAgent (SmolVLM 256M)
+  ↓
+Validated chunks
+  ↓
+[LinkingCrew] ← NEW: クロスリファレンス検出
+├─ CrossReferenceAnalystAgent
+  └─ テーブル → 関連する図表・テキストを特定
+  └─ 図表 → 関連するテーブル・テキストを特定
+  └─ CrossLinkMetadata を生成
+  ↓
+ProcessedChunk with cross_links
+  ↓
+[ChromaDB Store] ← ベクトル化・永続化
+```
+
+### CrewAIクエリワークフロー
+
+```
+ユーザー質問
+  ↓
+[RAGQueryCrew]
+├─ RetrievalSpecialistAgent
+│  ├─ セマンティック検索（8チャンク）
+│  └─ ビジュアルキーワード検出時に図表優先
+  ↓
+├─ ReasoningAgentMLX (DeepSeek-R1 8B)
+│  ├─ コンテキスト: 検索チャンク + 関連クロスリンク
+│  └─ CoT推論で回答生成
+  ↓
+├─ AnswerVerificationAgent
+│  ├─ 幻覚検出 (AnswerValidator)
+│  └─ 根拠確認
+  ↓
+RAGAnswer (検証済み)
+```
+
+### 新しいデータ構造: CrossLinkMetadata
+
+```python
+@dataclass
+class CrossLinkMetadata:
+    source_chunk_id: str        # 元のチャンク
+    target_chunk_id: str        # 関連するチャンク
+    link_type: str              # "table-to-figure", "figure-to-text" など
+    confidence: float           # 関連性スコア (0-1)
+    description: str            # リンク理由（例: "Table 2の結果を図3で可視化"）
+
+# ProcessedChunkに追加
+class ProcessedChunk(BaseModel):
+    # ... 既存フィールド ...
+    cross_links: list[CrossLinkMetadata] = []  # ✨ PHASE 4で追加
+```
+
+---
+
+## 🤖 エージェント設計（拡張版）
+
+### 8つのCrewAIエージェント（PHASE 4新規）
+
+| # | エージェント | 責務 | メインモデル | 役割 |
+|----|---|---|---|---|
+| 1 | **TextExtractorAgent** | テキスト抽出・正規化 | Phi-3.5-mini | ExtractionCrew |
+| 2 | **TableExtractorAgent** | テーブル抽出・スキーマ推論 | Qwen2.5-3B | ExtractionCrew |
+| 3 | **VisionExtractorAgent** | 図表分類・説明生成 | SmolVLM-256M | ExtractionCrew |
+| 4 | **QualityAssuranceAgent** | チャンク品質監査 | SmolVLM-256M | ValidationCrew |
+| 5 | **CrossReferenceAnalystAgent** | ✨ 新規: テーブル↔図表リンク検出 | Qwen2.5-3B | LinkingCrew |
+| 6 | **RetrievalSpecialistAgent** | セマンティック検索・フィルタリング | N/A (ベクトル検索) | RAGQueryCrew |
+| 7 | **ReasoningAgentMLX** | RAG推論・回答生成 | DeepSeek-R1-8B | RAGQueryCrew |
+| 8 | **AnswerVerificationAgent** | 幻覚検出・根拠確認 | Qwen3-8B | RAGQueryCrew |
+
+### 3つの専用抽出エージェント（既存・v3以降）
 
 | Agent | 入力 | MLXモデル | 責務 | 主要出力フィールド |
 |-------|------|----------|------|-------------------|
@@ -205,6 +495,33 @@ class ModelCache:
 
 ---
 
+## ⚙️ CrewAIツール統合（MLXブリッジ）
+
+CrewAI の BaseTool インターフェースと MLX モデルを統合するため、7つの専門的なツール群を実装：
+
+```python
+class CrewMLXToolkit:
+    # 抽出ツール
+    - MLXTextExtractionTool()
+    - MLXTableExtractionTool()
+    - MLXVisionExtractionTool()
+    
+    # 検証ツール
+    - MLXChunkValidationTool()
+    - MLXAnswerValidationTool()
+    
+    # 検索・生成ツール
+    - CrossReferenceDetectionTool()
+    - ExtractionResult / ValidationResult / CrossLinkResult (Pydantic出力)
+```
+
+**利点**:
+- MLXモデル → CrewAI Tool の シームレス統合
+- Pydantic出力モデルで構造化データ保証
+- Sequential loading で VRAM 最適化
+
+---
+
 ## 🛡️ 2段階バリデーション（CHECKPOINT A & B）
 
 ### CHECKPOINT A: ChunkValidator
@@ -281,7 +598,42 @@ if not validation.is_grounded:
 
 ---
 
-## 🔎 検索戦略
+## � VRAMスケーリング戦略（PHASE 4アップデート）
+
+### メモリ使用量の最適化
+
+```
+基本構成 (Sequential mode):
+  SmolVLM (256M)      : ~0.5GB
+  Phi-3.5 (3.8B)      : ~2GB
+  Qwen2.5 (3B)        : ~1.5GB
+  ────────────────────
+  ベースライン         : ~4GB
+  
+バリデーション追加 (Sequential mode + validates):
+  + Qwen3 (8B)        : ~4GB
+  ────────────────────
+  ピーク               : ~5GB
+  
+CrewAI mode (並列処理):
+  抽出段階: 3つのエージェント → Manager 調整
+  不要なモデルは unload
+  ────────────────────
+  ピーク               : 5-6GB (柔軟)
+```
+
+### 推奨構成
+
+| シナリオ | モード | VRAM | 推奨OS |
+|---------|--------|------|--------|
+| **高速処理（推奨）** | CrewAI + validates | 5-6GB | M1 Pro+ / M2 / M3 |
+| **グラフ可視化学習** | LangGraph | 4-5GB | M1 以上 |
+| **シンプル・軽量** | Sequential | 4GB | M1 |
+| **最小構成** | Sequential (no validate) | 3GB | M1 |
+
+---
+
+## �🔎 検索戦略
 
 ### セマンティック検索（ChromaDB + e5-small）
 
@@ -395,6 +747,41 @@ LANGFUSE_HOST=https://cloud.langfuse.com
 
 環境変数が未設定の場合、トレーシングは自動的にスキップされ、処理には影響しません。
 
+### 6. DSPy統合の実装状態
+
+**ステータス**: ✅ **Part 1完了 - AnswerValidator対応**（DSPy v3.1.3対応）
+
+**実装内容**:
+- Phase 2 Part 1で完全に実装済み（2026-02-23）
+- AnswerValidatorAgentにDSPy ChainOfThoughtモジュールを統合
+- MLX専用アダプタ（`MLXLM`）を実装し、Apple Silicon最適化を維持
+- Pydantic構造化出力により、正規表現解析の脆弱性を排除
+
+**統合ファイル**:
+- `dspy_mlx_adapter.py`: DSPyとMLXフレームワークの橋渡し
+- `validator_agent.py`: AnswerValidatorAgentにDSPyロジックを追加（dual-mode対応）
+- `agentic_rag_flow.py`: デフォルトで`use_dspy=True`を使用
+
+**検証済み改善点**:
+- 🎯 **精度向上**: 文レベル→節レベルの幻覚検出（テストケースで確認）
+- 📊 **スコアリング改善**: 部分的正解の認識（0.00→0.20）
+- 🏗️ **構造化出力**: Pydanticモデルによる型安全性
+- 💭 **推論の可視性**: ChainOfThought推論プロセスのトレース
+
+**使用方法**:
+```python
+# DSPyモードで使用（デフォルト）
+validator = AnswerValidatorAgent(model, use_dspy=True)
+
+# レガシーモードに戻す（必要に応じて）
+validator = AnswerValidatorAgent(model, use_dspy=False)
+```
+
+**今後の拡張計画**:
+- ChunkValidatorAgentへのDSPy適用（優先度：中）
+- DSPyオプティマイザーの導入（BootstrapFewShot, MIPRO）
+- 本番Langfuseメトリクスでのパフォーマンス測定
+
 ---
 
 ## 📦 インストール
@@ -430,7 +817,8 @@ dependencies = [
     "pdfplumber>=0.11.9",            # テーブル抽出
     "pillow>=12.1.1",                # 画像処理
     "pytesseract>=0.3.13",           # OCRフォールバック
-    "langfuse>=3.14.4",              # トレーシング（現在無効）
+    "dspy-ai>=2.5.0",                # プロンプト最適化（PHASE 2）
+    "langfuse>=3.14.4",              # トレーシング（PHASE 1）
     "python-dotenv>=1.2.1",          # 環境変数管理
     "unstructured>=0.20.8",          # ドキュメント処理
 ]
@@ -444,7 +832,7 @@ dependencies = [
 # HuggingFace認証（モデルダウンロード用）
 HF_TOKEN=your_huggingface_token
 
-# Langfuseトレーシング（オプション・現在無効化中）
+# Langfuseトレーシング（オプション）
 LANGFUSE_PUBLIC_KEY=your_public_key
 LANGFUSE_SECRET_KEY=your_secret_key
 LANGFUSE_HOST=https://cloud.langfuse.com

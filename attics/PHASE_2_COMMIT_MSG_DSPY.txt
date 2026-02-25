@@ -1,0 +1,75 @@
+feat(dspy): integrate DSPy for AnswerValidatorAgent (PHASE 2 Part 1)
+
+Implemented DSPy integration to enable structured output generation and
+automatic prompt optimization for validation tasks. This is the first
+deliverable of PHASE 2, focusing on the highest-ROI target: answer
+validation with hallucination detection.
+
+## Core Components Added
+
+### 1. DSPy-MLX Adapter (dspy_mlx_adapter.py)
+- Custom `MLXLM` class implementing `dspy.LM` interface
+- Bridges DSPy framework with mlx-lm for Apple Silicon optimization
+- Maintains compatibility with existing BaseLoadableModel pattern
+- Supports both string and chat-template prompts
+- Provides `configure_mlx_lm()` helper for easy setup
+
+### 2. Pydantic Models & DSPy Signatures (validator_agent.py)
+- `AnswerGroundingOutput`: Pydantic model for type-safe validation results
+- `ChunkQualityOutput`: Pydantic model for chunk validation (prepared for future)
+- `AnswerGroundingSignature`: DSPy signature for hallucination detection
+- `ChunkQualitySignature`: DSPy signature for extraction quality (prepared for future)
+
+### 3. Enhanced AnswerValidatorAgent (validator_agent.py)
+- Dual-mode operation: DSPy-enhanced (default) and legacy
+- `_validate_with_dspy()`: Uses `dspy.ChainOfThought` for systematic claim verification
+- `_validate_legacy()`: Preserved original regex-based parsing for comparison
+- Automatic output structuring without manual JSON parsing
+- Graceful fallback on DSPy errors
+
+### 4. Test Infrastructure (test_dspy_validator.py)
+- Standalone test script for DSPy validator
+- Compares DSPy vs legacy validation results
+- Tests hallucination detection with synthetic examples
+
+## Integration Changes
+
+- pyproject.toml: Added `dspy-ai>=2.5.0` dependency
+- agentic_rag_flow.py: Updated AnswerValidatorAgent initialization to use DSPy by default
+- Langfuse tracing: Added `dspy_answer_validation` span for DSPy predictions
+
+## Benefits
+
+Expected improvements from PLAN.md:
+- +15-25% validation accuracy improvement (to be measured)
+- +5-10% confidence score improvement (to be measured)
+- Eliminates brittle regex-based JSON parsing
+- Enables future prompt optimization with DSPy optimizers (BootstrapFewShot, MIPRO)
+- Provides explicit reasoning traces through ChainOfThought
+
+## Technical Decisions
+
+1. **Hybrid approach**: DSPy for text validation, preserve mlx-vlm for vision tasks
+2. **Backward compatibility**: Legacy mode available via `use_dspy=False`
+3. **Deferred scope**: ChunkValidatorAgent DSPy conversion postponed (requires mlx-vlm integration)
+4. **Memory overhead**: ~50-100MB additional (within PLAN.md target)
+
+## Next Steps (PHASE 2 Part 2)
+
+1. Run test_dspy_validator.py with actual models to verify functionality
+2. Collect baseline metrics from existing Langfuse traces
+3. Measure validation accuracy improvement
+4. Consider ChunkValidatorAgent DSPy conversion if AnswerValidator shows strong results
+5. Explore DSPy optimizers for automatic prompt tuning (Week 4-5)
+
+## Testing
+
+```bash
+# Run standalone DSPy validator test
+python test_dspy_validator.py
+
+# Run full pipeline with DSPy validation (existing workflow)
+python agentic_rag_flow.py input/21_77.pdf
+```
+
+Related: PLAN.md PHASE 2 (Weeks 3-5)
