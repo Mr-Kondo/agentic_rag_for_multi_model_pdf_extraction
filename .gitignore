@@ -208,3 +208,7 @@ __marimo__/
 
 models*/
 chroma_db*/
+.vscode*/
+
+# Configuration (user-customized)
+settings.json
