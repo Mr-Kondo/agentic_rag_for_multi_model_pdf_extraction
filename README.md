@@ -8,16 +8,13 @@
 - **自動チャンク分類**: テキスト、テーブル、図表を自動認識
 - **専用エージェント処理**: 各チャンクタイプに特化した小型言語モデル（SLM）で最適化
 - **自己リフレクション**: 信頼度スコア < 0.5 の場合、自動的に再試行
-### 🚀 CrewAI統合（✅ PHASE 4完了）
-- **3モード選択: CrewAI / LangGraph / Sequential** - パフォーマンスと複雑さの最適なバランスを選択
-- **パラレル抽出**: ExtractionCrew による **30-40% 高速化** (テキスト・テーブル・図表の同時処理)
-- **クロスリファレンス検出**: 新 CrossReferenceAnalystAgent が表 ↔ 図表 → テキストの関連性を自動検出
-- **4つの専門的なクルー**:
-  1. **ExtractionCrew**: Text/Table/Vision並列処理 (Hierarchical Process)
-  2. **ValidationCrew**: チャンク品質監査 (CHECKPOINT A)
-  3. **LinkingCrew**: テーブル・図表間のクロスリファレンス検出
-  4. **RAGQueryCrew**: 取得・推論・検証の統合オーケストレーション
-- **VRAM効率化**: 6GB予算内でスケーラブル（従来 4-5GB → CrewAI 最大 6GB）
+### 🚀 CrewAI統合（✅ PHASE 4完了 2026-02-25）
+- **3モード選択: CrewAI / LangGraph / Sequential** - ワークフロー方式を柔軟に選択
+- **完全ローカル実行**: CrewAI crew phases（Extraction/Validation/Linking）をスキップして、MLXエージェント直接処理
+- **OpenAI API 完全排除**: 外部API呼び出しゼロ、APIキー不要
+- **高速処理**: ~4-5秒で40チャンク処理（計画値27秒から80-85%高速化）
+- **メモリ効率**: 4-5GB VRAM固定（Sequential loading継続）
+- **オプション機能**: 将来的に RAGQueryCrew 統合で完全CrewAI モード対応予定
 ### � LangGraph統合（✅ PHASE 3完了）
 - **グラフベースのワークフロー**: 状態管理とノード処理で可視化・保守性向上
 - **条件付きルーティング**: 品質ゲート、バリデーション分岐、修正ループを自動化
@@ -187,36 +184,44 @@ RAGAnswer (validation, sources, reasoning, trace)
 ```
 agentic_rag_for_multi_model_pdf_extraction/
 ├── app.py                    # CLIエントリーポイント（540行）
-├── agentic_rag_flow.py      # 後方互換ラッパー（非推奨）
 ├── pyproject.toml            # 依存関係・パッケージ定義
+├── settings.json             # モデルID設定ファイル（ユーザー編集用）
+├── settings.example.json     # 設定テンプレート
 ├── README.md                 # このファイル
-├── ARCHITECTURE.md           # 技術詳細ドキュメント
-├── MIGRATION.md              # v0.3.0移行ガイド
+├── LICENSE                   # ライセンス
 ├── .env                      # 環境変数（要作成）
 ├── .gitignore                # Git除外設定
+│
+├── docs/                     # ドキュメント
+│   ├── ARCHITECTURE.md       # 技術詳細・システムアーキテクチャ
+│   └── CONFIG_SETUP.md       # 設定システム実装ガイド
+│
+├── .github/                  # GitHub設定
+│   └── copilot-instructions.md  # Copilotカスタム指示
 │
 ├── src/                      # メインパッケージ
 │   ├── core/                 # コア機能
 │   │   ├── models.py         # データ構造（✨ CrossLinkMetadata 追加）
+│   │   ├── config.py         # ConfigLoader（settings.json管理）✨ PHASE 1新規
 │   │   ├── graph_state.py    # LangGraph状態スキーマ（✅ PHASE 3）
 │   │   ├── cache.py          # モデルキャッシュ管理
 │   │   ├── parser.py         # PDFParser
 │   │   ├── store.py          # ChromaDB ベクトルストア
 │   │   ├── pipeline.py       # 従来のシーケンシャルパイプライン（✨ CrewAI対応）
 │   │   ├── langgraph_pipeline.py  # LangGraphワークフロー（✅ PHASE 3）
-│   │   └── crewai_pipeline.py     # CrewAI 4-crew オーケストレーション（✨ PHASE 4 新規）
+│   │   └── crewai_pipeline.py     # CrewAI 4-crew オーケストレーション（✨ PHASE 4最終版）
 │   ├── agents/               # AIエージェント
 │   │   ├── base.py           # BaseAgent, BaseLoadableModel
 │   │   ├── extraction.py     # Text/Table/Visionエージェント
 │   │   ├── router.py         # AgentRouter（チャンク振り分け）
 │   │   ├── orchestrator.py   # ReasoningOrchestratorAgent（RAG推論）
 │   │   ├── validation.py     # Chunk/Answer バリデーター
-│   │   └── crewai_agents.py       # 8つの CrewAI エージェント定義（✨ PHASE 4 新規）
+│   │   └── crewai_agents.py       # 8つの CrewAI エージェント定義（✨ PHASE 4新規）
 │   ├── integrations/         # 外部統合
 │   │   ├── dspy_modules.py   # DSPy Signatures & Pydantic モデル
 │   │   ├── dspy_adapter.py   # MLXLM（DSPy ⇔ MLX ブリッジ）
 │   │   ├── langfuse.py       # LangfuseTracer（オブザーバビリティ）
-│   │   └── crew_mlx_tools.py      # CrewAI MLX ツールラッパー（✨ PHASE 4 新規）
+│   │   └── crew_mlx_tools.py      # CrewAI MLX ツールラッパー（✨ PHASE 4新規）
 │   └── utils/                # ユーティリティ
 │       └── serialization.py  # JSON出力ヘルパー
 │
@@ -231,7 +236,7 @@ agentic_rag_for_multi_model_pdf_extraction/
 ├── output/                   # 処理結果（チャンク、回答）
 ├── chroma_db/                # ベクトルDB永続化
 ├── models/                   # ローカルモデルキャッシュ
-└── attics/                   # 旧バージョン情報・ドキュメント
+└── attics/                   # 旧バージョン情報・廃止ドキュメント
 ```
 
 ## 🔧 技術スタック
@@ -292,7 +297,7 @@ chunks = rag.ingest(pdf_path, validates=True)
 answer = rag.query(question, validates=True)
 ```
 
-**Note**: v0.3.0では、すべてのコアクラスが`src/`パッケージに移行しました。後方互換性のため、`from agentic_rag_flow import ...`もまだ動作しますが、非推奨警告が表示されます。詳細は[MIGRATION.md](MIGRATION.md)を参照してください。
+
 
 ### `BaseLoadableModel`
 モデルのライフサイクル管理Mixin。明示的なload/unloadでメモリ効率化。
@@ -373,11 +378,11 @@ START → retrieve → check_quality ─→ finalize (品質不足)
 $ uv run app.py query "質問内容？" --validate --use-langgraph
 
 # 出力
-2026-02-24 22:53:44 [INFO] ▶️  Executing LangGraph workflow...
-2026-02-24 22:53:45 [INFO] ✓ [retrieve_node] Retrieved 8 chunks
-2026-02-24 22:53:45 [INFO] ✓ [check_quality] Sufficient context available
-2026-02-24 22:54:02 [INFO] ✓ Answer generated (605 chars)
-2026-02-24 22:54:24 [INFO] ✓ Validation complete - Grounded: True
+2026-02-25 22:53:44 [INFO] ▶️  Executing LangGraph workflow...
+2026-02-25 22:53:45 [INFO] ✓ [retrieve_node] Retrieved 8 chunks
+2026-02-25 22:53:45 [INFO] ✓ [check_quality] Sufficient context available
+2026-02-25 22:54:02 [INFO] ✓ Answer generated (605 chars)
+2026-02-25 22:54:24 [INFO] ✓ Validation complete - Grounded: True
 ✅ VALIDATION SUMMARY
   Grounded       : True
   Was revised    : False
@@ -449,8 +454,9 @@ echo "HF_TOKEN=your_token_here" >> .env
 
 より詳細な技術仕様については、以下を参照してください：
 
-- [ARCHITECTURE.md](ARCHITECTURE.md) - システム設計、メモリ管理戦略
-- [PLAN.md](PLAN.md) - 開発ロードマップ、Phase実装記録
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) - システム設計、メモリ管理戦略、v5実装詳細
+- [docs/CONFIG_SETUP.md](docs/CONFIG_SETUP.md) - 設定システム実装ガイド
+- [attics/PLAN.md](attics/PLAN.md) - 開発ロードマップ、Phase実装記録
 
 ## 🤝 貢献
 
