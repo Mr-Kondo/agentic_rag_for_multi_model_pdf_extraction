@@ -87,13 +87,17 @@ def cmd_ingest(args: argparse.Namespace) -> int:
         answer_validator_model=args.answer_validator_model,
         persist_dir=args.storage_dir,
         lazy_agents=args.lazy_agents,
+        use_crewai=args.use_crewai,
     )
 
     log.info(f"\n{'=' * 70}")
     log.info(f"📂 Ingesting: {pdf_path.name}")
     log.info(f"{'=' * 70}\n")
 
-    chunks = pipeline.ingest(pdf_path, validates=args.validate)
+    if args.use_crewai:
+        chunks = pipeline.ingest_with_crewai(pdf_path, validates=args.validate)
+    else:
+        chunks = pipeline.ingest(pdf_path, validates=args.validate)
 
     # Print statistics
     stats = {ct.value: sum(1 for c in chunks if c.chunk_type == ct) for ct in ChunkType}
@@ -128,7 +132,26 @@ def cmd_query(args: argparse.Namespace) -> int:
     question = args.question
 
     # Choose pipeline implementation
-    if args.use_langgraph:
+    if args.use_crewai:
+        log.info("Building CrewAI RAG pipeline...")
+        pipeline = AgenticRAGPipeline.build(
+            text_model=args.text_model,
+            table_model=args.table_model,
+            vision_model=args.vision_model,
+            orchestrator_model=args.orchestrator_model,
+            chunk_validator_model=args.chunk_validator_model,
+            answer_validator_model=args.answer_validator_model,
+            persist_dir=args.storage_dir,
+            lazy_agents=args.lazy_agents,
+            use_crewai=True,
+        )
+
+        log.info(f"\n{'=' * 70}")
+        log.info(f"🔍 Query (CrewAI): {question}")
+        log.info(f"{'=' * 70}\n")
+
+        result = pipeline.query_with_crewai(question, session_id=args.session_id, validates=args.validate)
+    elif args.use_langgraph:
         log.info("Building LangGraph RAG pipeline...")
         pipeline = LangGraphQueryPipeline.build(
             orchestrator_model=args.orchestrator_model,
@@ -227,6 +250,7 @@ def cmd_pipeline(args: argparse.Namespace) -> int:
         answer_validator_model=args.answer_validator_model,
         persist_dir=args.storage_dir,
         lazy_agents=args.lazy_agents,
+        use_crewai=args.use_crewai,
     )
 
     # ── PHASE 1: INGEST ──
@@ -234,7 +258,10 @@ def cmd_pipeline(args: argparse.Namespace) -> int:
     log.info(f"📂 PHASE 1: INGESTING {pdf_path.name}")
     log.info(f"{'=' * 70}\n")
 
-    chunks = pipeline.ingest(pdf_path, validates=args.validate)
+    if args.use_crewai:
+        chunks = pipeline.ingest_with_crewai(pdf_path, validates=args.validate)
+    else:
+        chunks = pipeline.ingest(pdf_path, validates=args.validate)
 
     # Print statistics
     stats = {ct.value: sum(1 for c in chunks if c.chunk_type == ct) for ct in ChunkType}
@@ -252,8 +279,11 @@ def cmd_pipeline(args: argparse.Namespace) -> int:
     log.info(f"🔍 PHASE 2: QUERYING")
     log.info(f"{'=' * 70}\n")
 
-    # Use LangGraph for query if requested
-    if args.use_langgraph:
+    # Use CrewAI or LangGraph for query if requested
+    if args.use_crewai:
+        log.info("Using CrewAI pipeline for query phase...")
+        result = pipeline.query_with_crewai(question, session_id=args.session_id, validates=args.validate)
+    elif args.use_langgraph:
         log.info("Using LangGraph pipeline for query phase...")
         langgraph_pipeline = LangGraphQueryPipeline.build(
             orchestrator_model=args.orchestrator_model,
@@ -369,6 +399,12 @@ For more information, see: https://github.com/yourusername/agentic-rag
         action="store_false",
         help="Skip chunk quality validation (faster, less reliable)",
     )
+    ingest_parser.add_argument(
+        "--use-crewai",
+        action="store_true",
+        default=False,
+        help="Use CrewAI crews for parallel extraction and cross-linking (faster, more efficient)",
+    )
     ingest_parser.set_defaults(func=cmd_ingest)
 
     # ── QUERY SUBCOMMAND ──
@@ -399,6 +435,12 @@ For more information, see: https://github.com/yourusername/agentic-rag
         dest="validate",
         action="store_false",
         help="Skip hallucination detection (faster, less reliable)",
+    )
+    query_parser.add_argument(
+        "--use-crewai",
+        action="store_true",
+        default=False,
+        help="Use CrewAI crews for orchestration and multi-agent coordination",
     )
     query_parser.add_argument(
         "--use-langgraph",
@@ -441,6 +483,12 @@ For more information, see: https://github.com/yourusername/agentic-rag
         dest="validate",
         action="store_false",
         help="Skip all validation (fastest, least reliable)",
+    )
+    pipeline_parser.add_argument(
+        "--use-crewai",
+        action="store_true",
+        default=False,
+        help="Use CrewAI crews for both ingestion and query phases (parallel processing)",
     )
     pipeline_parser.add_argument(
         "--use-langgraph",

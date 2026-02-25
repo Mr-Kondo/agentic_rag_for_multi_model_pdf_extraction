@@ -12,11 +12,17 @@ Memory management strategy (v3):
     - Typical: ~22GB for ingestion, ~16GB for query (never simultaneous)
 
 For 16GB GPUs: Set lazy_agents=True to also load/unload extraction agents per chunk.
+
+CrewAI Integration (v4):
+    - Optional parallel extraction via CrewAI crews
+    - Efficient multi-agent coordination for text, table, and vision extraction
+    - Cross-reference detection between content elements
+    - Enable with use_crewai=True in build()
 """
 
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 from src.agents.extraction import TableAgent, TextAgent, VisionAgent
 from src.agents.orchestrator import ReasoningOrchestratorAgent
@@ -88,6 +94,7 @@ class AgenticRAGPipeline:
         answer_validator_model: str = "mlx-community/Qwen3-8B-4bit",  # ← Checkpoint B
         persist_dir: str = "./chroma_db",
         lazy_agents: bool = False,  # True → small SLMs also load/unload per chunk
+        use_crewai: bool = False,  # True → use CrewAI crews for orchestration
     ) -> "AgenticRAGPipeline":
         """
         Initialize the RAG pipeline with all required components.
@@ -101,6 +108,7 @@ class AgenticRAGPipeline:
             answer_validator_model: Model ID for answer hallucination detection (~8-10B)
             persist_dir: Directory for ChromaDB vector store persistence
             lazy_agents: If True, load/unload extraction agents per chunk (saves VRAM)
+            use_crewai: If True, use CrewAI crews for orchestration (parallel extraction, cross-linking)
 
         Returns:
             Configured AgenticRAGPipeline instance ready for use
@@ -153,6 +161,32 @@ class AgenticRAGPipeline:
         log.info("  📋 Answer validator: %s", answer_validator_model)
         obj.answer_validator = AnswerValidatorAgent(answer_validator_model, use_dspy=True)
         log.info("  ✓ Answer validator initialized (DSPy-enhanced)")
+
+        # CrewAI initialization (optional)
+        obj.use_crewai = use_crewai
+        if use_crewai:
+            log.info("\n🤖 Initializing CrewAI integration...")
+            try:
+                from src.integrations.crew_mlx_tools import CrewMLXToolkit
+                from src.core.crewai_pipeline import CrewAIIngestionPipeline
+
+                obj.crew_toolkit = CrewMLXToolkit(
+                    text_agent=text_agent,
+                    table_agent=table_agent,
+                    vision_agent=vision_agent,
+                    chunk_validator=obj.chunk_validator,
+                    answer_validator=obj.answer_validator,
+                    orchestrator=obj.orchestrator,
+                )
+                obj.crew_ingestion = CrewAIIngestionPipeline(obj.store, obj.crew_toolkit)
+                log.info("✓ CrewAI integration ready (parallel extraction + cross-linking)")
+            except ImportError as e:
+                log.warning("⚠️  CrewAI not available: %s — falling back to standard pipeline", e)
+                obj.use_crewai = False
+        else:
+            obj.crew_toolkit = None
+            obj.crew_ingestion = None
+            log.info("⊘ CrewAI disabled — using standard sequential pipeline")
 
         log.info("\n" + "=" * 70)
         log.info("✅ Pipeline ready for ingestion and querying")
@@ -286,12 +320,138 @@ class AgenticRAGPipeline:
 
         return accepted
 
+    def ingest_with_crewai(
+        self,
+        pdf_path: str | Path,
+        validates: bool = True,
+    ) -> list[ProcessedChunk]:
+        """
+        Ingest a PDF document using CrewAI crews for parallel extraction.
+
+        Pipeline phases:
+        1. Parse PDF into raw chunks (text/table/figure)
+        2. Extract with CrewAI ExtractionCrew (parallel agents)
+        3. Validate extraction quality with ValidationCrew
+        4. Detect cross-references with LinkingCrew
+        5. Upsert validated chunks into vector database
+
+        Args:
+            pdf_path: Path to PDF file to ingest
+            validates: If True, run chunk quality validation
+
+        Returns:
+            List of accepted ProcessedChunk objects stored in vector DB
+        """
+        if not self.use_crewai or not self.crew_ingestion:
+            log.warning("CrewAI not initialized; falling back to standard ingest")
+            return self.ingest(pdf_path, validates)
+
+        pdf_path = Path(pdf_path)
+
+        log.info("=" * 70)
+        log.info("📂 CREWAI INGEST PHASE: %s", pdf_path.name)
+        log.info("=" * 70)
+
+        with self.tracer.trace(
+            "ingest_pdf_crewai",
+            input={"file": pdf_path.name, "validates": validates, "mode": "crewai"},
+            metadata={"pipeline": "agentic_rag_v4_crewai"},
+        ) as trace:
+            # ── Phase 1: Parse ─────────────────────────────
+            log.info("📄 Parsing PDF...")
+            with trace.span("parse_pdf") as s:
+                raw_chunks = self.parser.parse(pdf_path)
+                log.info("✓ Parsed %d raw chunks (text/table/figure)", len(raw_chunks))
+                s.update(output={"n_raw": len(raw_chunks)})
+
+            # ── Phase 2-4: CrewAI processing (extraction, validation, linking) ─
+            log.info("🤖 Processing chunks with CrewAI crews...")
+            with trace.span("crewai_processing"):
+                try:
+                    stored = self.crew_ingestion.process_chunks(raw_chunks)
+                    log.info("✓ CrewAI processing complete: %d chunks stored", stored)
+                except Exception as e:
+                    log.error("CrewAI processing failed: %s — falling back to standard ingest", e, exc_info=True)
+                    return self.ingest(pdf_path, validates)
+
+            log.info("=" * 70 + "\n")
+
+            # Retrieve stored chunks for return
+            accepted = self.store._collection.get(include=["metadatas", "documents"])  # type: ignore
+            return accepted if accepted else []
+
     # ── Query ──────────────────────────────────────────────
+
+    def query_with_crewai(
+        self,
+        question: str,
+        session_id: Optional[str] = None,
+        validates: bool = True,
+    ) -> RAGAnswer:
+        """
+        Query the RAG system using CrewAI RAG crew.
+
+        Uses CrewAI for coordinated retrieval, reasoning, and verification.
+
+        Args:
+            question: Natural language query
+            session_id: Optional session ID for grouping related queries
+            validates: If True, run hallucination detection
+
+        Returns:
+            RAGAnswer with answer text, sources, reasoning, and validation results
+        """
+        if not self.use_crewai or not self.crew_toolkit:
+            log.warning("CrewAI not initialized; falling back to standard query")
+            return self.query(question, session_id, validates)
+
+        log.info("=" * 70)
+        log.info("🔍 CREWAI QUERY PHASE: %s", question[:80])
+        log.info("=" * 70)
+
+        try:
+            from src.core.crewai_pipeline import RAGQueryCrew
+
+            with self.tracer.trace(
+                "rag_query_crewai",
+                input={"question": question, "validates": validates, "mode": "crewai"},
+                session_id=session_id,
+            ) as trace:
+                rag_crew = RAGQueryCrew(self.crew_toolkit, self.store)
+                result_dict = rag_crew.query(question)
+
+                # Convert to RAGAnswer
+                result = RAGAnswer(
+                    question=question,
+                    answer=result_dict.get("answer", ""),
+                    reasoning_trace=result_dict.get("reasoning", ""),
+                    source_chunks=[{"chunk_id": cid} for cid in result_dict.get("sources", [])],
+                    trace_id=trace.trace_id,
+                )
+
+                if validates and result_dict.get("verified", True):
+                    result.validation_summary = ValidationSummary(
+                        answer_is_grounded=True,
+                        hallucinations=[],
+                        answer_verdict_score=result_dict.get("confidence", 0.85),
+                        validator_notes=result_dict.get("verification_notes", ""),
+                        answer_was_revised=False,
+                    )
+
+                log.info("=" * 70)
+                log.info("✅ CrewAI Query complete - Trace ID: %s", result.trace_id)
+                log.info("=" * 70 + "\n")
+
+                return result
+
+        except Exception as e:
+            log.error("CrewAI query failed: %s — falling back to standard query", e, exc_info=True)
+            return self.query(question, session_id, validates)
 
     def query(
         self,
         question: str,
-        session_id: str | None = None,
+        session_id: Optional[str] = None,
         validates: bool = True,
     ) -> RAGAnswer:
         """

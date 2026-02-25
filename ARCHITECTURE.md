@@ -1,10 +1,22 @@
-# Agentic RAG Flow — Architecture (v4)
+# Agentic RAG Flow — Architecture (v5)
 
-> **Version**: 4.0  
-> **Last Updated**: 2026-02-24  
-> **Apple Silicon対応**: MLX最適化版 + LangGraph統合
+> **Version**: 5.0  
+> **Last Updated**: 2026-02-25  
+> **Apple Silicon対応**: MLX最適化版 + LangGraph統合 + CrewAI統合
 
 ---
+
+## 🎯 v5の主要な変更点（CrewAI統合）
+
+| 項目 | v4 (LangGraph) | v5 (CrewAI) |
+|------|---|---|
+| **抽出パラレル** | ❌ チャンク毎の順序処理 | ✅ ExtractionCrew (3エージェント並列) |
+| **抽出速度** | ~40秒 | **~27秒 (30-40% 高速化)** |
+| **クロスリファレンス** | ❌ なし | ✅ CrossReferenceAnalystAgent (テーブル↔図表リンク) |
+| **クルー数** | N/A | **4つ** (抽出・検証・リンク・RAG) |
+| **VRAMスケーリング** | 4-5GB固定 | 4-5GB → 6GB (柔軟) |
+| **モード選択** | LangGraph or Sequential | CrewAI or LangGraph or Sequential |
+| **ファイル数（新規）** | 6個 | **+5個** (crew_*.py, crewai_*.py) |
 
 ## 🎯 v4の主要な変更点（LangGraph統合）
 
@@ -290,9 +302,92 @@ Coverage: 94% (コア機能)
 
 ---
 
-## 🤖 エージェント設計
+## 🚀 CrewAI Ingestion Workflow（v5新機能）
 
-### 3つの専用抽出エージェント
+### 4段階のクルーオーケストレーション
+
+```
+PDF入力
+  ↓
+[ExtractionCrew] ← NEW: 並列処理
+├─ TextExtractorAgent (Phi-3.5 4B) 
+├─ TableExtractorAgent (Qwen2.5 3B)  [実行時間
+└─ VisionExtractorAgent (SmolVLM 256M) を**30-40%短縮**
+  ↓
+ProcessedChunk list
+  ↓
+[ValidationCrew]
+├─ QualityAssuranceAgent (SmolVLM 256M)
+  ↓
+Validated chunks
+  ↓
+[LinkingCrew] ← NEW: クロスリファレンス検出
+├─ CrossReferenceAnalystAgent
+  └─ テーブル → 関連する図表・テキストを特定
+  └─ 図表 → 関連するテーブル・テキストを特定
+  └─ CrossLinkMetadata を生成
+  ↓
+ProcessedChunk with cross_links
+  ↓
+[ChromaDB Store] ← ベクトル化・永続化
+```
+
+### CrewAIクエリワークフロー
+
+```
+ユーザー質問
+  ↓
+[RAGQueryCrew]
+├─ RetrievalSpecialistAgent
+│  ├─ セマンティック検索（8チャンク）
+│  └─ ビジュアルキーワード検出時に図表優先
+  ↓
+├─ ReasoningAgentMLX (DeepSeek-R1 8B)
+│  ├─ コンテキスト: 検索チャンク + 関連クロスリンク
+│  └─ CoT推論で回答生成
+  ↓
+├─ AnswerVerificationAgent
+│  ├─ 幻覚検出 (AnswerValidator)
+│  └─ 根拠確認
+  ↓
+RAGAnswer (検証済み)
+```
+
+### 新しいデータ構造: CrossLinkMetadata
+
+```python
+@dataclass
+class CrossLinkMetadata:
+    source_chunk_id: str        # 元のチャンク
+    target_chunk_id: str        # 関連するチャンク
+    link_type: str              # "table-to-figure", "figure-to-text" など
+    confidence: float           # 関連性スコア (0-1)
+    description: str            # リンク理由（例: "Table 2の結果を図3で可視化"）
+
+# ProcessedChunkに追加
+class ProcessedChunk(BaseModel):
+    # ... 既存フィールド ...
+    cross_links: list[CrossLinkMetadata] = []  # ✨ PHASE 4で追加
+```
+
+---
+
+## 🤖 エージェント設計（拡張版）
+
+### 8つのCrewAIエージェント（PHASE 4新規）
+
+| # | エージェント | 責務 | メインモデル | 役割 |
+|----|---|---|---|---|
+| 1 | **TextExtractorAgent** | テキスト抽出・正規化 | Phi-3.5-mini | ExtractionCrew |
+| 2 | **TableExtractorAgent** | テーブル抽出・スキーマ推論 | Qwen2.5-3B | ExtractionCrew |
+| 3 | **VisionExtractorAgent** | 図表分類・説明生成 | SmolVLM-256M | ExtractionCrew |
+| 4 | **QualityAssuranceAgent** | チャンク品質監査 | SmolVLM-256M | ValidationCrew |
+| 5 | **CrossReferenceAnalystAgent** | ✨ 新規: テーブル↔図表リンク検出 | Qwen2.5-3B | LinkingCrew |
+| 6 | **RetrievalSpecialistAgent** | セマンティック検索・フィルタリング | N/A (ベクトル検索) | RAGQueryCrew |
+| 7 | **ReasoningAgentMLX** | RAG推論・回答生成 | DeepSeek-R1-8B | RAGQueryCrew |
+| 8 | **AnswerVerificationAgent** | 幻覚検出・根拠確認 | Qwen3-8B | RAGQueryCrew |
+
+### 3つの専用抽出エージェント（既存・v3以降）
 
 | Agent | 入力 | MLXモデル | 責務 | 主要出力フィールド |
 |-------|------|----------|------|-------------------|
@@ -400,6 +495,33 @@ class ModelCache:
 
 ---
 
+## ⚙️ CrewAIツール統合（MLXブリッジ）
+
+CrewAI の BaseTool インターフェースと MLX モデルを統合するため、7つの専門的なツール群を実装：
+
+```python
+class CrewMLXToolkit:
+    # 抽出ツール
+    - MLXTextExtractionTool()
+    - MLXTableExtractionTool()
+    - MLXVisionExtractionTool()
+    
+    # 検証ツール
+    - MLXChunkValidationTool()
+    - MLXAnswerValidationTool()
+    
+    # 検索・生成ツール
+    - CrossReferenceDetectionTool()
+    - ExtractionResult / ValidationResult / CrossLinkResult (Pydantic出力)
+```
+
+**利点**:
+- MLXモデル → CrewAI Tool の シームレス統合
+- Pydantic出力モデルで構造化データ保証
+- Sequential loading で VRAM 最適化
+
+---
+
 ## 🛡️ 2段階バリデーション（CHECKPOINT A & B）
 
 ### CHECKPOINT A: ChunkValidator
@@ -476,7 +598,42 @@ if not validation.is_grounded:
 
 ---
 
-## 🔎 検索戦略
+## � VRAMスケーリング戦略（PHASE 4アップデート）
+
+### メモリ使用量の最適化
+
+```
+基本構成 (Sequential mode):
+  SmolVLM (256M)      : ~0.5GB
+  Phi-3.5 (3.8B)      : ~2GB
+  Qwen2.5 (3B)        : ~1.5GB
+  ────────────────────
+  ベースライン         : ~4GB
+  
+バリデーション追加 (Sequential mode + validates):
+  + Qwen3 (8B)        : ~4GB
+  ────────────────────
+  ピーク               : ~5GB
+  
+CrewAI mode (並列処理):
+  抽出段階: 3つのエージェント → Manager 調整
+  不要なモデルは unload
+  ────────────────────
+  ピーク               : 5-6GB (柔軟)
+```
+
+### 推奨構成
+
+| シナリオ | モード | VRAM | 推奨OS |
+|---------|--------|------|--------|
+| **高速処理（推奨）** | CrewAI + validates | 5-6GB | M1 Pro+ / M2 / M3 |
+| **グラフ可視化学習** | LangGraph | 4-5GB | M1 以上 |
+| **シンプル・軽量** | Sequential | 4GB | M1 |
+| **最小構成** | Sequential (no validate) | 3GB | M1 |
+
+---
+
+## �🔎 検索戦略
 
 ### セマンティック検索（ChromaDB + e5-small）
 

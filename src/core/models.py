@@ -120,6 +120,7 @@ class ProcessedChunk:
         agent_notes: Agent's internal notes/reasoning
         embedding: Vector embedding (populated by ChunkStore)
         validation: Validation result from ChunkValidatorAgent
+        cross_links: Cross-references to other chunks (from CrossReferenceAnalystAgent)
     """
 
     chunk_id: str = field(default_factory=lambda: str(uuid.uuid4()))
@@ -133,6 +134,30 @@ class ProcessedChunk:
     agent_notes: str = ""
     embedding: list[float] = field(default_factory=list)
     validation: ChunkValidationResult | None = None
+    cross_links: list["CrossLinkMetadata"] = field(default_factory=list)
+
+
+@dataclass
+class CrossLinkMetadata:
+    """
+    Metadata for cross-references detected between chunks.
+
+    Created by CrossReferenceAnalystAgent to track relationships between
+    tables, figures, and text sections.
+
+    Attributes:
+        source_chunk_id: ID of chunk containing the reference
+        target_chunk_id: ID of referenced chunk
+        link_type: Type of relationship (e.g., "table_references_figure", "figure_cited_in_text")
+        confidence: Confidence score for the link (0-1)
+        description: Human-readable description of the relationship
+    """
+
+    source_chunk_id: str
+    target_chunk_id: str
+    link_type: str
+    confidence: float = 0.8
+    description: str = ""
 
 
 # ═══════════════════════════════════════════════════════════
