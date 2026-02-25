@@ -49,6 +49,7 @@ class TextExtractorAgent(Agent):
             tools=[text_extraction_tool],
             verbose=True,
             allow_delegation=False,
+            llm=None,
         )
 
 
@@ -74,6 +75,7 @@ class TableExtractorAgent(Agent):
             tools=[table_extraction_tool],
             verbose=True,
             allow_delegation=False,
+            llm=None,
         )
 
 
@@ -100,6 +102,7 @@ class VisionExtractorAgent(Agent):
             tools=[vision_extraction_tool],
             verbose=True,
             allow_delegation=False,
+            llm=None,
         )
 
 
@@ -131,6 +134,7 @@ class QualityAssuranceAgent(Agent):
             tools=[validation_tool],
             verbose=True,
             allow_delegation=False,
+            llm=None,
         )
 
 
@@ -161,6 +165,7 @@ class CrossReferenceAnalystAgent(Agent):
             tools=[linking_tool],
             verbose=True,
             allow_delegation=False,
+            llm=None,
         )
 
 
@@ -190,6 +195,7 @@ class RetrievalSpecialistAgent(Agent):
             ),
             verbose=True,
             allow_delegation=False,
+            llm=None,
         )
 
 
@@ -215,6 +221,7 @@ class ReasoningAgentMLX(Agent):
             tools=[rag_tool],
             verbose=True,
             allow_delegation=False,
+            llm=None,
         )
 
 
@@ -239,6 +246,7 @@ class AnswerVerificationAgent(Agent):
             ),
             verbose=True,
             allow_delegation=False,
+            llm=None,
         )
 
 

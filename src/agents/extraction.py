@@ -229,7 +229,7 @@ class VisionAgent(BaseAgent):
         Returns:
             ProcessedChunk with figure description and metadata
         """
-        if not self._use_vision:
+        if not self._use_vision or self._processor is None:
             return self._ocr_fallback(chunk)
 
         img = chunk.raw_content
@@ -238,24 +238,34 @@ class VisionAgent(BaseAgent):
 
         # Combine system message with user text
         full_prompt = f"{_VISION_SYSTEM}\n\n{user_text}"
-        prompt = apply_chat_template(self._processor, self._config, full_prompt, num_images=1)
+        try:
+            prompt = apply_chat_template(self._processor, self._config, full_prompt, num_images=1)
+        except (TypeError, AttributeError) as e:
+            # Processor is malformed or None - use OCR fallback
+            log.warning(f"Vision model processor error: {e}. Using OCR fallback.")
+            return self._ocr_fallback(chunk)
 
         # Generation with tracing (VLM - token count not available)
-        if trace:
-            with trace.generation(
-                name="vision_extraction",
-                model=self.model_id,
-                input={"prompt": full_prompt, "has_image": True},
-                model_params={},
-            ) as g:
+        try:
+            if trace:
+                with trace.generation(
+                    name="vision_extraction",
+                    model=self.model_id,
+                    input={"prompt": full_prompt, "has_image": True},
+                    model_params={},
+                ) as g:
+                    result = vlm_generate(self._model, self._processor, prompt, [img], verbose=False)
+                    # Extract text from GenerationResult object
+                    output = result if isinstance(result, str) else str(result)
+                    # Token count not available for VLM models
+                    g.set_output(output, input_tokens=None, output_tokens=None)
+            else:
                 result = vlm_generate(self._model, self._processor, prompt, [img], verbose=False)
-                # Extract text from GenerationResult object
                 output = result if isinstance(result, str) else str(result)
-                # Token count not available for VLM models
-                g.set_output(output, input_tokens=None, output_tokens=None)
-        else:
-            result = vlm_generate(self._model, self._processor, prompt, [img], verbose=False)
-            output = result if isinstance(result, str) else str(result)
+        except (TypeError, AttributeError, RuntimeError) as e:
+            # Vision generation failed - use OCR fallback
+            log.warning(f"Vision generation error: {e}. Using OCR fallback.")
+            return self._ocr_fallback(chunk)
 
         p = self._safe_json(output)
         return ProcessedChunk(

@@ -30,6 +30,7 @@ Set environment variables (or pass explicitly):
 
 from __future__ import annotations
 
+import contextvars
 import logging
 import os
 import time
@@ -54,6 +55,11 @@ _SCORE_DATA_TYPE_ALIASES = {
     "categorical": "CATEGORICAL",
     "correction": "CORRECTION",
 }
+
+_CURRENT_TRACE: contextvars.ContextVar["TraceHandle | None"] = contextvars.ContextVar(
+    "langfuse_current_trace",
+    default=None,
+)
 
 
 def _normalize_score_data_type(value: Any) -> str:
@@ -172,7 +178,12 @@ class LangfuseTracer:
             Generator yielding a TraceHandle for context management
         """
         if self._client is None:
-            yield TraceHandle(None, None)
+            handle = TraceHandle(None, None)
+            token = _CURRENT_TRACE.set(handle)
+            try:
+                yield handle
+            finally:
+                _CURRENT_TRACE.reset(token)
             return
 
         # ✅ Use start_as_current_span to ensure OpenTelemetry context is set
@@ -187,12 +198,15 @@ class LangfuseTracer:
             log.debug(f"✓ Trace started: {name} (trace_id={trace_id})")
 
             handle = TraceHandle(span, trace_id)
+            token = _CURRENT_TRACE.set(handle)
             try:
                 yield handle
             except Exception as e:
                 span.update(level="ERROR", status_message=str(e))
                 log.error(f"Trace error in '{name}': {e}")
                 raise
+            finally:
+                _CURRENT_TRACE.reset(token)
 
     # ── Scoring ──────────────────────────────
     def score(
@@ -399,3 +413,13 @@ def traced_span(tracer_attr: str, span_name: str):
         return wrapper
 
     return decorator
+
+
+def get_trace() -> "TraceHandle | None":
+    """
+    Return the active Langfuse trace handle for the current context.
+
+    Returns:
+        TraceHandle if a trace is active, otherwise None.
+    """
+    return _CURRENT_TRACE.get()

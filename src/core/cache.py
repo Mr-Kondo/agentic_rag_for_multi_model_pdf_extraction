@@ -70,14 +70,34 @@ class ModelCache:
 
         Returns:
             Tuple of (model, processor, config)
+
+        Raises:
+            RuntimeError: If model, processor, or config cannot be loaded
         """
         if model_id in self._vision_models:
             log.debug(f"📦 Returning cached vision model: {model_id}")
             return self._vision_models[model_id]
 
         log.info(f"🔄 Loading vision model: {model_id}")
-        model, processor = vlm_load(model_id)
-        config = load_config(model_id)
+
+        # Load model and processor
+        result = vlm_load(model_id)
+        if result is None or len(result) < 2:
+            raise RuntimeError(f"Failed to load vision model {model_id}: vlm_load returned {result}")
+
+        model, processor = result[0], result[1] if len(result) > 1 else None
+
+        if processor is None:
+            log.warning(f"⚠️  Vision model processor is None for {model_id}")
+            raise RuntimeError(f"Vision model processor failed to load for {model_id}")
+
+        # Load config
+        try:
+            config = load_config(model_id)
+        except Exception as e:
+            log.warning(f"⚠️  Failed to load config for {model_id}: {e}")
+            config = None
+
         cached_model = (model, processor, config)
         self._vision_models[model_id] = cached_model
         self._model_usage.add(model_id)

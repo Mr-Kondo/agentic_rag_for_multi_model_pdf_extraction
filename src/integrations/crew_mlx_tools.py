@@ -10,11 +10,12 @@ import logging
 from typing import Optional
 
 from crewai.tools import BaseTool
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, PrivateAttr
 
 from src.agents.extraction import TextAgent, TableAgent, VisionAgent
 from src.agents.validation import ChunkValidatorAgent, AnswerValidatorAgent
 from src.agents.orchestrator import ReasoningOrchestratorAgent
+from src.core.config import config
 from src.core.models import ProcessedChunk, RawChunk, ChunkType, RAGAnswer
 from src.integrations.langfuse import get_trace
 
@@ -79,11 +80,12 @@ class MLXTextExtractionTool(BaseTool):
     description: str = (
         "Extract and structure text from a PDF passage. Returns JSON with structured_text, summary, concepts, and confidence."
     )
+    _text_agent: Optional[TextAgent] = PrivateAttr(default=None)
 
     def __init__(self, text_agent: Optional[TextAgent] = None, **kwargs):
         """Initialize text extraction tool."""
         super().__init__(**kwargs)
-        self.text_agent = text_agent or TextAgent(model_id="mlx-community/Phi-3.5-mini-instruct")
+        self._text_agent = text_agent or TextAgent(model_id=config.get_model("text_extraction"))
 
     def _run(self, passage: str, page_num: int = 0) -> ExtractionResult:
         """
@@ -104,7 +106,7 @@ class MLXTextExtractionTool(BaseTool):
                 raw_content=passage,
                 source_file="<from_crew>",
             )
-            processed = self.text_agent.process(raw_chunk, trace=trace)
+            processed = self._text_agent.process(raw_chunk, trace=trace)
 
             return ExtractionResult(
                 chunk_type=processed.chunk_type.value,
@@ -128,11 +130,12 @@ class MLXTableExtractionTool(BaseTool):
 
     name: str = "extract_table"
     description: str = "Extract and structure a table from PDF. Returns JSON with columns, schema, and confidence."
+    _table_agent: Optional[TableAgent] = PrivateAttr(default=None)
 
     def __init__(self, table_agent: Optional[TableAgent] = None, **kwargs):
         """Initialize table extraction tool."""
         super().__init__(**kwargs)
-        self.table_agent = table_agent or TableAgent(model_id="mlx-community/Qwen2.5-3B-Instruct")
+        self._table_agent = table_agent or TableAgent(model_id=config.get_model("table_extraction"))
 
     def _run(self, table_markdown: str, page_num: int = 0) -> ExtractionResult:
         """
@@ -153,7 +156,7 @@ class MLXTableExtractionTool(BaseTool):
                 raw_content=table_markdown,
                 source_file="<from_crew>",
             )
-            processed = self.table_agent.process(raw_chunk, trace=trace)
+            processed = self._table_agent.process(raw_chunk, trace=trace)
 
             return ExtractionResult(
                 chunk_type=processed.chunk_type.value,
@@ -179,11 +182,12 @@ class MLXVisionExtractionTool(BaseTool):
     description: str = (
         "Extract description and type classification from a figure/chart. Returns figure_type, description, and confidence."
     )
+    _vision_agent: Optional[VisionAgent] = PrivateAttr(default=None)
 
     def __init__(self, vision_agent: Optional[VisionAgent] = None, **kwargs):
         """Initialize vision extraction tool."""
         super().__init__(**kwargs)
-        self.vision_agent = vision_agent or VisionAgent(model_id="mlx-community/SmolVLM-256M")
+        self._vision_agent = vision_agent or VisionAgent(model_id=config.get_model("vision_extraction"))
 
     def _run(self, image_path: str, page_num: int = 0) -> ExtractionResult:
         """
@@ -204,7 +208,7 @@ class MLXVisionExtractionTool(BaseTool):
                 raw_content=image_path,
                 source_file="<from_crew>",
             )
-            processed = self.vision_agent.process(raw_chunk, trace=trace)
+            processed = self._vision_agent.process(raw_chunk, trace=trace)
 
             return ExtractionResult(
                 chunk_type=processed.chunk_type.value,
@@ -235,11 +239,12 @@ class MLXChunkValidationTool(BaseTool):
     description: str = (
         "Validate extracted chunk against original PDF content. Returns is_valid, validation_score, and correction if needed."
     )
+    _validator: Optional[ChunkValidatorAgent] = PrivateAttr(default=None)
 
     def __init__(self, validator: Optional[ChunkValidatorAgent] = None, **kwargs):
         """Initialize validation tool."""
         super().__init__(**kwargs)
-        self.validator = validator
+        self._validator = validator
 
     def _run(self, structured_content: str, original_content: str) -> ValidationResult:
         """
@@ -252,7 +257,7 @@ class MLXChunkValidationTool(BaseTool):
         Returns:
             ValidationResult with validity assessment
         """
-        if self.validator is None:
+        if self._validator is None:
             log.warning("ChunkValidatorAgent not initialized; skipping validation")
             return ValidationResult(
                 is_valid=True,
@@ -262,8 +267,8 @@ class MLXChunkValidationTool(BaseTool):
 
         try:
             trace = get_trace()
-            with self.validator:
-                result = self.validator.validate(
+            with self._validator:
+                result = self._validator.validate(
                     structured_text=structured_content,
                     original_content=original_content,
                     trace=trace,
@@ -288,11 +293,12 @@ class MLXAnswerValidationTool(BaseTool):
 
     name: str = "validate_answer"
     description: str = "Validate RAG answer for hallucinations and grounding in source material. Returns is_grounded, corrections, and confidence."
+    _validator: Optional[AnswerValidatorAgent] = PrivateAttr(default=None)
 
     def __init__(self, validator: Optional[AnswerValidatorAgent] = None, **kwargs):
         """Initialize answer validation tool."""
         super().__init__(**kwargs)
-        self.validator = validator
+        self._validator = validator
 
     def _run(self, answer: str, source_chunks: list[str]) -> ValidationResult:
         """
@@ -305,7 +311,7 @@ class MLXAnswerValidationTool(BaseTool):
         Returns:
             ValidationResult with grounding assessment
         """
-        if self.validator is None:
+        if self._validator is None:
             log.warning("AnswerValidatorAgent not initialized; skipping validation")
             return ValidationResult(
                 is_valid=True,
@@ -315,8 +321,8 @@ class MLXAnswerValidationTool(BaseTool):
 
         try:
             trace = get_trace()
-            with self.validator:
-                result = self.validator.validate_answer(
+            with self._validator:
+                result = self._validator.validate_answer(
                     answer=answer,
                     source_chunks=source_chunks,
                     trace=trace,
@@ -407,11 +413,12 @@ class MLXRAGGenerationTool(BaseTool):
     description: str = (
         "Generate answer from retrieved chunks using reasoning model. Returns answer, reasoning trace, and confidence."
     )
+    _orchestrator: Optional[ReasoningOrchestratorAgent] = PrivateAttr(default=None)
 
     def __init__(self, orchestrator: Optional[ReasoningOrchestratorAgent] = None, **kwargs):
         """Initialize RAG generation tool."""
         super().__init__(**kwargs)
-        self.orchestrator = orchestrator
+        self._orchestrator = orchestrator
 
     def _run(self, question: str, retrieved_chunks: list[str]) -> RAGResult:
         """
@@ -424,13 +431,13 @@ class MLXRAGGenerationTool(BaseTool):
         Returns:
             RAGResult with answer and reasoning
         """
-        if self.orchestrator is None:
+        if self._orchestrator is None:
             raise ValueError("ReasoningOrchestratorAgent not initialized")
 
         try:
             trace = get_trace()
-            with self.orchestrator:
-                result = self.orchestrator.generate(
+            with self._orchestrator:
+                result = self._orchestrator.generate(
                     question=question,
                     chunks=retrieved_chunks,
                     trace=trace,
@@ -469,9 +476,9 @@ class CrewMLXToolkit:
         orchestrator: Optional[ReasoningOrchestratorAgent] = None,
     ):
         """Initialize toolkit with agents."""
-        self.text_agent = text_agent or TextAgent(model_id="mlx-community/Phi-3.5-mini-instruct")
-        self.table_agent = table_agent or TableAgent(model_id="mlx-community/Qwen2.5-3B-Instruct")
-        self.vision_agent = vision_agent or VisionAgent(model_id="mlx-community/SmolVLM-256M")
+        self.text_agent = text_agent or TextAgent(model_id=config.get_model("text_extraction"))
+        self.table_agent = table_agent or TableAgent(model_id=config.get_model("table_extraction"))
+        self.vision_agent = vision_agent or VisionAgent(model_id=config.get_model("vision_extraction"))
         self.chunk_validator = chunk_validator
         self.answer_validator = answer_validator
         self.orchestrator = orchestrator

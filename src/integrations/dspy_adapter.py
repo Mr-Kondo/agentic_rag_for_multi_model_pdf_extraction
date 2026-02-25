@@ -38,6 +38,8 @@ from typing import Any
 import dspy
 from mlx_lm import generate, load
 
+from src.core.config import config
+
 log = logging.getLogger(__name__)
 
 
