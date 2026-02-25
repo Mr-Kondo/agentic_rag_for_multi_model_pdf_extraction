@@ -28,6 +28,7 @@ from src.agents.extraction import TableAgent, TextAgent, VisionAgent
 from src.agents.orchestrator import ReasoningOrchestratorAgent
 from src.agents.router import AgentRouter
 from src.agents.validation import AnswerValidatorAgent, ChunkValidatorAgent
+from src.core.config import config
 from src.core.models import (
     ChunkType,
     ProcessedChunk,
@@ -86,16 +87,24 @@ class AgenticRAGPipeline:
     @classmethod
     def build(
         cls,
-        text_model: str = "mlx-community/Phi-3.5-mini-Instruct-4bit",
-        table_model: str = "mlx-community/Qwen2.5-3B-Instruct-4bit",
-        vision_model: str = "mlx-community/SmolVLM-256M-Instruct-4bit",
-        orchestrator_model: str = "mlx-community/DeepSeek-R1-Distill-Llama-8B-4bit",
-        chunk_validator_model: str = "mlx-community/Qwen2-VL-7B-Instruct-4bit",  # ← Checkpoint A
-        answer_validator_model: str = "mlx-community/Qwen3-8B-4bit",  # ← Checkpoint B
+        text_model: str | None = None,
+        table_model: str | None = None,
+        vision_model: str | None = None,
+        orchestrator_model: str | None = None,
+        chunk_validator_model: str | None = None,  # ← Checkpoint A
+        answer_validator_model: str | None = None,  # ← Checkpoint B
         persist_dir: str = "./chroma_db",
         lazy_agents: bool = False,  # True → small SLMs also load/unload per chunk
         use_crewai: bool = False,  # True → use CrewAI crews for orchestration
     ) -> "AgenticRAGPipeline":
+        """Initialize RAG pipeline with optional model overrides from settings.json."""
+        # Load defaults from configuration
+        text_model = text_model or config.get_model("text_extraction")
+        table_model = table_model or config.get_model("table_extraction")
+        vision_model = vision_model or config.get_model("vision_extraction")
+        orchestrator_model = orchestrator_model or config.get_model("orchestrator")
+        chunk_validator_model = chunk_validator_model or config.get_model("chunk_validator")
+        answer_validator_model = answer_validator_model or config.get_model("answer_validator")
         """
         Initialize the RAG pipeline with all required components.
 
@@ -369,16 +378,15 @@ class AgenticRAGPipeline:
             with trace.span("crewai_processing"):
                 try:
                     stored = self.crew_ingestion.process_chunks(raw_chunks)
-                    log.info("✓ CrewAI processing complete: %d chunks stored", stored)
+                    log.info("✓ CrewAI processing complete: %d chunks stored", len(stored))
                 except Exception as e:
                     log.error("CrewAI processing failed: %s — falling back to standard ingest", e, exc_info=True)
                     return self.ingest(pdf_path, validates)
 
             log.info("=" * 70 + "\n")
 
-            # Retrieve stored chunks for return
-            accepted = self.store._collection.get(include=["metadatas", "documents"])  # type: ignore
-            return accepted if accepted else []
+            # Return processed chunks
+            return stored
 
     # ── Query ──────────────────────────────────────────────
 

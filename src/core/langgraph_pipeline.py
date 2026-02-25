@@ -480,10 +480,14 @@ class LangGraphQueryPipeline:
     @classmethod
     def build(
         cls,
-        orchestrator_model: str = "mlx-community/DeepSeek-R1-Distill-Llama-8B-4bit",
-        answer_validator_model: str = "mlx-community/Qwen3-8B-4bit",
+        orchestrator_model: str | None = None,
+        answer_validator_model: str | None = None,
         persist_dir: str = "./chroma_db",
     ) -> "LangGraphQueryPipeline":
+        """Build pipeline with models from settings.json."""
+        # Load defaults from configuration
+        orchestrator_model = orchestrator_model or config.get_model("orchestrator")
+        answer_validator_model = answer_validator_model or config.get_model("answer_validator")
         """
         Build pipeline with default models.
 

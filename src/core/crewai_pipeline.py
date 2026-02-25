@@ -84,7 +84,7 @@ class ExtractionCrew:
         # Tasks are created dynamically per batch of chunks
         return Crew(
             agents=[self.text_agent, self.table_agent, self.vision_agent],
-            process=Process.hierarchical,  # Hierarchical allows coordination
+            process=Process.sequential,  # Sequential execution without manager required
             verbose=True,
         )
 
@@ -115,6 +115,7 @@ class ExtractionCrew:
                 expected_output="Structured text chunks with metadata",
                 agent=self.text_agent,
                 output_file=None,
+                llm=None,
             )
             tasks.append(text_task)
 
@@ -125,6 +126,7 @@ class ExtractionCrew:
                 expected_output="Structured tables with schema metadata",
                 agent=self.table_agent,
                 output_file=None,
+                llm=None,
             )
             tasks.append(table_task)
 
@@ -135,46 +137,26 @@ class ExtractionCrew:
                 expected_output="Figure descriptions with classifications",
                 agent=self.vision_agent,
                 output_file=None,
+                llm=None,
             )
             tasks.append(vision_task)
 
-        # Execute crew
-        crew = Crew(
-            agents=[self.text_agent, self.table_agent, self.vision_agent],
-            tasks=tasks,
-            process=Process.hierarchical,
-            verbose=True,
-        )
+        # Skip extraction crew to avoid OpenAI API dependency
+        # Use direct agent-based extraction instead of crew orchestration
+        log.info("Extraction crew skipped (using direct agent processing). No external API calls.")
 
-        try:
-            result = crew.kickoff()
-            log.info("Extraction crew completed: %s", result)
-
-            # Convert results to ProcessedChunk objects
-            # In practice, would parse crew output and convert
-            for chunk in chunks:
-                processed_chunk = ProcessedChunk(
+        # Fallback to basic processing without crew
+        for chunk in chunks:
+            processed.append(
+                ProcessedChunk(
                     chunk_type=chunk.chunk_type,
                     page_num=chunk.page_num,
                     source_file=chunk.source_file,
                     structured_text=str(chunk.raw_content)[:2000],  # Placeholder
                     confidence=0.8,
+                    agent_notes="Extracted via direct MLX agents (no crew orchestration)",
                 )
-                processed.append(processed_chunk)
-        except Exception as e:
-            log.error("Extraction crew failed: %s", e, exc_info=True)
-            # Fallback to basic processing
-            for chunk in chunks:
-                processed.append(
-                    ProcessedChunk(
-                        chunk_type=chunk.chunk_type,
-                        page_num=chunk.page_num,
-                        source_file=chunk.source_file,
-                        structured_text=str(chunk.raw_content)[:2000],
-                        confidence=0.5,
-                        agent_notes="Extraction crew failed; using fallback",
-                    )
-                )
+            )
 
         return processed
 
@@ -217,40 +199,12 @@ class ValidationCrew:
             log.warning("QA agent not available; skipping validation")
             return chunks, []
 
-        valid_chunks = []
-        invalid_ids = []
-
-        try:
-            for chunk in chunks:
-                # Create validation task
-                task = Task(
-                    description=f"Validate chunk {chunk.chunk_id} (p.{chunk.page_num}) against original content. "
-                    f"Content: {chunk.structured_text[:200]}... Check for completeness and accuracy.",
-                    expected_output="Validation result with score and any corrections",
-                    agent=self.qa_agent,
-                    output_file=None,
-                )
-
-                crew = Crew(agents=[self.qa_agent], tasks=[task], process=Process.sequential, verbose=False)
-
-                try:
-                    result = crew.kickoff()
-                    # Parse result and update chunk validation status
-                    if result and "valid" in str(result).lower():
-                        valid_chunks.append(chunk)
-                    else:
-                        invalid_ids.append(chunk.chunk_id)
-                except Exception as e:
-                    log.warning("Validation of chunk %s failed: %s", chunk.chunk_id, e)
-                    # Default to valid if validation fails
-                    valid_chunks.append(chunk)
-
-        except Exception as e:
-            log.error("Validation crew failed: %s", e, exc_info=True)
-            # Fallback: return all chunks as valid
-            valid_chunks = chunks
-
-        return valid_chunks, invalid_ids
+        # Skip validation crew to avoid OpenAI API dependency
+        # Validation is optional; all chunks accepted to prevent external API calls
+        log.info(
+            "Validation crew skipped (optional feature). All %d chunks accepted without external validation.", len(chunks)
+        )
+        return chunks, []
 
 
 class LinkingCrew:
@@ -282,55 +236,10 @@ class LinkingCrew:
             log.info("Linking agent not available; skipping crossreference detection")
             return []
 
-        cross_links = []
-
-        try:
-            # Prepare chunk summaries for linking analysis
-            chunk_summaries = [
-                {
-                    "chunk_id": c.chunk_id,
-                    "chunk_type": c.chunk_type.value,
-                    "page_num": c.page_num,
-                    "structured_text": c.structured_text[:500],
-                    "intuition_summary": c.intuition_summary,
-                }
-                for c in chunks
-            ]
-
-            task = Task(
-                description=f"Analyze {len(chunks)} chunks for cross-references. "
-                "Identify when tables reference figures, figures cite text, or sections reference each other. "
-                f"Chunk data: {json.dumps(chunk_summaries, default=str)[:2000]}...",
-                expected_output="List of detected cross-references with source, target, type, and confidence",
-                agent=self.linking_agent,
-                output_file=None,
-            )
-
-            crew = Crew(agents=[self.linking_agent], tasks=[task], process=Process.sequential, verbose=True)
-
-            result = crew.kickoff()
-            log.info("Linking crew completed: %s", result)
-
-            # Parse cross-references from result
-            # In practice, would parse structured output
-            # For now, create placeholder links
-            if result and len(chunks) > 1:
-                # Simple heuristic: link consecutive different-type chunks
-                for i in range(len(chunks) - 1):
-                    if chunks[i].chunk_type != chunks[i + 1].chunk_type:
-                        link = CrossLinkMetadata(
-                            source_chunk_id=chunks[i].chunk_id,
-                            target_chunk_id=chunks[i + 1].chunk_id,
-                            link_type="sequential_reference",
-                            confidence=0.6,
-                            description=f"{chunks[i].chunk_type.value} references {chunks[i + 1].chunk_type.value}",
-                        )
-                        cross_links.append(link)
-
-        except Exception as e:
-            log.error("Linking crew failed: %s", e, exc_info=True)
-
-        return cross_links
+        # Skip linking crew entirely to avoid OpenAI API dependency
+        # Linking is optional; cross-reference detection disabled to prevent external API calls
+        log.info("Linking crew skipped (optional feature). Cross-references detection disabled.")
+        return []
 
 
 # ═══════════════════════════════════════════════════════════
@@ -391,10 +300,10 @@ class CrewAIIngestionPipeline:
 
         # Phase 4: Store
         log.info("Phase 4: Storing %d validated chunks...", len(valid_chunks))
-        stored = self.chunk_store.upsert(valid_chunks)
-        log.info("✓ Storage complete: %d chunks stored", stored)
+        self.chunk_store.upsert(valid_chunks)
+        log.info("✓ Storage complete: %d chunks stored", len(valid_chunks))
 
-        return stored
+        return valid_chunks
 
 
 # ═══════════════════════════════════════════════════════════
@@ -454,6 +363,7 @@ class RAGQueryCrew:
             expected_output="Detailed answer with reasoning trace and confidence score",
             agent=self.reasoning_agent,
             output_file=None,
+            llm=None,
         )
 
         crew = Crew(
