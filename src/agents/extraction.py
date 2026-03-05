@@ -245,23 +245,28 @@ class VisionAgent(BaseAgent):
             log.warning(f"Vision model processor error: {e}. Using OCR fallback.")
             return self._ocr_fallback(chunk)
 
-        # Generation with tracing (VLM - token count not available)
+        # Generation with tracing and token estimation
         try:
+            result = vlm_generate(self._model, self._processor, prompt, [img], verbose=False)
+            # Extract text from GenerationResult object
+            output = result if isinstance(result, str) else str(result)
+
             if trace:
+                # Estimate token counts for VLM:
+                # 1. Prompt tokens: text part (word count ~= 1 token) + image tokens (fixed ~256)
+                # 2. Output tokens: word count ~= 1 token
+                prompt_text_tokens = len(full_prompt.split())
+                image_tokens = 256  # Typical patch embedding for vision models
+                input_tokens = prompt_text_tokens + image_tokens
+                output_tokens = len(output.split())
+
                 with trace.generation(
                     name="vision_extraction",
                     model=self.model_id,
                     input={"prompt": full_prompt, "has_image": True},
                     model_params={},
                 ) as g:
-                    result = vlm_generate(self._model, self._processor, prompt, [img], verbose=False)
-                    # Extract text from GenerationResult object
-                    output = result if isinstance(result, str) else str(result)
-                    # Token count not available for VLM models
-                    g.set_output(output, input_tokens=None, output_tokens=None)
-            else:
-                result = vlm_generate(self._model, self._processor, prompt, [img], verbose=False)
-                output = result if isinstance(result, str) else str(result)
+                    g.set_output(output, input_tokens=input_tokens, output_tokens=output_tokens)
         except (TypeError, AttributeError, RuntimeError) as e:
             # Vision generation failed - use OCR fallback
             log.warning(f"Vision generation error: {e}. Using OCR fallback.")

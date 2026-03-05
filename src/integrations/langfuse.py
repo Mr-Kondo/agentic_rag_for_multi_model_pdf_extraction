@@ -99,13 +99,27 @@ def _normalize_score_data_type(value: Any) -> str:
 # Singleton Langfuse client
 # ──────────────────────────────────────────────
 
+_client_instance: Langfuse | None = None
+_client_initialized: bool = False
 
-def _make_client() -> Langfuse | None:
+
+def _get_client() -> Langfuse | None:
     """
-    Create Langfuse client if credentials are available.
-    Loads environment variables from .env file first.
+    Get or create singleton Langfuse client if credentials are available.
+    Loads environment variables from .env file on first call only.
     Returns None if credentials are not configured.
+
+    This singleton pattern prevents duplicate initialization warnings from
+    OpenTelemetry when multiple LangfuseTracer instances are created.
     """
+    global _client_instance, _client_initialized
+
+    if _client_initialized:
+        return _client_instance
+
+    # Mark as initialized to prevent re-entry
+    _client_initialized = True
+
     # Load .env file (if exists)
     load_dotenv()
 
@@ -119,11 +133,12 @@ def _make_client() -> Langfuse | None:
         )
         return None
 
-    return Langfuse(
+    _client_instance = Langfuse(
         public_key=public_key,
         secret_key=secret_key,
         host=os.environ.get("LANGFUSE_HOST", "https://cloud.langfuse.com"),
     )
+    return _client_instance
 
 
 class LangfuseTracer:
@@ -148,7 +163,7 @@ class LangfuseTracer:
     """
 
     def __init__(self):
-        self._client: Langfuse | None = _make_client()
+        self._client: Langfuse | None = _get_client()
 
     # ── Trace ────────────────────────────────
     @contextmanager
