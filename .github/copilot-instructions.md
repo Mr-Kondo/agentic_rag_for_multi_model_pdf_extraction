@@ -25,9 +25,11 @@ For performance optimization (Apple Silicon specific):
 </algorithmic_approach>
 
 <coding_guidelines>
-- **Logging:** Use Python’s built-in `logging` module (`logging.getLogger(__name__)`) to centralize and format log records consistently. Wrap file operations and external API calls in `try`/`except` blocks. Log exceptions with appropriate severity (WARNING/ERROR) and halt processing gracefully to prevent incomplete states.
+- **No Emojis:** Strictly prohibit the use of emojis in all documentation, docstrings, comments, and output messages. Maintain a professional, purely technical tone.
+- **Formatting & Line Breaks:** Respect semantic line breaks. Do not compress text into unreadable blocks. Use blank lines to separate logical sections within docstrings, comments, and code blocks to maximize human readability.
+- **Logging:** Use Python’s built-in `logging` module (`logging.getLogger(__name__)`) to centralize and format log records consistently. Wrap file operations and external API calls in `try`/`except` blocks. Log exceptions with appropriate severity (WARNING/ERROR) and halt processing gracefully.
 - **PEP 8 Compliance:** Adhere to PEP 8. Use 4-space indentation, group imports logically, and use `lowercase_with_underscores` for function/variable names.
-- **Docstrings:** Document every public module, function, and class using triple-quoted strings. Use the Google docstring format for parameters and return values to ensure consistency.
+- **Docstrings:** Document every public module, function, and class using triple-quoted strings. Use the Google docstring format for parameters and return values.
 - **Type Hints:** Annotate all function signatures and significant variables with type hints to support static analysis.
 - **I/O Processing:** Read and write files sequentially. Use `with` statements, process line-by-line, and specify `encoding="utf-8"`. Do not load entire large files into memory.
 - **Naming Clarity:** Choose descriptive names. Avoid abbreviations unless universally known. Code should be self-explanatory.
@@ -37,7 +39,7 @@ For performance optimization (Apple Silicon specific):
 Before finalizing your output, ensure the code satisfies the following:
 - **Performance:** Algorithmic efficiency, optimal resource usage targeting Apple Silicon (MPS/Unified Memory), and effective use of parallelism.
 - **Reliability:** Reproducibility of results, safe file handling, input validation, and proper handling of sensitive data.
-- **Readability:** Code intent is immediately clear to human reviewers.
+- **Readability:** Code intent is immediately clear, with proper line breaks and zero emojis.
 - **Testability:** Functions are small, modular, and have clear interfaces. Exception handling facilitates easy debugging.
 - **Best Practices:** Uses modern Python paradigms (e.g., context managers) and avoids global mutable state.
 </review_criteria>
