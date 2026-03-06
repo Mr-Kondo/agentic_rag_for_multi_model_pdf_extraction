@@ -1,6 +1,6 @@
 [
   {
-    "chunk_id": "b283ec15-37fa-4edd-b642-8f50f29437ff",
+    "chunk_id": "42517c4d-83cf-4ebc-82cb-270bc9515e96",
     "chunk_type": "text",
     "page_num": 1,
     "source_file": "21_77.pdf",
@@ -12,7 +12,7 @@
     "validation": null
   },
   {
-    "chunk_id": "caa716c5-4c24-4385-a937-32e153e45807",
+    "chunk_id": "e27ef709-3367-4b45-9abe-87195c9dceef",
     "chunk_type": "table",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -24,7 +24,7 @@
     "validation": null
   },
   {
-    "chunk_id": "95f0fa76-595f-4463-b076-c28aa55e0206",
+    "chunk_id": "0b6ebdec-89f3-444c-89dd-d12670783cd7",
     "chunk_type": "table",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -36,7 +36,7 @@
     "validation": null
   },
   {
-    "chunk_id": "a30ca8c1-d47e-471c-84a4-303fdaded54e",
+    "chunk_id": "7b217185-4c10-4422-a48a-e336d5ca6681",
     "chunk_type": "table",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -48,7 +48,7 @@
     "validation": null
   },
   {
-    "chunk_id": "91578b9c-5598-45ed-b6ac-d859d150de7e",
+    "chunk_id": "d7fe6574-dbdb-4cac-900f-f43e284d4410",
     "chunk_type": "table",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -60,7 +60,7 @@
     "validation": null
   },
   {
-    "chunk_id": "063d8c1f-51b9-4c0f-8d11-2cbe78830d6b",
+    "chunk_id": "9651488d-0df8-403d-8d2f-c0cfc50eed48",
     "chunk_type": "table",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -72,7 +72,7 @@
     "validation": null
   },
   {
-    "chunk_id": "fb112e35-f77a-482d-8b21-1e95a4df1c17",
+    "chunk_id": "cf96a923-6d30-42b9-b57b-cc87d1e17678",
     "chunk_type": "table",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -84,7 +84,7 @@
     "validation": null
   },
   {
-    "chunk_id": "37cbfa4c-eb39-4164-887b-d7f51a67c0f8",
+    "chunk_id": "347977da-13af-4394-a854-09c11b9247b6",
     "chunk_type": "table",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -96,7 +96,7 @@
     "validation": null
   },
   {
-    "chunk_id": "3f163320-9de5-483e-b98e-fc273e10093a",
+    "chunk_id": "02430b31-e08b-4739-ab74-7ae70f152c0e",
     "chunk_type": "table",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -108,7 +108,7 @@
     "validation": null
   },
   {
-    "chunk_id": "8e7fb6e0-4408-43c3-a721-46894bfb6a07",
+    "chunk_id": "7a669d0b-fd85-4542-9f34-5b267c4e6578",
     "chunk_type": "table",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -120,7 +120,7 @@
     "validation": null
   },
   {
-    "chunk_id": "b0df76f2-6b0a-4ef6-b23d-cd8070994230",
+    "chunk_id": "53f0c120-67e9-4c57-bf4d-a17dfce15dcd",
     "chunk_type": "table",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -132,11 +132,11 @@
     "validation": null
   },
   {
-    "chunk_id": "16df3364-f5fe-4acc-bfba-d9fe00884e09",
+    "chunk_id": "b74c5b75-6eb8-446f-8428-8385f7d0407a",
     "chunk_type": "figure",
     "page_num": 2,
     "source_file": "21_77.pdf",
-    "structured_text": "<PIL.Image.Image image mode=RGB size=611x278 at 0x40510E5D0>",
+    "structured_text": "<PIL.Image.Image image mode=RGB size=611x278 at 0x407612850>",
     "intuition_summary": "",
     "key_concepts": [],
     "confidence": 0.8,
@@ -144,11 +144,11 @@
     "validation": null
   },
   {
-    "chunk_id": "c0168755-6668-4d26-9a06-0315ffa648f3",
+    "chunk_id": "e5923697-8abc-422c-ac1b-3ead811e315e",
     "chunk_type": "figure",
     "page_num": 2,
     "source_file": "21_77.pdf",
-    "structured_text": "<PIL.Image.Image image mode=RGB size=197x83 at 0x405122C40>",
+    "structured_text": "<PIL.Image.Image image mode=RGB size=197x83 at 0x407626D70>",
     "intuition_summary": "",
     "key_concepts": [],
     "confidence": 0.8,
@@ -156,11 +156,11 @@
     "validation": null
   },
   {
-    "chunk_id": "def998f0-f7c1-4b65-878c-1a33b3c4fa9d",
+    "chunk_id": "69ea1df4-493b-4697-b6a9-30c41127df8e",
     "chunk_type": "figure",
     "page_num": 2,
     "source_file": "21_77.pdf",
-    "structured_text": "<PIL.Image.Image image mode=RGB size=160x83 at 0x404EA30B0>",
+    "structured_text": "<PIL.Image.Image image mode=RGB size=160x83 at 0x40634B410>",
     "intuition_summary": "",
     "key_concepts": [],
     "confidence": 0.8,
@@ -168,11 +168,11 @@
     "validation": null
   },
   {
-    "chunk_id": "3c1f298f-bbf0-4b70-b39a-3658d049ac13",
+    "chunk_id": "82eb5aca-8b17-4e56-9477-b8b8168a22c1",
     "chunk_type": "figure",
     "page_num": 2,
     "source_file": "21_77.pdf",
-    "structured_text": "<PIL.Image.Image image mode=RGB size=149x145 at 0x405B98050>",
+    "structured_text": "<PIL.Image.Image image mode=RGB size=149x145 at 0x4075D7CE0>",
     "intuition_summary": "",
     "key_concepts": [],
     "confidence": 0.8,
@@ -180,11 +180,11 @@
     "validation": null
   },
   {
-    "chunk_id": "060a95f4-07f7-4171-89ef-20ef48528c3e",
+    "chunk_id": "f6c9264e-29f0-4148-afa2-ee3270bd7be1",
     "chunk_type": "figure",
     "page_num": 2,
     "source_file": "21_77.pdf",
-    "structured_text": "<PIL.Image.Image image mode=RGB size=170x135 at 0x404F51850>",
+    "structured_text": "<PIL.Image.Image image mode=RGB size=170x135 at 0x40745D850>",
     "intuition_summary": "",
     "key_concepts": [],
     "confidence": 0.8,
@@ -192,11 +192,11 @@
     "validation": null
   },
   {
-    "chunk_id": "ddf00c6c-4f4d-4328-80a2-5051b3ddca31",
+    "chunk_id": "8bdc015a-de7e-4678-a722-840d12229e54",
     "chunk_type": "figure",
     "page_num": 2,
     "source_file": "21_77.pdf",
-    "structured_text": "<PIL.Image.Image image mode=RGB size=196x84 at 0x4058C3F20>",
+    "structured_text": "<PIL.Image.Image image mode=RGB size=196x84 at 0x407DBFF20>",
     "intuition_summary": "",
     "key_concepts": [],
     "confidence": 0.8,
@@ -204,11 +204,11 @@
     "validation": null
   },
   {
-    "chunk_id": "6326e162-28fe-4978-8036-15d320f651b7",
+    "chunk_id": "591d30e0-4d55-4e1c-be53-e088447be51f",
     "chunk_type": "figure",
     "page_num": 2,
     "source_file": "21_77.pdf",
-    "structured_text": "<PIL.Image.Image image mode=RGB size=157x83 at 0x40511CAD0>",
+    "structured_text": "<PIL.Image.Image image mode=RGB size=157x83 at 0x40761CBB0>",
     "intuition_summary": "",
     "key_concepts": [],
     "confidence": 0.8,
@@ -216,7 +216,7 @@
     "validation": null
   },
   {
-    "chunk_id": "5df85020-e3c0-4f3d-a2d6-52234f98d75d",
+    "chunk_id": "5ea526ca-4486-49a4-8a2b-8e1ba3be8bc4",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -228,11 +228,11 @@
     "validation": null
   },
   {
-    "chunk_id": "a3f8d483-0d9c-4085-ad4b-da92b842aa88",
+    "chunk_id": "662ef9d4-4e37-412a-80a6-e6c1003cfb02",
     "chunk_type": "figure",
     "page_num": 3,
     "source_file": "21_77.pdf",
-    "structured_text": "<PIL.Image.Image image mode=RGB size=735x413 at 0x405131790>",
+    "structured_text": "<PIL.Image.Image image mode=RGB size=735x413 at 0x407635790>",
     "intuition_summary": "",
     "key_concepts": [],
     "confidence": 0.8,
@@ -240,11 +240,11 @@
     "validation": null
   },
   {
-    "chunk_id": "f041e681-59b0-4a35-8746-819c29315fe2",
+    "chunk_id": "ce56b7a1-98d5-4ba0-9c1a-9f339de88102",
     "chunk_type": "figure",
     "page_num": 3,
     "source_file": "21_77.pdf",
-    "structured_text": "<PIL.Image.Image image mode=RGB size=735x413 at 0x405836200>",
+    "structured_text": "<PIL.Image.Image image mode=RGB size=735x413 at 0x407D32150>",
     "intuition_summary": "",
     "key_concepts": [],
     "confidence": 0.8,
@@ -252,11 +252,11 @@
     "validation": null
   },
   {
-    "chunk_id": "d8fbc7c8-24b6-4abc-8f61-af1ee730e61d",
+    "chunk_id": "947e7ab1-daa2-470d-bdda-1f1714476ca2",
     "chunk_type": "figure",
     "page_num": 3,
     "source_file": "21_77.pdf",
-    "structured_text": "<PIL.Image.Image image mode=RGB size=732x411 at 0x40506B110>",
+    "structured_text": "<PIL.Image.Image image mode=RGB size=732x411 at 0x4075BAFD0>",
     "intuition_summary": "",
     "key_concepts": [],
     "confidence": 0.8,
@@ -264,11 +264,11 @@
     "validation": null
   },
   {
-    "chunk_id": "ad0870ab-33b6-4d39-b83f-78559c3d798d",
+    "chunk_id": "7530eefc-f840-456f-b9ab-37b77ece16af",
     "chunk_type": "figure",
     "page_num": 3,
     "source_file": "21_77.pdf",
-    "structured_text": "<PIL.Image.Image image mode=RGB size=242x176 at 0x4055B44D0>",
+    "structured_text": "<PIL.Image.Image image mode=RGB size=242x176 at 0x407620680>",
     "intuition_summary": "",
     "key_concepts": [],
     "confidence": 0.8,
@@ -276,11 +276,11 @@
     "validation": null
   },
   {
-    "chunk_id": "e5dd2ce0-bb43-4273-9425-f436f394c299",
+    "chunk_id": "d5385a48-4834-4359-82a4-45d25ce13507",
     "chunk_type": "figure",
     "page_num": 3,
     "source_file": "21_77.pdf",
-    "structured_text": "<PIL.Image.Image image mode=RGB size=248x181 at 0x405DD8F50>",
+    "structured_text": "<PIL.Image.Image image mode=RGB size=248x181 at 0x408229450>",
     "intuition_summary": "",
     "key_concepts": [],
     "confidence": 0.8,
@@ -288,11 +288,11 @@
     "validation": null
   },
   {
-    "chunk_id": "8a1bb6f6-9e3f-41bf-83fa-cc0ee4ece6ea",
+    "chunk_id": "643b24ef-4ce6-4f52-a0dd-ee204a72c221",
     "chunk_type": "figure",
     "page_num": 3,
     "source_file": "21_77.pdf",
-    "structured_text": "<PIL.Image.Image image mode=RGB size=249x252 at 0x405DD9050>",
+    "structured_text": "<PIL.Image.Image image mode=RGB size=249x252 at 0x408229550>",
     "intuition_summary": "",
     "key_concepts": [],
     "confidence": 0.8,
@@ -300,11 +300,11 @@
     "validation": null
   },
   {
-    "chunk_id": "1659d458-b9ff-41c0-af64-0282296c2d9b",
+    "chunk_id": "c843c7cb-318a-4fd3-8cf7-399eb8a46447",
     "chunk_type": "figure",
     "page_num": 3,
     "source_file": "21_77.pdf",
-    "structured_text": "<PIL.Image.Image image mode=RGB size=252x256 at 0x405DD90D0>",
+    "structured_text": "<PIL.Image.Image image mode=RGB size=252x256 at 0x4082295D0>",
     "intuition_summary": "",
     "key_concepts": [],
     "confidence": 0.8,
@@ -312,11 +312,11 @@
     "validation": null
   },
   {
-    "chunk_id": "97c6eee5-69ea-4693-8c8e-d9c5dcebee36",
+    "chunk_id": "66ff2635-8e55-4c39-87bb-1303433d593a",
     "chunk_type": "figure",
     "page_num": 3,
     "source_file": "21_77.pdf",
-    "structured_text": "<PIL.Image.Image image mode=RGB size=365x274 at 0x405DD9150>",
+    "structured_text": "<PIL.Image.Image image mode=RGB size=365x274 at 0x408229650>",
     "intuition_summary": "",
     "key_concepts": [],
     "confidence": 0.8,
@@ -324,11 +324,11 @@
     "validation": null
   },
   {
-    "chunk_id": "a412b775-cae8-4d23-8079-0239332da06c",
+    "chunk_id": "c463b15c-25b4-407e-b279-7356384fb367",
     "chunk_type": "figure",
     "page_num": 3,
     "source_file": "21_77.pdf",
-    "structured_text": "<PIL.Image.Image image mode=RGB size=589x332 at 0x405DD91D0>",
+    "structured_text": "<PIL.Image.Image image mode=RGB size=589x332 at 0x4082296D0>",
     "intuition_summary": "",
     "key_concepts": [],
     "confidence": 0.8,
@@ -336,7 +336,7 @@
     "validation": null
   },
   {
-    "chunk_id": "098f0d6f-2004-4911-be39-9512da63703f",
+    "chunk_id": "925b7ad6-f7ba-442e-9bc0-595f4911634b",
     "chunk_type": "text",
     "page_num": 3,
     "source_file": "21_77.pdf",
@@ -348,7 +348,7 @@
     "validation": null
   },
   {
-    "chunk_id": "3249951b-234e-42c0-a6d2-a8125ab76fa4",
+    "chunk_id": "76600452-ac16-4d48-b390-fcb56f882630",
     "chunk_type": "table",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -360,11 +360,11 @@
     "validation": null
   },
   {
-    "chunk_id": "fcd4307a-de60-4906-859a-af1d05e8db38",
+    "chunk_id": "afd46674-a35b-42f8-a037-925834daa906",
     "chunk_type": "figure",
     "page_num": 4,
     "source_file": "21_77.pdf",
-    "structured_text": "<PIL.Image.Image image mode=RGB size=216x103 at 0x405DDB350>",
+    "structured_text": "<PIL.Image.Image image mode=RGB size=216x103 at 0x40822B850>",
     "intuition_summary": "",
     "key_concepts": [],
     "confidence": 0.8,
@@ -372,11 +372,11 @@
     "validation": null
   },
   {
-    "chunk_id": "b6d2b0b9-ad81-4d68-b833-75c531d261ce",
+    "chunk_id": "369c6139-c664-4208-9291-f162c8c98302",
     "chunk_type": "figure",
     "page_num": 4,
     "source_file": "21_77.pdf",
-    "structured_text": "<PIL.Image.Image image mode=RGB size=198x104 at 0x405DDB3D0>",
+    "structured_text": "<PIL.Image.Image image mode=RGB size=198x104 at 0x40822B8D0>",
     "intuition_summary": "",
     "key_concepts": [],
     "confidence": 0.8,
@@ -384,11 +384,11 @@
     "validation": null
   },
   {
-    "chunk_id": "c24ba045-6387-457c-af5d-b7b65dd3bf46",
+    "chunk_id": "48a2b7af-f29a-46e7-adf3-6f3064f1ff21",
     "chunk_type": "figure",
     "page_num": 4,
     "source_file": "21_77.pdf",
-    "structured_text": "<PIL.Image.Image image mode=RGB size=255x103 at 0x405DDB450>",
+    "structured_text": "<PIL.Image.Image image mode=RGB size=255x103 at 0x40822B950>",
     "intuition_summary": "",
     "key_concepts": [],
     "confidence": 0.8,
@@ -396,11 +396,11 @@
     "validation": null
   },
   {
-    "chunk_id": "e46372f7-ec87-4724-91b3-b11b26617d7a",
+    "chunk_id": "8c30d7f4-afbc-4084-9108-5dede394e346",
     "chunk_type": "figure",
     "page_num": 4,
     "source_file": "21_77.pdf",
-    "structured_text": "<PIL.Image.Image image mode=RGB size=255x103 at 0x405DDB4D0>",
+    "structured_text": "<PIL.Image.Image image mode=RGB size=255x103 at 0x40822B9D0>",
     "intuition_summary": "",
     "key_concepts": [],
     "confidence": 0.8,
@@ -408,11 +408,11 @@
     "validation": null
   },
   {
-    "chunk_id": "f97d56fb-5a3a-487e-8546-1acbb4493986",
+    "chunk_id": "70824421-8ee3-489d-bb07-651f2d92c097",
     "chunk_type": "figure",
     "page_num": 4,
     "source_file": "21_77.pdf",
-    "structured_text": "<PIL.Image.Image image mode=RGB size=198x103 at 0x405DDB550>",
+    "structured_text": "<PIL.Image.Image image mode=RGB size=198x103 at 0x40822BA50>",
     "intuition_summary": "",
     "key_concepts": [],
     "confidence": 0.8,
@@ -420,7 +420,7 @@
     "validation": null
   },
   {
-    "chunk_id": "5e48f6dc-a545-4e0b-89e8-3c18711260c4",
+    "chunk_id": "cf66aeac-d1a8-482f-90a2-a83754fbc475",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -432,7 +432,7 @@
     "validation": null
   },
   {
-    "chunk_id": "f7c20618-05de-4015-9af2-8bc30e888b86",
+    "chunk_id": "0fdd94b8-034f-4e99-8e61-23e2d8f9b1dd",
     "chunk_type": "table",
     "page_num": 5,
     "source_file": "21_77.pdf",
@@ -444,11 +444,11 @@
     "validation": null
   },
   {
-    "chunk_id": "fe6d7710-6313-44bb-aba9-2101eb89cd3d",
+    "chunk_id": "88dd20b2-5ad3-4054-b85b-c2a1257385f0",
     "chunk_type": "figure",
     "page_num": 5,
     "source_file": "21_77.pdf",
-    "structured_text": "<PIL.Image.Image image mode=RGB size=659x942 at 0x406720A50>",
+    "structured_text": "<PIL.Image.Image image mode=RGB size=659x942 at 0x408C1CF50>",
     "intuition_summary": "",
     "key_concepts": [],
     "confidence": 0.8,
@@ -456,7 +456,7 @@
     "validation": null
   },
   {
-    "chunk_id": "47d65786-02b6-4550-9ac6-2c14d2fb3217",
+    "chunk_id": "6a3d1117-bc45-45d0-8062-26a6708473c3",
     "chunk_type": "text",
     "page_num": 5,
     "source_file": "21_77.pdf",
@@ -468,7 +468,7 @@
     "validation": null
   },
   {
-    "chunk_id": "c22413b9-6467-4b7f-9216-40676a7b927a",
+    "chunk_id": "73afee77-1b60-469a-b378-46924652c78f",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
