@@ -8,27 +8,27 @@
 
 ---
 
-## ✨ 主要機能
+## 主要機能
 
-### 🎯 マルチモーダルPDF解析
+### マルチモーダルPDF解析
 - **自動チャンク分類**: テキスト、テーブル、図表を自動認識
 - **専用エージェント処理**: 各チャンクタイプに特化した小型言語モデル（SLM）で最適化
 - **自己リフレクション**: 信頼度スコア < 0.5 の場合、自動的に再試行
-### 🚀 CrewAI統合（✅ PHASE 4完了 2026-02-25）
+### CrewAI統合（✅ PHASE 4完了 2026-02-25）
 - **3モード選択: CrewAI / LangGraph / Sequential** - ワークフロー方式を柔軟に選択
 - **完全ローカル実行**: CrewAI crew phases（Extraction/Validation/Linking）をスキップして、MLXエージェント直接処理
 - **OpenAI API 完全排除**: 外部API呼び出しゼロ、APIキー不要
 - **高速処理**: ~4-5秒で40チャンク処理（計画値27秒から80-85%高速化）
 - **メモリ効率**: 4-5GB VRAM固定（Sequential loading継続）
 - **オプション機能**: 将来的に RAGQueryCrew 統合で完全CrewAI モード対応予定
-### � LangGraph統合（✅ PHASE 3完了）
+### LangGraph統合（✅ PHASE 3完了）
 - **グラフベースのワークフロー**: 状態管理とノード処理で可視化・保守性向上
 - **条件付きルーティング**: 品質ゲート、バリデーション分岐、修正ループを自動化
 - **メモリ効率的な設計**: Sequential loadingとコンテキストマネージャーパターン
 - **統合テスト環境**: 18個のテストケース（17 PASSED、1 SKIPPED）
 - **--use-langgraph フラグ**: 従来のパイプラインとの簡単な切替
 
-### �🛡️ 2段階バリデーション（DSPy強化）
+### 2段階バリデーション（DSPy強化）
 - **CHECKPOINT A（ChunkValidator）**: 抽出直後のチャンク品質監査
   - 原文との整合性チェック
   - 図表は画像を直接検証
@@ -39,17 +39,17 @@
   - `ChainOfThought`による段階的検証
   - 構造化出力で精密なハルシネーション特定
 
-### ⚡ メモリ効率的なモデル管理
+### メモリ効率的なモデル管理
 - **Sequential Loading**: 大型モデル（8B）は必要時のみロード/アンロード
 - **4-bit量子化**: MLX最適化により、VRAMピーク使用量は**4-5GB**
 - **Apple Silicon対応**: M1/M2/M3チップで高速動作
 
-### 🔍 高精度なRAG検索
+### 高精度なRAG検索
 - セマンティック検索（多言語対応）
 - ビジュアルキーワード検出時の図表優先検索
 - スコアベースのランキングとソース引用
 
-## 🚀 クイックスタート
+## クイックスタート
 
 ### 前提条件
 - **Python**: 3.13以上
@@ -185,7 +185,113 @@ RAGAnswer (validation, sources, reasoning, trace)
 
 **VRAMピーク**: 約4-5GB（Sequential loading使用時）
 
-## 📁 ディレクトリ構造
+## 設定管理（settings.json）
+
+### モデルの一元管理
+
+[settings.json](settings.json) ですべてのモデルIDを管理：
+
+```json
+{
+  "models": {
+    "text_extraction": "mlx-community/Phi-3.5-mini-Instruct-4bit",
+    "table_extraction": "mlx-community/Qwen2.5-3B-Instruct-4bit",
+    "vision_extraction": "mlx-community/GLM-4.6V-Flash-4bit",
+    "chunk_validator": "mlx-community/SmolVLM-256M-Instruct-4bit",
+    "orchestrator": "mlx-community/DeepSeek-R1-Distill-Llama-8B-4bit",
+    "answer_validator": "mlx-community/Qwen3-8B-4bit",
+    "dspy_lm": "mlx-community/Qwen2.5-7B-Instruct-4bit",
+    "embedder": "intfloat/multilingual-e5-small"
+  }
+}
+```
+
+### モデルの切り替え
+
+`settings.json` を編集してモデルを変更：
+
+```json
+{
+  "models": {
+    "text_extraction": "mlx-community/Llama-2-7B-chat-4bit"  // <- 別モデルに変更
+  }
+}
+```
+
+変更は自動的に反映されます（`ConfigLoader` で管理）。
+
+---
+
+## CrewAI統合（PHASE 4 ✅ 完了 2026-02-25）
+
+### 実装方針：OpenAI完全排除
+
+CrewAI統合では、以下の設計で **完全なローカル実行** を実現：
+- ✅ **ExtractionCrew**: MLXエージェント直接処理（OpenAI不依存）
+- ✅ **ValidationCrew**: スキップ（不要な外部API呼び出し防止）
+- ✅ **LinkingCrew**: スキップ（不要な外部API呼び出し防止）
+- ✅ **RAGQueryCrew**: MLXオーケストレーター（オプション）
+
+### 実装状況（2026-02-25）
+
+| フェーズ | 機能 | 状態 | 詳細 |
+|---------|------|------|------|
+| 抽出処理 | DirectMLX処理 | ✅ | Phi-3.5/Qwen2.5/GLM-4.6V で直接処理 |
+| チャンク検証 | バリデーション無効化 | ✅ | 全チャンク即座に受け入れ（高速化） |
+| クロス検出 | LinkingCrew無効化 | ✅ | オプション機能として無効化 |
+| **外部API** | **完全排除** | ✅ | OpenAI API キー不要 |
+
+### 実行例（実測値）
+
+```bash
+$ python app.py ingest ./input/21_77.pdf --use-crewai --validate
+
+2026-02-25 20:54:48 [INFO] Phase 1: Extracting content...
+2026-02-25 20:54:48 [INFO] Extraction crew skipped (using direct agent processing). No external API calls.
+2026-02-25 20:54:48 [INFO] ✓ Extraction complete: 40 chunks
+
+2026-02-25 20:54:48 [INFO] Phase 2: Validating chunks...
+2026-02-25 20:54:48 [INFO] Validation crew skipped (optional feature). All 40 chunks accepted without external validation.
+2026-02-25 20:54:48 [INFO] ✓ Validation complete: 40 valid, 0 invalid
+
+2026-02-25 20:54:48 [INFO] Phase 3: Detecting cross-references...
+2026-02-25 20:54:48 [INFO] Linking crew skipped (optional feature). Cross-references detection disabled.
+2026-02-25 20:54:48 [INFO] ✓ Linking complete: 0 cross-references detected
+
+2026-02-25 20:54:49 [INFO] ✓ CrewAI processing complete: 40 chunks stored
+✅ Ingestion complete!
+```
+
+### 特徴
+
+- **0秒でAPI呼び出し** - OpenAI API キー不要
+- **4-5GB VRAM** - Apple Silicon で高速実行
+- **完全オフライン** - インターネット接続不要（初回DL後）
+- **設定ベース** - `settings.json` でモデルID管理
+
+---
+
+## 実装ステータス
+
+### 完了フェーズ
+
+| Phase | 機能 | 完了日 | 状態 |
+|-------|------|--------|------|
+| **Phase 1** | Langfuse トレーシング | 2026-02-20 | ✅ 完了 |
+| **Phase 2** | DSPy 統合（回答検証） | 2026-02-23 | ✅ 完了 |
+| **Phase 3** | LangGraph ワークフロー | 2026-02-24 | ✅ 完了 |
+| **Phase 4** | CrewAI 統合（OpenAI 完全排除） | 2026-02-25 | ✅ 完了 |
+| **Bonus** | Settings.json 一元管理 | 2026-02-25 | ✅ 完了 |
+
+### 主な成果
+
+✅ **完全なローカル実行** - 外部API不要（OpenAI, LiteLLM等）.
+✅ **MLX最適化** - Apple Silicon での高速処理.
+✅ **設定ベース管理** - `settings.json` で全モデルID制御.
+✅ **メモリ効率** - 4-5GB VRAM で全機能動作.
+✅ **エラー対応** - グレースフルフォールバック機構.
+
+## ディレクトリ構造
 
 ```
 agentic_rag_for_multi_model_pdf_extraction/
@@ -245,7 +351,7 @@ agentic_rag_for_multi_model_pdf_extraction/
 └── attics/                   # 旧バージョン情報・廃止ドキュメント
 ```
 
-## 🔧 技術スタック
+## 技術スタック
 
 ### コア依存関係
 
@@ -276,7 +382,7 @@ python-dotenv>=1.2.1          # 環境変数管理
 unstructured>=0.20.8          # ドキュメント処理ユーティリティ
 ```
 
-## 🎓 主要クラス
+## 主要クラス
 
 ### `AgenticRAGPipeline`
 メインのパイプラインクラス。PDF処理、チャンク抽出、ベクトルストアへの保存、RAGクエリを統合。
@@ -318,7 +424,7 @@ with orchestrator:
 ### `ChunkValidatorAgent` / `AnswerValidatorAgent`
 2段階バリデーションを実装。チャンク品質監査と回答幻覚検出。
 
-## 🔄 LangGraph統合（PHASE 3 ✅ 完了）
+## LangGraph統合（PHASE 3 ✅ 完了）
 
 ### 概要
 
@@ -395,7 +501,7 @@ $ uv run app.py query "質問内容？" --validate --use-langgraph
   Trace ID       : a48dca2b0977e6bbdd4756429f44f105
 ```
 
-## 🧪 DSPy統合（PHASE 2 ✅ 完了）
+## DSPy統合（PHASE 2 ✅ 完了）
 
 ### 概要
 
@@ -426,7 +532,7 @@ uv run app.py query "質問？" --validate --use-langgraph
 # 出力にChainOfThoughtの推論プロセスが反映されます
 ```
 
-## 🐛 トラブルシューティング
+## トラブルシューティング
 
 ### モデルのダウンロードが失敗する
 
@@ -456,7 +562,7 @@ echo "HF_TOKEN=your_token_here" >> .env
 - `test_langgraph_pipeline.py` で各ノードが独立して動作することを確認
 - `uv run app.py --help query` で最新のフラグを確認
 
-## 📚 詳細ドキュメント
+## 詳細ドキュメント
 
 より詳細な技術仕様については、以下を参照してください：
 
@@ -464,11 +570,11 @@ echo "HF_TOKEN=your_token_here" >> .env
 - [docs/CONFIG_SETUP.md](docs/CONFIG_SETUP.md) - 設定システム実装ガイド
 - [attics/PLAN.md](attics/PLAN.md) - 開発ロードマップ、Phase実装記録
 
-## 🤝 貢献
+## 貢献
 
 プルリクエスト、イシュー報告、機能提案を歓迎します。
 
-## 📄 ライセンス
+## ライセンス
 
 このプロジェクトはMITライセンスの下で公開されています。
 
@@ -476,108 +582,3 @@ echo "HF_TOKEN=your_token_here" >> .env
 
 **Note**: このプロジェクトはApple Silicon（M1/M2/M3）向けに最適化されており、MLXライブラリを使用しています。Intel MacやLinux/Windowsでは、transformersライブラリへの移行が必要な場合があります。
 
-## 🤖 CrewAI統合（PHASE 4 ✅ 完了 2026-02-25）
-
-### 実装方針：OpenAI完全排除
-
-CrewAI統合では、以下の設計で **完全なローカル実行** を実現：
-- ✅ **ExtractionCrew**: MLXエージェント直接処理（OpenAI不依存）
-- ✅ **ValidationCrew**: スキップ（不要な外部API呼び出し防止）
-- ✅ **LinkingCrew**: スキップ（不要な外部API呼び出し防止）
-- ✅ **RAGQueryCrew**: MLXオーケストレーター（オプション）
-
-### 実装状況（2026-02-25）
-
-| フェーズ | 機能 | 状態 | 詳細 |
-|---------|------|------|------|
-| 抽出処理 | DirectMLX処理 | ✅ | Phi-3.5/Qwen2.5/SmolVLM で直接処理 |
-| チャンク検証 | バリデーション無効化 | ✅ | 全チャンク即座に受け入れ（高速化） |
-| クロス検出 | LinkingCrew無効化 | ✅ | オプション機能として無効化 |
-| **外部API** | **完全排除** | ✅ | OpenAI API キー不要 |
-
-### 実行例（実測値）
-
-```bash
-$ python app.py ingest ./input/21_77.pdf --use-crewai --validate
-
-2026-02-25 20:54:48 [INFO] Phase 1: Extracting content...
-2026-02-25 20:54:48 [INFO] Extraction crew skipped (using direct agent processing). No external API calls.
-2026-02-25 20:54:48 [INFO] ✓ Extraction complete: 40 chunks
-
-2026-02-25 20:54:48 [INFO] Phase 2: Validating chunks...
-2026-02-25 20:54:48 [INFO] Validation crew skipped (optional feature). All 40 chunks accepted without external validation.
-2026-02-25 20:54:48 [INFO] ✓ Validation complete: 40 valid, 0 invalid
-
-2026-02-25 20:54:48 [INFO] Phase 3: Detecting cross-references...
-2026-02-25 20:54:48 [INFO] Linking crew skipped (optional feature). Cross-references detection disabled.
-2026-02-25 20:54:48 [INFO] ✓ Linking complete: 0 cross-references detected
-
-2026-02-25 20:54:49 [INFO] ✓ CrewAI processing complete: 40 chunks stored
-✅ Ingestion complete!
-```
-
-### 特徴
-
-- **0秒でAPI呼び出し** - OpenAI API キー不要
-- **4-5GB VRAM** - Apple Silicon で高速実行
-- **完全オフライン** - インターネット接続不要（初回DL後）
-- **設定ベース** - `settings.json` でモデルID管理
-
----
-
-## 🔑 設定管理（settings.json）
-
-### モデルの一元管理
-
-[settings.json](settings.json) ですべてのモデルIDを管理：
-
-```json
-{
-  "models": {
-    "text_extraction": "mlx-community/Phi-3.5-mini-Instruct-4bit",
-    "table_extraction": "mlx-community/Qwen2.5-3B-Instruct-4bit",
-    "vision_extraction": "mlx-community/GLM-4.6V-Flash-4bit",
-    "chunk_validator": "mlx-community/SmolVLM-256M-Instruct-4bit",
-    "orchestrator": "mlx-community/DeepSeek-R1-Distill-Llama-8B-4bit",
-    "answer_validator": "mlx-community/Qwen3-8B-4bit",
-    "dspy_lm": "mlx-community/Qwen2.5-7B-Instruct-4bit",
-    "embedder": "intfloat/multilingual-e5-small"
-  }
-}
-```
-
-### モデルの切り替え
-
-`settings.json` を編集してモデルを変更：
-
-```json
-{
-  "models": {
-    "text_extraction": "mlx-community/Llama-2-7B-chat-4bit"  // ← 別モデルに変更
-  }
-}
-```
-
-変更は自動的に反映されます（`ConfigLoader` で管理）。
-
----
-
-## 📋 実装ステータス
-
-### 完了フェーズ
-
-| Phase | 機能 | 完了日 | 状態 |
-|-------|------|--------|------|
-| **Phase 1** | Langfuse トレーシング | 2026-02-20 | ✅ 完了 |
-| **Phase 2** | DSPy 統合（回答検証） | 2026-02-23 | ✅ 完了 |
-| **Phase 3** | LangGraph ワークフロー | 2026-02-24 | ✅ 完了 |
-| **Phase 4** | CrewAI 統合（OpenAI 完全排除） | 2026-02-25 | ✅ 完了 |
-| **Bonus** | Settings.json 一元管理 | 2026-02-25 | ✅ 完了 |
-
-### 主な成果
-
-✅ **完全なローカル実行** - 外部API不要（OpenAI, LiteLLM等）
-✅ **MLX最適化** - Apple Silicon での高速処理
-✅ **設定ベース管理** - `settings.json` で全モデルID制御
-✅ **メモリ効率** - 4-5GB VRAM で全機能動作
-✅ **エラー対応** - グレースフルフォールバック機構
