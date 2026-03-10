@@ -197,29 +197,58 @@ class PDFParser:
         """Return True when a detected grid looks like a real table."""
         normalized_rows = [[str(cell or "").strip() for cell in row] for row in rows]
         if len(normalized_rows) < self.MIN_TABLE_ROWS:
-            log.debug("Rejecting table candidate: insufficient rows (%d < %d) at bbox %s", len(normalized_rows), self.MIN_TABLE_ROWS, bbox)
+            log.debug(
+                "Rejecting table candidate: insufficient rows (%d < %d) at bbox %s",
+                len(normalized_rows),
+                self.MIN_TABLE_ROWS,
+                bbox,
+            )
             return False
 
         total_cells = sum(len(row) for row in normalized_rows)
         non_empty_cells = [cell for row in normalized_rows for cell in row if cell]
         if total_cells == 0 or len(non_empty_cells) < 4:
-            log.debug("Rejecting table candidate: insufficient content (total=%d, non_empty=%d) at bbox %s", total_cells, len(non_empty_cells), bbox)
+            log.debug(
+                "Rejecting table candidate: insufficient content (total=%d, non_empty=%d) at bbox %s",
+                total_cells,
+                len(non_empty_cells),
+                bbox,
+            )
             return False
 
         max_cols = max((len(row) for row in normalized_rows), default=0)
         multi_cell_rows = sum(1 for row in normalized_rows if sum(1 for cell in row if cell) >= 2)
         if max_cols < 2 or multi_cell_rows < 2:
-            log.debug("Rejecting table candidate: weak structure (cols=%d, multi_cell_rows=%d) at bbox %s", max_cols, multi_cell_rows, bbox)
+            log.debug(
+                "Rejecting table candidate: weak structure (cols=%d, multi_cell_rows=%d) at bbox %s",
+                max_cols,
+                multi_cell_rows,
+                bbox,
+            )
             return False
 
         empty_ratio = 1.0 - (len(non_empty_cells) / total_cells)
         if empty_ratio > self.MAX_TABLE_EMPTY_RATIO:
-            log.debug("Rejecting table candidate: too sparse (empty_ratio=%.2f > %.2f) at bbox %s", empty_ratio, self.MAX_TABLE_EMPTY_RATIO, bbox)
+            log.debug(
+                "Rejecting table candidate: too sparse (empty_ratio=%.2f > %.2f) at bbox %s",
+                empty_ratio,
+                self.MAX_TABLE_EMPTY_RATIO,
+                bbox,
+            )
             return False
 
-        overlapping_figures = [(i, self._bbox_overlap_ratio(bbox, fb)) for i, fb in enumerate(figure_bboxes) if self._bbox_overlap_ratio(bbox, fb) >= self.TABLE_FIGURE_OVERLAP_THRESHOLD]
+        overlapping_figures = [
+            (i, self._bbox_overlap_ratio(bbox, fb))
+            for i, fb in enumerate(figure_bboxes)
+            if self._bbox_overlap_ratio(bbox, fb) >= self.TABLE_FIGURE_OVERLAP_THRESHOLD
+        ]
         if overlapping_figures:
-            log.debug("Rejecting table candidate: overlaps with figures %s (threshold=%.2f) at bbox %s", overlapping_figures, self.TABLE_FIGURE_OVERLAP_THRESHOLD, bbox)
+            log.debug(
+                "Rejecting table candidate: overlaps with figures %s (threshold=%.2f) at bbox %s",
+                overlapping_figures,
+                self.TABLE_FIGURE_OVERLAP_THRESHOLD,
+                bbox,
+            )
             return False
 
         caption_text = self._nearby_caption_text(page_words, bbox).lower()

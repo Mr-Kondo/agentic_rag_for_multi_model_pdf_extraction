@@ -14,6 +14,7 @@ from mlx_vlm import generate as vlm_generate
 from mlx_vlm.prompt_utils import apply_chat_template
 
 from src.agents.base import BaseAgent
+from src.agents.table_extraction import TableFromImageExtractor
 from src.core.cache import _model_cache
 from src.core.models import ChunkType, ProcessedChunk
 
@@ -63,6 +64,7 @@ Given a Markdown table, return ONLY valid JSON:
 }"""
 
 _VISION_SYSTEM = """You are a scientific figure analyst.
+Carefully identify the type of visual content. If you detect a structured table in the image, classify it as 'table_image' with HIGH confidence (0.8+).
 Return ONLY valid JSON:
 {
   "figure_type": "<bar_chart|line_chart|scatter_plot|flowchart|table_image|map|photograph|equation|network_diagram|other>",
@@ -284,14 +286,37 @@ class VisionAgent(BaseAgent):
             return self._ocr_fallback(chunk)
 
         p = self._safe_json(output)
+        figure_type = p.get("figure_type", "other")
+        confidence = float(p.get("confidence", 0.6))
+
+        # Check if this is a table image - attempt to extract table structure
+        if figure_type == "table_image" and confidence >= 0.4:
+            try:
+                table_extractor = TableFromImageExtractor()
+                table_markdown = table_extractor.extract_table_from_image(chunk.raw_content)
+                if table_markdown is not None:
+                    log.debug("VisionAgent: table image extraction successful (%s)", chunk.source_file)
+                    return ProcessedChunk(
+                        chunk_type=ChunkType.TABLE,
+                        **_chunk_kwargs(chunk),
+                        structured_text=table_markdown,
+                        intuition_summary=p.get("intuition_summary", ""),
+                        key_concepts=p.get("key_concepts", []),
+                        confidence=confidence,
+                        agent_notes=f"extracted_from_image | {p.get('agent_notes', '')}",
+                    )
+            except Exception as e:
+                log.debug("VisionAgent: table extraction failed: %s. Falling back to FIGURE.", e)
+
+        # Default: return as FIGURE chunk
         return ProcessedChunk(
             chunk_type=ChunkType.FIGURE,
             **_chunk_kwargs(chunk),
             structured_text=p.get("structured_text", output[:1000]),
             intuition_summary=p.get("intuition_summary", ""),
             key_concepts=p.get("key_concepts", []),
-            confidence=float(p.get("confidence", 0.6)),
-            agent_notes=f"figure_type={p.get('figure_type', '?')} | {p.get('agent_notes', '')}",
+            confidence=confidence,
+            agent_notes=f"figure_type={figure_type} | {p.get('agent_notes', '')}",
         )
 
     def _ocr_fallback(self, chunk: "RawChunk") -> ProcessedChunk:

@@ -1,6 +1,6 @@
 [
   {
-    "chunk_id": "8816fb0f-3d0a-44fa-92d7-fd5aee63b12c",
+    "chunk_id": "3324801d-2bfc-4a6b-82f4-15d2a7121316",
     "chunk_type": "text",
     "page_num": 1,
     "source_file": "21_77.pdf",
@@ -32,7 +32,7 @@
     }
   },
   {
-    "chunk_id": "c53ef11e-b6a7-474c-989e-7b55703880fc",
+    "chunk_id": "ef8cf4ff-979a-4534-a1d4-b19936b8200c",
     "chunk_type": "text",
     "page_num": 1,
     "source_file": "21_77.pdf",
@@ -64,7 +64,7 @@
     }
   },
   {
-    "chunk_id": "50d69245-ab7f-483e-8a02-0cbabe327399",
+    "chunk_id": "fd98df23-5928-4d59-b421-1b3807caa8d7",
     "chunk_type": "text",
     "page_num": 1,
     "source_file": "21_77.pdf",
@@ -96,7 +96,7 @@
     }
   },
   {
-    "chunk_id": "c4599501-642d-4aaf-ad2f-fdb6c2dc07fd",
+    "chunk_id": "71a3fb9e-a4ee-4619-9b2a-9cb018db3373",
     "chunk_type": "text",
     "page_num": 1,
     "source_file": "21_77.pdf",
@@ -128,7 +128,7 @@
     }
   },
   {
-    "chunk_id": "044b37e1-69d8-4205-b352-36f447bb05bd",
+    "chunk_id": "192d84f7-19d9-4c4f-a5fc-1b3fe0b27bd2",
     "chunk_type": "text",
     "page_num": 1,
     "source_file": "21_77.pdf",
@@ -168,7 +168,7 @@
     }
   },
   {
-    "chunk_id": "2aeb857e-0b5c-431c-9911-663b6fe13730",
+    "chunk_id": "467be0ba-5ee2-42bb-a27f-d5bc3fbfc1af",
     "chunk_type": "text",
     "page_num": 1,
     "source_file": "21_77.pdf",
@@ -200,7 +200,7 @@
     }
   },
   {
-    "chunk_id": "852e60b5-c87c-42bd-9bef-25e5677d6f52",
+    "chunk_id": "4a1d4daf-a34b-4b4c-be98-8609cb09c921",
     "chunk_type": "text",
     "page_num": 1,
     "source_file": "21_77.pdf",
@@ -232,7 +232,7 @@
     }
   },
   {
-    "chunk_id": "b8692999-65ca-435a-942f-fc6ee8a4220b",
+    "chunk_id": "9a0cbbf4-d2ba-4a13-b9be-f4d678e0c633",
     "chunk_type": "text",
     "page_num": 1,
     "source_file": "21_77.pdf",
@@ -264,7 +264,7 @@
     }
   },
   {
-    "chunk_id": "8b01cbe6-b44f-4edf-b36d-6b17e43542bb",
+    "chunk_id": "374b66bf-b5a2-4f3c-9a29-ab2ff056b06f",
     "chunk_type": "text",
     "page_num": 1,
     "source_file": "21_77.pdf",
@@ -296,7 +296,7 @@
     }
   },
   {
-    "chunk_id": "3374854c-ecfa-4f5c-aeb9-355a502a6564",
+    "chunk_id": "6fac8393-9244-4e92-8b0a-42bb5e3c2393",
     "chunk_type": "text",
     "page_num": 1,
     "source_file": "21_77.pdf",
@@ -328,7 +328,7 @@
     }
   },
   {
-    "chunk_id": "94892a23-36fe-4baa-a1b9-172d4f1109e3",
+    "chunk_id": "416b985a-fb95-4490-a82b-7ca235090d9c",
     "chunk_type": "figure",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -344,11 +344,11 @@
     },
     "artifact_path": null,
     "source_preview": "image:611x278",
-    "structured_text": "GenerationResult(text=' The image is a black and white photograph of a map or diagram. The map itself is a grid with lines and lines intersected by lines. The grid itself is a simple grid with no visible labels or annotations. The map itself is not very detailed, but it is a good representation of a geographic or geographical area. The lines are straight and are evenly spaced, indicating a precise and organized layout. The grid itself is a simple grid with no visible labels or annotations. The m...",
+    "structured_text": "GenerationResult(text=' The image is a black and white photograph of a map or diagram. The map itself is a grid with lines and arrows indicating different types of data. The grid itself is a simple grid with no visible labels or annotations. The map itself is not labeled or annotated. The map itself is not in a specific orientation but is a horizontal and vertical grid. The grid itself is a simple grid with no visible labels or annotations. The map itself is not a table or a chart but a diagram ...",
     "intuition_summary": "",
     "key_concepts": [],
     "confidence": 0.6,
-    "agent_notes": "figure_type=? | ",
+    "agent_notes": "figure_type=other | ",
     "cross_links": [],
     "validation": {
       "is_valid": true,
@@ -360,7 +360,7 @@
     }
   },
   {
-    "chunk_id": "1b61d9bf-23b1-4d8a-b7b6-b080c1c4698b",
+    "chunk_id": "b52edbec-d40f-4514-9736-e209c59b8405",
     "chunk_type": "figure",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -376,11 +376,11 @@
     },
     "artifact_path": null,
     "source_preview": "image:197x83",
-    "structured_text": "GenerationResult(text=' The image is a black and white aerial view of a map. The map includes several lines and shapes, including a series of arrows pointing towards different points on the map. The arrows are labeled with different labels: one is labeled \"x\" and another labeled \"y\". The map also includes a series of arrows pointing towards different points on the map.<end_of_utterance>', token=2, logprobs=array([-27.625, -16.7812, 0, ..., -24.9844, -24.9844, -10.1719], dtype=float16), prompt_to...",
+    "structured_text": "GenerationResult(text=' The image is a black and white aerial photograph of a cityscape. The photograph includes a grid of buildings and structures, with a few notable structures such as a large building with a clock tower. The photograph also includes a few other structures, including a few more buildings and structures. The photograph also includes a few people and other objects, including a few people walking or standing. The photograph also includes a few other objects, including a few peopl...",
     "intuition_summary": "",
     "key_concepts": [],
     "confidence": 0.6,
-    "agent_notes": "figure_type=? | ",
+    "agent_notes": "figure_type=other | ",
     "cross_links": [],
     "validation": {
       "is_valid": true,
@@ -392,7 +392,7 @@
     }
   },
   {
-    "chunk_id": "e49690d3-541f-44b7-ad3c-4cc667a62998",
+    "chunk_id": "391187d2-05a8-4572-b272-822d4a702516",
     "chunk_type": "figure",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -408,11 +408,11 @@
     },
     "artifact_path": null,
     "source_preview": "image:160x83",
-    "structured_text": "GenerationResult(text=' The image contains a diagram or chart that appears to be a network diagram or a network diagram. The diagram consists of multiple interconnected lines or nodes, each connected to the others. The lines or nodes are colored and appear to be arranged in a grid-like pattern. The diagram includes a grid-like structure, with a central axis that runs through the image. The central axis is intersected by a grid-like structure, which appears to be a network diagram or a network di...",
+    "structured_text": "GenerationResult(text=' The image contains a black and white diagram with a grid layout. The diagram consists of a series of rectangles and lines arranged in a grid-like layout. The rectangles and lines are arranged in a grid-like layout, with each rectangle and line appearing to be a different color or shape. The grid itself is black and white, and the diagram itself is black and white. The diagram includes a grid of rectangles and lines, with each rectangle and line appearing to be a different...",
     "intuition_summary": "",
     "key_concepts": [],
     "confidence": 0.6,
-    "agent_notes": "figure_type=? | ",
+    "agent_notes": "figure_type=other | ",
     "cross_links": [],
     "validation": {
       "is_valid": true,
@@ -424,7 +424,7 @@
     }
   },
   {
-    "chunk_id": "52e8b13e-bbef-408a-a132-c0caea31bc72",
+    "chunk_id": "93580773-fc3b-45e0-968b-f9ce2f2738a9",
     "chunk_type": "figure",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -440,11 +440,11 @@
     },
     "artifact_path": null,
     "source_preview": "image:149x145",
-    "structured_text": "GenerationResult(text=' The image is a black and white diagram or chart. The diagram consists of a series of concentric circles. The circles are arranged in a grid-like pattern. The circles are black and the grid lines are white. The circles are evenly spaced. The diagram consists of a series of concentric circles. The circles are black and the grid lines are white. The circles are evenly spaced.<end_of_utterance>', token=2, logprobs=array([-26.875, -16.75, 0, ..., -24.3125, -24.3125, -9.50781],...",
+    "structured_text": "GenerationResult(text=' The image contains a black and white diagram or chart, which appears to be a diagram or chart, with a grid-like structure. The diagram consists of a series of lines and shapes, each of which is connected to the others. The lines and shapes are evenly spaced and appear to be used to represent different types of data or concepts. The grid-like structure suggests a structured arrangement or layout, possibly used to represent a set of data or concepts systematically.\\n\\nThe d...",
     "intuition_summary": "",
     "key_concepts": [],
     "confidence": 0.6,
-    "agent_notes": "figure_type=? | ",
+    "agent_notes": "figure_type=other | ",
     "cross_links": [],
     "validation": {
       "is_valid": true,
@@ -456,7 +456,7 @@
     }
   },
   {
-    "chunk_id": "6dc2f0e8-13d3-487a-9935-09fbd7aff58d",
+    "chunk_id": "2f819ec3-de5c-476d-a050-5678dfe6a47a",
     "chunk_type": "figure",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -472,11 +472,11 @@
     },
     "artifact_path": null,
     "source_preview": "image:170x135",
-    "structured_text": "GenerationResult(text=' The image contains a black and white diagram or chart. The chart contains a series of lines and arrows, with text indicating different sections. The chart includes a title at the top, which reads: \"緊張\". The chart itself is a line chart, with a series of arrows pointing to different sections. The chart includes a title at the top, which reads: \"緊張\". The chart contains a series of lines and arrows, with text indicating different sections. The chart includes a title at the t...",
+    "structured_text": "GenerationResult(text=' The image contains a black and white diagram with a title in the upper right corner. The diagram includes a series of lines and shapes, with text in the upper left corner. The text includes the word \"HIGH\" in a larger font, followed by a smaller text in a smaller font. The diagram includes a series of arrows in the upper left, with a line connecting the arrows to the labels in the upper right. The diagram includes a series of shapes in the upper left, with text in the upp...",
     "intuition_summary": "",
     "key_concepts": [],
     "confidence": 0.6,
-    "agent_notes": "figure_type=? | ",
+    "agent_notes": "figure_type=other | ",
     "cross_links": [],
     "validation": {
       "is_valid": true,
@@ -488,7 +488,7 @@
     }
   },
   {
-    "chunk_id": "5a7ae86a-2925-4e8f-8574-7d6da85b4f6d",
+    "chunk_id": "2e25f0a6-ed95-49f9-8d07-a19e8c848af4",
     "chunk_type": "figure",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -504,11 +504,11 @@
     },
     "artifact_path": null,
     "source_preview": "image:196x84",
-    "structured_text": "GenerationResult(text=' The image contains a chart or diagram, specifically a flowchart or a diagram, with a white background. The chart or diagram consists of a series of interconnected lines or bars, each representing a different concept or idea. The lines or bars are color-coded, with the color coding being consistent throughout the chart. The chart or diagram includes a title at the top, which reads: \"The image contains a chart or diagram, specifically a flowchart or diagram, with a white ba...",
+    "structured_text": "GenerationResult(text=' The image contains a textual representation of a scientific or technical document. The text is in Chinese and appears to be a scientific or technical document, possibly related to a scientific study or experiment. The text is written in a sans-serif font, with the exception of the first line, which uses a serif font. The text is aligned horizontally and appears to be a list or list, with the first line being a bold, sans-serif font. The text is structured in a traditional...",
     "intuition_summary": "",
     "key_concepts": [],
     "confidence": 0.6,
-    "agent_notes": "figure_type=? | ",
+    "agent_notes": "figure_type=other | ",
     "cross_links": [],
     "validation": {
       "is_valid": true,
@@ -520,7 +520,7 @@
     }
   },
   {
-    "chunk_id": "f42aff79-3541-43db-a753-25b3eff4bae9",
+    "chunk_id": "245d4a92-a7d4-42cb-973d-ed8d1f3eebd1",
     "chunk_type": "figure",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -536,11 +536,11 @@
     },
     "artifact_path": null,
     "source_preview": "image:157x83",
-    "structured_text": "GenerationResult(text=' The image is a black and white diagram showing a network diagram. The diagram consists of a series of interconnected lines and shapes, each of which represents a different type of network or data structure. The lines are connected and intersect each other, forming a grid-like structure. The diagram includes a central axis, labeled as \"x\", which is the axis of the diagram. The central axis is intersected by a series of arrows, labeled as \"y\", which are arrows that point to...",
+    "structured_text": "GenerationResult(text=' The image contains a black and white diagram with a grid layout. The diagram consists of a series of concentric circles, each with a label indicating a different part of the diagram. The circles are evenly spaced and appear to be arranged in a grid-like pattern. The circles are colored in a light grey color, with the labels indicating different sections of the diagram. The circles are evenly spaced and appear to be a part of a larger diagram or chart. The diagram includes...",
     "intuition_summary": "",
     "key_concepts": [],
     "confidence": 0.6,
-    "agent_notes": "figure_type=? | ",
+    "agent_notes": "figure_type=other | ",
     "cross_links": [],
     "validation": {
       "is_valid": true,
@@ -552,7 +552,7 @@
     }
   },
   {
-    "chunk_id": "9a02fbfb-9e87-4e74-a26e-cf046c1f75bf",
+    "chunk_id": "0b5bfad7-afd9-40fa-83cc-10e31d524736",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -584,7 +584,7 @@
     }
   },
   {
-    "chunk_id": "11820c0b-05cd-4eb6-9595-748f88dc9a15",
+    "chunk_id": "175d1743-ba50-4cfb-8962-d422de4372ad",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -616,7 +616,7 @@
     }
   },
   {
-    "chunk_id": "96cd242e-183e-43b9-b1c8-241de7fa40c4",
+    "chunk_id": "53427dec-2f26-4ae8-9a29-c6574f11a9a6",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -648,7 +648,7 @@
     }
   },
   {
-    "chunk_id": "18479965-7fcb-4525-a750-21c061c44804",
+    "chunk_id": "ebfe5f42-457e-4808-8a39-a899e36bf7c7",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -680,7 +680,7 @@
     }
   },
   {
-    "chunk_id": "7c67800b-331b-4b3e-ba25-d00d9ce54b4b",
+    "chunk_id": "c42d1a49-9e3c-4882-9e35-182dacee50c4",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -712,7 +712,7 @@
     }
   },
   {
-    "chunk_id": "f84dc373-64d9-4b56-99f1-dc32ca47bd06",
+    "chunk_id": "81b0eb31-31a3-4fa5-9f04-e93717c2d2e1",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -744,7 +744,7 @@
     }
   },
   {
-    "chunk_id": "3830a70d-7850-4a23-b112-2ca734a2b47b",
+    "chunk_id": "2e8d5b2e-35b1-4786-8bb3-4c038b4d68eb",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -779,7 +779,7 @@
     }
   },
   {
-    "chunk_id": "3923651f-7d8d-40bd-8246-28b12876c2ee",
+    "chunk_id": "ced086bc-1da3-47a3-8f61-a808b4141a58",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -815,7 +815,7 @@
     }
   },
   {
-    "chunk_id": "68ed1b6b-6d72-44c0-9da6-ed1d4263ed97",
+    "chunk_id": "999c0937-e63c-4619-8507-4f2a1663f73e",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -847,7 +847,7 @@
     }
   },
   {
-    "chunk_id": "2603dec5-7e18-4c0e-9b39-813e1f4640f7",
+    "chunk_id": "582e51aa-8763-43b0-93e3-12f0559ebf5d",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -879,7 +879,7 @@
     }
   },
   {
-    "chunk_id": "a4e02d60-a0cf-4252-bb13-2313286b5f79",
+    "chunk_id": "bec7c85e-223f-4d1e-a206-cbcc67c038a3",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -911,7 +911,7 @@
     }
   },
   {
-    "chunk_id": "a2e4047c-62b5-4479-9051-8850f7670868",
+    "chunk_id": "8cdeab8f-12dd-497f-ab6f-147c9c292e80",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -943,7 +943,7 @@
     }
   },
   {
-    "chunk_id": "6eed5f67-98b0-4f68-ab8e-767009cae9a0",
+    "chunk_id": "b487cde7-1c20-4eea-94d9-e305c7927d27",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -975,7 +975,7 @@
     }
   },
   {
-    "chunk_id": "a761eea6-ab02-4205-bca0-0fd21b78a870",
+    "chunk_id": "61e09bca-6e4c-4668-a354-abea5cada284",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -1007,7 +1007,7 @@
     }
   },
   {
-    "chunk_id": "16f6263e-db12-4b48-b0ce-5d0d42a03616",
+    "chunk_id": "1926b00f-59b0-465e-9582-6ef1423a0ee3",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -1039,7 +1039,7 @@
     }
   },
   {
-    "chunk_id": "acb3f2ee-fbe0-4d7f-b524-ebb9b663ec8f",
+    "chunk_id": "993e149f-c5d1-4f02-a702-4dfd17601db9",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -1071,7 +1071,7 @@
     }
   },
   {
-    "chunk_id": "abbb1589-9561-47bc-9cd5-b0f755519415",
+    "chunk_id": "4c35c6ae-865c-41a6-b025-bbef690a56c9",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -1103,7 +1103,7 @@
     }
   },
   {
-    "chunk_id": "6a030244-346f-418f-82f9-6391240948f8",
+    "chunk_id": "7402c8d5-fcc9-40a1-99d2-3c2bb42d164b",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -1135,7 +1135,7 @@
     }
   },
   {
-    "chunk_id": "1eeb2ee7-889f-4543-832b-d83e277324e2",
+    "chunk_id": "56288dcd-9f32-4a17-bb69-94fffd2a0a52",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -1167,7 +1167,7 @@
     }
   },
   {
-    "chunk_id": "8f4d023a-54c7-41a9-b967-d5b7def1d44d",
+    "chunk_id": "092eb014-02ed-4c33-bae7-ea767347c910",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -1205,7 +1205,7 @@
     }
   },
   {
-    "chunk_id": "6fcc1c12-7809-4f3b-ba8c-f6a16666925d",
+    "chunk_id": "a289bbf4-468c-413f-bcac-d0ba8a8827b9",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -1237,7 +1237,7 @@
     }
   },
   {
-    "chunk_id": "bc9cd185-90b6-465d-b28a-b2092ca22bcc",
+    "chunk_id": "aeb3026a-b23e-4ed5-9d92-1f91c3ba03f3",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -1272,7 +1272,7 @@
     }
   },
   {
-    "chunk_id": "55218a9b-d998-40e3-8fea-32dc27521467",
+    "chunk_id": "3cecbb2c-5c08-4b88-af38-3b205e6f28ee",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -1304,7 +1304,7 @@
     }
   },
   {
-    "chunk_id": "d4bc3e5c-4c16-48df-8809-e67e2cef2aa5",
+    "chunk_id": "c18d02d3-6b18-46c3-a2c7-2dd687e5298d",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -1340,7 +1340,7 @@
     }
   },
   {
-    "chunk_id": "d9624a07-ab6b-499a-ac88-ebbf902a46ee",
+    "chunk_id": "b71e836c-51bb-4072-94cc-306e29bfb0df",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -1372,7 +1372,7 @@
     }
   },
   {
-    "chunk_id": "6ce36824-02a9-46c5-9171-c61b633c820a",
+    "chunk_id": "0a808450-8f5c-41ff-8d78-b8de0048c01d",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -1404,7 +1404,7 @@
     }
   },
   {
-    "chunk_id": "3d0c5a90-393b-4ce4-8168-6bcc83b2701d",
+    "chunk_id": "011f6920-f225-4ae1-aed2-6c746adcb491",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -1436,7 +1436,7 @@
     }
   },
   {
-    "chunk_id": "247cc432-3788-42ba-b11a-af1a6b94db09",
+    "chunk_id": "68a33dbd-865e-4112-88d8-89320ba31f16",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -1468,7 +1468,7 @@
     }
   },
   {
-    "chunk_id": "12611641-bccc-419f-98a1-983355544d0c",
+    "chunk_id": "ac6e0262-e2f6-4c6f-b330-4d2fb590c893",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -1503,7 +1503,7 @@
     }
   },
   {
-    "chunk_id": "335e5a2b-fcf7-4cb7-820a-071f4b7a55fd",
+    "chunk_id": "e84fbf68-7737-463d-b5ca-c33778d17d51",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -1539,7 +1539,7 @@
     }
   },
   {
-    "chunk_id": "dde0a4a4-8cae-4029-8ad6-134d902355f2",
+    "chunk_id": "8babc1fa-a242-4538-986c-3db6c4440200",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -1571,7 +1571,7 @@
     }
   },
   {
-    "chunk_id": "476b9eed-7b18-4aa4-9d69-15de9dceb124",
+    "chunk_id": "e290e88e-44fc-4297-b475-fa9e1a2816bd",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -1603,7 +1603,7 @@
     }
   },
   {
-    "chunk_id": "a8a27378-9a92-420c-9cb8-a6fc3ff55bb2",
+    "chunk_id": "eaf7db7f-cefa-4f4f-8f84-d69728a18038",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -1635,7 +1635,7 @@
     }
   },
   {
-    "chunk_id": "a3eafe00-28f4-40c0-a872-010f9d69a73c",
+    "chunk_id": "e9a1a597-6ee0-413b-811c-ddc76b497c3a",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -1667,7 +1667,7 @@
     }
   },
   {
-    "chunk_id": "09facf43-6e04-4dad-8b71-ac05c0ff5ec9",
+    "chunk_id": "340a5d6d-90c5-44ab-865a-35d535ed4bc0",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -1699,7 +1699,7 @@
     }
   },
   {
-    "chunk_id": "dcc9841c-84b6-4f75-9bb0-041f91be9ebd",
+    "chunk_id": "6f7f972a-950f-42e7-b58e-3cf86cae38cc",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -1731,7 +1731,7 @@
     }
   },
   {
-    "chunk_id": "ae5ebe86-b49d-4ac2-994c-ad04a26f9348",
+    "chunk_id": "925538f3-8f58-449a-a792-e4108c0704e4",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -1763,7 +1763,7 @@
     }
   },
   {
-    "chunk_id": "1e308b4b-db1b-4941-8fbd-b7b2d2f18190",
+    "chunk_id": "fa1b1c2a-483c-4609-aa45-5f801a2ef09c",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -1795,7 +1795,7 @@
     }
   },
   {
-    "chunk_id": "a76783b7-7bad-4819-b893-1abf184db0e7",
+    "chunk_id": "fcb4c824-3bf1-4933-875a-56771a2ea9cc",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -1827,7 +1827,7 @@
     }
   },
   {
-    "chunk_id": "42214d57-da06-42e8-86c2-ac85ece97c5b",
+    "chunk_id": "d7e6e205-6022-4831-b8fe-0236cb322a22",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -1859,7 +1859,7 @@
     }
   },
   {
-    "chunk_id": "7c1a0673-5e95-48c3-8569-df5f43998375",
+    "chunk_id": "b126c6d1-0630-47e3-b581-67ce36d84f6e",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -1891,7 +1891,7 @@
     }
   },
   {
-    "chunk_id": "ec562402-c28b-4b4b-8439-33eba3d42199",
+    "chunk_id": "f8c38a62-73b7-460e-af76-181596118d83",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -1923,7 +1923,7 @@
     }
   },
   {
-    "chunk_id": "da9ef0f2-2f0c-41ca-8303-42f72bf65ed8",
+    "chunk_id": "53c1ea15-8212-463a-a94b-05a9074245f3",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -1958,7 +1958,7 @@
     }
   },
   {
-    "chunk_id": "e5f1cb78-9692-4090-b6cd-921881740699",
+    "chunk_id": "35b7f277-cb14-49eb-a4b0-a63ebe2dc3a4",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -1995,7 +1995,7 @@
     }
   },
   {
-    "chunk_id": "3c4fa4a4-c606-4310-81f6-b6e3b56aa5ac",
+    "chunk_id": "8061893d-521d-46e9-99b3-2e94e36c7cf7",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -2027,7 +2027,7 @@
     }
   },
   {
-    "chunk_id": "cdb52329-bdac-497d-b911-060dba4060f7",
+    "chunk_id": "6dc31a82-4bb7-4afc-8f7f-024c90060ffd",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -2059,7 +2059,7 @@
     }
   },
   {
-    "chunk_id": "34594076-7616-43c1-b5c1-f1c19376d965",
+    "chunk_id": "1ca4d6f6-dafa-40f8-85b6-bb306b532f77",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -2091,7 +2091,7 @@
     }
   },
   {
-    "chunk_id": "7f605ca2-f2be-4c1d-98ba-7e4c116b6218",
+    "chunk_id": "0c3bb662-a9c3-4921-820e-575bf6983763",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -2129,7 +2129,7 @@
     }
   },
   {
-    "chunk_id": "984fc7f9-89be-4546-8ae8-7017ff077862",
+    "chunk_id": "3fc7cef6-0bd6-45cf-89cf-c321e1249047",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -2161,7 +2161,7 @@
     }
   },
   {
-    "chunk_id": "32051509-85a4-41ec-a651-313c34c9cb4b",
+    "chunk_id": "8556edab-ab71-4312-b1cc-77905ad71cf9",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -2193,7 +2193,7 @@
     }
   },
   {
-    "chunk_id": "b0404480-0076-4845-8f9f-ec302c6c7389",
+    "chunk_id": "5be52ddd-1d22-4013-8b44-c828aa67141d",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -2228,7 +2228,7 @@
     }
   },
   {
-    "chunk_id": "965d1241-597a-4ad5-8012-3a8408d41d19",
+    "chunk_id": "53c568b3-9c16-4f71-b927-7fc8f3e3f4d8",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -2260,7 +2260,7 @@
     }
   },
   {
-    "chunk_id": "8dccb57f-20cc-4c08-9c9f-ec3bb5265627",
+    "chunk_id": "733f14ff-e2ee-4483-bb4e-d628e80ccf96",
     "chunk_type": "text",
     "page_num": 2,
     "source_file": "21_77.pdf",
@@ -2295,7 +2295,7 @@
     }
   },
   {
-    "chunk_id": "51c731f9-a332-44aa-92ab-a4e42157fa3f",
+    "chunk_id": "46d23b3e-d926-49bd-9171-8358c8c7d8ca",
     "chunk_type": "figure",
     "page_num": 3,
     "source_file": "21_77.pdf",
@@ -2311,11 +2311,11 @@
     },
     "artifact_path": null,
     "source_preview": "image:735x413",
-    "structured_text": "GenerationResult(text=' The image is a photograph taken at a night time. The landscape is dark with a few indistinct lines in the foreground. There are trees and bushes in the background. The sky is very dark with a few indistinct lines in the foreground. The ground is green with some bushes and grass.<end_of_utterance>', token=2, logprobs=array([-27.4844, -17.3125, 0, ..., -25.2031, -25.2031, -10.5391], dtype=float16), prompt_tokens=988, generation_tokens=61, total_tokens=1049, prompt_tps=3099....",
+    "structured_text": "GenerationResult(text=\" The image is a digital or 'panorama' of a landscape. The landscape is expansive and includes a variety of green fields and trees. The horizon is visible, with the sky and distant trees stretching out. The sky is a gradient of purple and pink hues, with the trees appearing dark green and the sky appearing almost black. The horizon is sharp and sharp, with a few indistinct lines stretching out. The sky is slightly darker towards the horizon, with the trees appearing darker ...",
     "intuition_summary": "",
     "key_concepts": [],
     "confidence": 0.6,
-    "agent_notes": "figure_type=? | ",
+    "agent_notes": "figure_type=other | ",
     "cross_links": [],
     "validation": {
       "is_valid": true,
@@ -2327,7 +2327,7 @@
     }
   },
   {
-    "chunk_id": "b91ef84a-7cb5-47c8-95a3-b27664d03988",
+    "chunk_id": "b2aa7d76-af17-409f-bbd2-06a6ec6c49ff",
     "chunk_type": "figure",
     "page_num": 3,
     "source_file": "21_77.pdf",
@@ -2343,11 +2343,11 @@
     },
     "artifact_path": null,
     "source_preview": "image:735x413",
-    "structured_text": "GenerationResult(text=' The image shows a field with a few lines of arrows pointing in different directions. The arrows are blue and appear to be pointing towards a specific spot or a particular feature in the field. The field is green and grassy, with patches of grass interspersed. The horizon is visible in the distance, and the sky is dark, suggesting the image might be taken at night. The camera frame is slightly off-center, with the camera lens pointing towards the horizon. The ground is gre...",
+    "structured_text": "GenerationResult(text=' The image is a night-time aerial shot of a field. The field is green and grassy, with a few patches of grass interspersed. The sky is dark, with a few indistinct streaks of light visible in the background. The horizon is sharp, and the horizon line is visible in the distance. There are five blue straight lines in the frame, which appear to be part of a grid or a grid itself. The horizon is sharp, and the horizon line is visible in the distance. The horizon is sharp, and t...",
     "intuition_summary": "",
     "key_concepts": [],
     "confidence": 0.6,
-    "agent_notes": "figure_type=? | ",
+    "agent_notes": "figure_type=other | ",
     "cross_links": [],
     "validation": {
       "is_valid": true,
@@ -2359,7 +2359,7 @@
     }
   },
   {
-    "chunk_id": "4b70925c-e787-44fe-870e-e2586ed59420",
+    "chunk_id": "8f11851e-7475-47fc-80a8-40fd191be53c",
     "chunk_type": "figure",
     "page_num": 3,
     "source_file": "21_77.pdf",
@@ -2375,11 +2375,11 @@
     },
     "artifact_path": null,
     "source_preview": "image:732x411",
-    "structured_text": "GenerationResult(text=' The image is a photograph of a water and land scene. The water is in the foreground, with a series of elongated lines forming a grid-like pattern in the middle ground. The land in the background is mostly dark with patches of lighter vegetation. There are several houses and structures, including a tower and a few buildings. The sky is overcast and dark, suggesting the time is dark and likely nighttime. The lighting suggests the image was taken during the night, possibly i...",
+    "structured_text": "GenerationResult(text=\" The image is a photograph of a body of water, likely a river or lake, with a series of parallel lines forming a grid pattern. The lines are elongated and appear to be used to guide the viewer's eye through the water. The water itself is relatively calm, with no visible ripples or disturbances. The horizon is visible in the distance, and the sky above is overcast with clouds, suggesting a likely day with fair weather conditions.\\n\\nIn the foreground, there are several stru...",
     "intuition_summary": "",
     "key_concepts": [],
     "confidence": 0.6,
-    "agent_notes": "figure_type=? | ",
+    "agent_notes": "figure_type=other | ",
     "cross_links": [],
     "validation": {
       "is_valid": true,
@@ -2391,7 +2391,7 @@
     }
   },
   {
-    "chunk_id": "9478006d-f0da-464d-a114-d121b3ffedfb",
+    "chunk_id": "58dc6cb2-f6b2-4e2b-893c-fe73bcb66703",
     "chunk_type": "figure",
     "page_num": 3,
     "source_file": "21_77.pdf",
@@ -2407,11 +2407,11 @@
     },
     "artifact_path": null,
     "source_preview": "image:242x176",
-    "structured_text": "GenerationResult(text=' The issue is a red chart titled \"What is the population distribution?\" in a red box.<end_of_utterance>', token=2, logprobs=array([-31.6406, -18.4531, 0, ..., -28.5938, -28.5938, -12.8984], dtype=float16), prompt_tokens=988, generation_tokens=21, total_tokens=1009, prompt_tps=3095.8333543017725, generation_tps=525.8073376045762, peak_memory=8.490486938)",
+    "structured_text": "GenerationResult(text=' The image is a visual representation of a population density chart. The chart consists of a red bar positioned horizontally, with a black arrow pointing to the left. The red bar contains a cluster of dots, which are likely to represent the population density. The dots are evenly distributed along the red bar, indicating a high population density. The red bar is positioned horizontally, with a black arrow pointing to the left, indicating a directionality. The red bar is a ...",
     "intuition_summary": "",
     "key_concepts": [],
     "confidence": 0.6,
-    "agent_notes": "figure_type=? | ",
+    "agent_notes": "figure_type=other | ",
     "cross_links": [],
     "validation": {
       "is_valid": true,
@@ -2423,7 +2423,7 @@
     }
   },
   {
-    "chunk_id": "38b51e40-f01e-4b86-8caa-af864c494481",
+    "chunk_id": "bcfef48d-343a-4f6d-abb3-00aebc58e6c4",
     "chunk_type": "figure",
     "page_num": 3,
     "source_file": "21_77.pdf",
@@ -2439,11 +2439,11 @@
     },
     "artifact_path": null,
     "source_preview": "image:248x181",
-    "structured_text": "GenerationResult(text=' The issue is a small population.<end_of_utterance>', token=2, logprobs=array([-32.1562, -18.9688, 0, ..., -29.0312, -29.0312, -14.0312], dtype=float16), prompt_tokens=988, generation_tokens=9, total_tokens=997, prompt_tps=3017.4407587222863, generation_tps=491.2618973225745, peak_memory=8.490486938)",
+    "structured_text": "GenerationResult(text=' The image contains a bar chart titled \"HIGH Confidence\" with a red vertical axis labeled \"HIGH\" and a red axis labeled \"HIGH Confidence\" with a red vertical axis labeled \"HIGH\" and a red axis labeled \"HIGH Confidence\" with a red axis labeled \"HIGH Confidence\" with a red axis labeled \"HIGH Confidence\" with a red axis labeled \"HIGH Confidence\" with a red axis labeled \"HIGH Confidence\" with a red axis labeled \"HIGH Confidence\" with a red axis labeled \"HIGH Confidence\" with a...",
     "intuition_summary": "",
     "key_concepts": [],
     "confidence": 0.6,
-    "agent_notes": "figure_type=? | ",
+    "agent_notes": "figure_type=other | ",
     "cross_links": [],
     "validation": {
       "is_valid": true,
@@ -2455,7 +2455,7 @@
     }
   },
   {
-    "chunk_id": "9ffdd65d-3b1a-4236-a73b-414d9a3eb39b",
+    "chunk_id": "7d6bcebf-95ab-4c68-9137-697365817e7c",
     "chunk_type": "figure",
     "page_num": 3,
     "source_file": "21_77.pdf",
@@ -2471,11 +2471,11 @@
     },
     "artifact_path": null,
     "source_preview": "image:249x252",
-    "structured_text": "GenerationResult(text=' The image is a diagram or a chart showing a network diagram. The diagram consists of a horizontal line representing a network, a vertical line representing a network, and a horizontal line representing a network. The horizontal line represents a network, and the vertical line represents a network. The diagram consists of a horizontal line representing a network, a vertical line representing a network, and a horizontal line representing a network. The diagram consists of a...",
+    "structured_text": "GenerationResult(text=' The image is a screenshot of a table, specifically a table image, which includes a bar chart or a scatter plot. The table image is a horizontal bar chart or a scatter plot, and it contains a title at the top, which reads: \"The image is a table image.\" The table image contains a bar chart or a scatter plot, and it contains a title at the top, which reads: \"The image is a table image.\" The bar chart or a scatter plot contains a title at the top, which reads: \"The image is a...",
     "intuition_summary": "",
     "key_concepts": [],
     "confidence": 0.6,
-    "agent_notes": "figure_type=? | ",
+    "agent_notes": "figure_type=other | ",
     "cross_links": [],
     "validation": {
       "is_valid": true,
@@ -2487,7 +2487,7 @@
     }
   },
   {
-    "chunk_id": "b8c5979e-43bb-41d7-80f7-bd4383684879",
+    "chunk_id": "7068a0df-7508-4fec-a2a5-8615b77ed59e",
     "chunk_type": "figure",
     "page_num": 3,
     "source_file": "21_77.pdf",
@@ -2503,11 +2503,11 @@
     },
     "artifact_path": null,
     "source_preview": "image:252x256",
-    "structured_text": "GenerationResult(text=' The image is a 2D scatter plot. The plot consists of a horizontal line that runs horizontally across the image. The line is a solid black line. The background is a light grey surface with a slight texture.<end_of_utterance>', token=2, logprobs=array([-28.3281, -17.4844, 0, ..., -25.4062, -25.4062, -10], dtype=float16), prompt_tokens=1253, generation_tokens=46, total_tokens=1299, prompt_tps=3028.432036764518, generation_tps=519.6793240246485, peak_memory=8.490486938)",
+    "structured_text": "GenerationResult(text=' The image is a vertical grid of vertical bars. The bars are black and appear to be part of a larger grid or layout. The grid itself is not entirely visible. The bars are evenly spaced and appear to be part of a larger grid or layout. The bars are not uniform in length and are not evenly spaced. The bars are not uniform in height and are not evenly spaced. The bars are not uniform in width and are not evenly spaced. The bars are not uniformly in color and are not evenly sp...",
     "intuition_summary": "",
     "key_concepts": [],
     "confidence": 0.6,
-    "agent_notes": "figure_type=? | ",
+    "agent_notes": "figure_type=other | ",
     "cross_links": [],
     "validation": {
       "is_valid": true,
@@ -2519,7 +2519,7 @@
     }
   },
   {
-    "chunk_id": "5d32aafd-ecdc-4307-a354-9c814b81d9c6",
+    "chunk_id": "ff5a722d-4ce5-496d-b04e-b0bd6acffef9",
     "chunk_type": "figure",
     "page_num": 3,
     "source_file": "21_77.pdf",
@@ -2535,11 +2535,11 @@
     },
     "artifact_path": null,
     "source_preview": "image:365x274",
-    "structured_text": "GenerationResult(text=' The image is a dark view of a star chart. The chart contains a grid of stars in a horizontal orientation, with a star in the center of the grid. The star in the center is a bright white star, and there are faint lines radiating out from it. The star in the center appears to be a blue star, and there are faint lines radiating out from it. The grid is horizontal and does not intersect itself.<end_of_utterance>', token=2, logprobs=array([-28.5938, -17.6562, 0, ..., -25.8438,...",
+    "structured_text": "GenerationResult(text=' The image is a dark view of a star chart. The star chart is a grid with a grid of stars in the center. The stars are evenly spaced and appear to be evenly lit, so they are not illuminated by the lights in the image. The star chart itself is not a photograph or a 3D image but rather a grid of stars. The grid is evenly spaced and appears to be a standard star chart. The stars are evenly spaced and appear to be evenly lit. The grid itself is a standard star chart.<end_of_utt...",
     "intuition_summary": "",
     "key_concepts": [],
     "confidence": 0.6,
-    "agent_notes": "figure_type=? | ",
+    "agent_notes": "figure_type=other | ",
     "cross_links": [],
     "validation": {
       "is_valid": true,
@@ -2551,7 +2551,7 @@
     }
   },
   {
-    "chunk_id": "f69ce4b1-a5ac-4e5b-b116-c05820edbac1",
+    "chunk_id": "46eafea0-2d7c-4a2f-9f74-38c992733635",
     "chunk_type": "figure",
     "page_num": 3,
     "source_file": "21_77.pdf",
@@ -2567,11 +2567,11 @@
     },
     "artifact_path": null,
     "source_preview": "image:589x332",
-    "structured_text": "GenerationResult(text=' The image shows a dark, overcast landscape with a few houses and a few trees. The houses are lit up with lights, indicating that the night is likely to be dark. The houses are small and are arranged in a somewhat haphazard manner. The lighting in the houses is bright, with the lights illuminating the ground and the houses themselves. The houses are lit up with lights, indicating that the night is likely to be dark. The houses are also lit up with lights, indicating that t...",
+    "structured_text": "GenerationResult(text=' The image shows a nighttime scene with a dark, overcast landscape. The sky is overcast with a warm, hazy light, casting long shadows that frame the foreground. The shadows are elongated and cast a warm, warm light over the landscape. The horizon is indistinct, with a distant silhouette of buildings or structures. The lighting is warm and casts long shadows that frame the foreground. The lighting is warm and casts long shadows that frame the landscape. The landscape is dev...",
     "intuition_summary": "",
     "key_concepts": [],
     "confidence": 0.6,
-    "agent_notes": "figure_type=? | ",
+    "agent_notes": "figure_type=other | ",
     "cross_links": [],
     "validation": {
       "is_valid": true,
@@ -2583,7 +2583,7 @@
     }
   },
   {
-    "chunk_id": "96428b04-35f6-4d2d-9830-58f580674e9d",
+    "chunk_id": "fc00dfa4-0acf-428d-89fa-c7e4321e2a36",
     "chunk_type": "text",
     "page_num": 3,
     "source_file": "21_77.pdf",
@@ -2615,7 +2615,7 @@
     }
   },
   {
-    "chunk_id": "a813cf50-d363-4961-b271-bb940196a643",
+    "chunk_id": "790e5a34-9f2a-419d-9213-f1a147a569a9",
     "chunk_type": "text",
     "page_num": 3,
     "source_file": "21_77.pdf",
@@ -2647,7 +2647,7 @@
     }
   },
   {
-    "chunk_id": "96828c19-e5bd-4968-a220-d8603478fb4b",
+    "chunk_id": "577cb29e-30b8-4868-bb08-8a8d1437e18d",
     "chunk_type": "text",
     "page_num": 3,
     "source_file": "21_77.pdf",
@@ -2679,7 +2679,7 @@
     }
   },
   {
-    "chunk_id": "579b9344-cba0-4fd5-bc5f-df87561e1983",
+    "chunk_id": "0a56952f-69af-4e79-96a8-c97fcf56c903",
     "chunk_type": "text",
     "page_num": 3,
     "source_file": "21_77.pdf",
@@ -2711,7 +2711,7 @@
     }
   },
   {
-    "chunk_id": "b252d740-f2a3-43c4-8e88-c8ba5d20de84",
+    "chunk_id": "01786938-52c2-4e91-8ad2-d559cb62f38d",
     "chunk_type": "text",
     "page_num": 3,
     "source_file": "21_77.pdf",
@@ -2743,7 +2743,7 @@
     }
   },
   {
-    "chunk_id": "e07cedd0-434c-404e-bcf4-15a0bb9ca8af",
+    "chunk_id": "5135b292-18f1-458b-8762-43c2514d7c6f",
     "chunk_type": "text",
     "page_num": 3,
     "source_file": "21_77.pdf",
@@ -2775,7 +2775,7 @@
     }
   },
   {
-    "chunk_id": "a04c691d-5713-4a04-a8fc-dcc836d92594",
+    "chunk_id": "04dcd02e-1871-4758-9c27-8dc54bb0cb03",
     "chunk_type": "text",
     "page_num": 3,
     "source_file": "21_77.pdf",
@@ -2807,7 +2807,7 @@
     }
   },
   {
-    "chunk_id": "5778e141-22f5-46d7-93bf-52eaa30fbbbe",
+    "chunk_id": "a1092a28-0f37-475c-914e-27ffc8abb23e",
     "chunk_type": "text",
     "page_num": 3,
     "source_file": "21_77.pdf",
@@ -2839,7 +2839,7 @@
     }
   },
   {
-    "chunk_id": "4931162e-7b2f-4ece-9b1d-bb9ff5ecd144",
+    "chunk_id": "f85f2f57-224d-4528-bf31-41743e36d0a9",
     "chunk_type": "text",
     "page_num": 3,
     "source_file": "21_77.pdf",
@@ -2871,7 +2871,7 @@
     }
   },
   {
-    "chunk_id": "4b2ec82a-d280-4ff3-afe2-75d0a0f4db81",
+    "chunk_id": "9fad6b6d-ed92-4f13-b6a4-8a13a1bf9098",
     "chunk_type": "text",
     "page_num": 3,
     "source_file": "21_77.pdf",
@@ -2903,7 +2903,7 @@
     }
   },
   {
-    "chunk_id": "f8b0a3d1-3bbb-489f-af55-1b12d0f0ecff",
+    "chunk_id": "65fc1b4d-628b-4c4e-8abd-2deec048dd3c",
     "chunk_type": "text",
     "page_num": 3,
     "source_file": "21_77.pdf",
@@ -2935,7 +2935,7 @@
     }
   },
   {
-    "chunk_id": "a055939e-b580-49ab-a7e0-591809262a00",
+    "chunk_id": "2a4e9bae-66cc-415c-9d7d-93816299ecc1",
     "chunk_type": "text",
     "page_num": 3,
     "source_file": "21_77.pdf",
@@ -2967,7 +2967,7 @@
     }
   },
   {
-    "chunk_id": "aa47469e-e9bd-482b-87ca-9c4a0613e7f3",
+    "chunk_id": "93bf8b30-ebfb-4724-a5b7-20e0d3abf74a",
     "chunk_type": "text",
     "page_num": 3,
     "source_file": "21_77.pdf",
@@ -3003,7 +3003,7 @@
     }
   },
   {
-    "chunk_id": "d2fd0671-da57-4668-8bec-089d6422df45",
+    "chunk_id": "f2494fef-7c5f-4f4a-9138-d009a76580a2",
     "chunk_type": "text",
     "page_num": 3,
     "source_file": "21_77.pdf",
@@ -3035,7 +3035,7 @@
     }
   },
   {
-    "chunk_id": "2b24daa3-3532-4834-8de8-92cd2f2a17c7",
+    "chunk_id": "bbf13b7a-de3a-4e4b-99bc-575404197c47",
     "chunk_type": "text",
     "page_num": 3,
     "source_file": "21_77.pdf",
@@ -3067,7 +3067,7 @@
     }
   },
   {
-    "chunk_id": "163ffaad-4b3a-4b2d-b4f2-2c4c50383321",
+    "chunk_id": "f6a66c4c-ebeb-45b3-ad9e-a09d8a272822",
     "chunk_type": "text",
     "page_num": 3,
     "source_file": "21_77.pdf",
@@ -3099,7 +3099,7 @@
     }
   },
   {
-    "chunk_id": "18ad9ce2-b984-4037-bd2f-0be0f18a25c3",
+    "chunk_id": "d0f73928-f73a-42a4-8757-4d3befc8970f",
     "chunk_type": "text",
     "page_num": 3,
     "source_file": "21_77.pdf",
@@ -3135,7 +3135,7 @@
     }
   },
   {
-    "chunk_id": "7d8b019d-0e7d-4b28-9220-2cbc4bf79d52",
+    "chunk_id": "55b54503-0701-44a9-b265-62d6df4e59ea",
     "chunk_type": "text",
     "page_num": 3,
     "source_file": "21_77.pdf",
@@ -3167,7 +3167,7 @@
     }
   },
   {
-    "chunk_id": "17827bd6-5556-4611-8661-1ab95730e2f2",
+    "chunk_id": "d92549fc-34cc-410a-8567-439d03cac10c",
     "chunk_type": "text",
     "page_num": 3,
     "source_file": "21_77.pdf",
@@ -3199,7 +3199,7 @@
     }
   },
   {
-    "chunk_id": "bb01f8c6-bc31-4f72-86da-8bf49e95b271",
+    "chunk_id": "57dd8fd2-8774-4c41-b96b-d8ae74f3676b",
     "chunk_type": "text",
     "page_num": 3,
     "source_file": "21_77.pdf",
@@ -3231,7 +3231,7 @@
     }
   },
   {
-    "chunk_id": "25a6593f-72ce-4818-b726-8776e4ffbdc0",
+    "chunk_id": "d12038e5-0b90-40a7-af08-7b3f5c69e663",
     "chunk_type": "text",
     "page_num": 3,
     "source_file": "21_77.pdf",
@@ -3263,7 +3263,7 @@
     }
   },
   {
-    "chunk_id": "c8ec5177-35eb-477f-bdb2-3ab8287843e4",
+    "chunk_id": "aa74c18e-bef1-4add-bedd-3c3105e7a8c0",
     "chunk_type": "text",
     "page_num": 3,
     "source_file": "21_77.pdf",
@@ -3295,7 +3295,7 @@
     }
   },
   {
-    "chunk_id": "b2afe3f4-fe21-44d8-97c4-08f5c96b9f6e",
+    "chunk_id": "2920d03c-b48b-4c0e-9c18-544f0992325c",
     "chunk_type": "text",
     "page_num": 3,
     "source_file": "21_77.pdf",
@@ -3327,7 +3327,7 @@
     }
   },
   {
-    "chunk_id": "ff62918e-e5b7-4573-91f1-1a2297f36702",
+    "chunk_id": "67b5a46a-9ecb-4716-aa46-f26b1e8cafd0",
     "chunk_type": "figure",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -3343,11 +3343,11 @@
     },
     "artifact_path": null,
     "source_preview": "image:216x103",
-    "structured_text": "GenerationResult(text=' The text in the blue rectangular box reads: \"Difficult\".<end_of_utterance>', token=2, logprobs=array([-32.1875, -17.8594, 0, ..., -27.625, -27.625, -12.4219], dtype=float16), prompt_tokens=723, generation_tokens=15, total_tokens=738, prompt_tps=3138.0690756156373, generation_tps=509.9070692039064, peak_memory=8.490486938)",
+    "structured_text": "GenerationResult(text=' The image contains a rectangular label with the word \"Difficult\" written in a sans-serif font. The letter \"D\" is slightly larger than the rest of the word. The letter \"C\" is slightly larger than the rest of the word. The letter \"I\" is slightly larger than the rest of the word. The letter \"T\" is slightly larger than the rest of the word. The letter \"A\" is slightly larger than the rest of the word. The letter \"F\" is slightly larger than the rest of the word. The letter \"C\" ...",
     "intuition_summary": "",
     "key_concepts": [],
     "confidence": 0.6,
-    "agent_notes": "figure_type=? | ",
+    "agent_notes": "figure_type=other | ",
     "cross_links": [],
     "validation": {
       "is_valid": true,
@@ -3359,7 +3359,7 @@
     }
   },
   {
-    "chunk_id": "a4aa41e2-af47-46f1-80fa-fe1178db0e0a",
+    "chunk_id": "ca64a2df-4d14-4000-89ad-f961a7975cee",
     "chunk_type": "figure",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -3375,11 +3375,11 @@
     },
     "artifact_path": null,
     "source_preview": "image:198x104",
-    "structured_text": "GenerationResult(text=' The image contains a white rectangular label with black text. The text reads:\\n\"Critical\"\\n\\nThe image contains a white rectangular label with black text. The text reads:\\n\"Critical\"\\n\\nThe image contains a white rectangular label with black text. The text reads:\\n\"Critical\"\\n\\nThe image contains a white rectangular label with black text. The text reads:\\n\"Critical\"\\n\\nThe image contains a white rectangular label with black text. The text reads:\\n\"Critical\"\\n\\nThe image c...",
+    "structured_text": "GenerationResult(text=' The image contains a white rectangular box with black text. The text in the box reads: \"Critical\" and is centered in the box. The box contains a black-and-white rectangle with a white border. The text in the box reads: \"Critical\" and is centered in the box. The box contains a black-and-white rectangle with a white border. The text in the box reads: \"Critical\" and is centered in the box. The box contains a black-and-white rectangle with a white border. The text in the box ...",
     "intuition_summary": "",
     "key_concepts": [],
     "confidence": 0.6,
-    "agent_notes": "figure_type=? | ",
+    "agent_notes": "figure_type=other | ",
     "cross_links": [],
     "validation": {
       "is_valid": true,
@@ -3391,7 +3391,7 @@
     }
   },
   {
-    "chunk_id": "b7e6b09b-00ca-44a5-820b-5ff3c41973b0",
+    "chunk_id": "3baebd5a-eccb-4be4-b489-f13214265d72",
     "chunk_type": "figure",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -3407,11 +3407,11 @@
     },
     "artifact_path": null,
     "source_preview": "image:255x103",
-    "structured_text": "GenerationResult(text=' The image contains a rectangular black-and-white sign with a bold, white, rectangular label in the upper left corner. The sign reads:\\n\\n\"Favorable\"\\n\\nThe sign contains a bold, white, rectangular block in the upper left corner. The text in the block reads:\\n\\n\"Favorable\"\\n\\nThe sign contains a bold, white, rectangular block in the upper left corner. The text in the block reads:\\n\\n\"Favorable\"\\n\\nThe sign contains a bold, white, rectangular block in the upper left corner....",
+    "structured_text": "GenerationResult(text=' The image contains a rectangular black-and-white sign with the word \"Favorable\" written in a bold, sans-serif font. The sign has a white background and a black border. The text is centered and the letters are in a sans-serif font. The sign is slightly tilted and the lettering is slightly bold. The sign contains a sense of urgency or importance. The sign contains a question mark in the upper left corner. The sign contains a question mark in the upper right corner. The sign...",
     "intuition_summary": "",
     "key_concepts": [],
     "confidence": 0.6,
-    "agent_notes": "figure_type=? | ",
+    "agent_notes": "figure_type=other | ",
     "cross_links": [],
     "validation": {
       "is_valid": true,
@@ -3423,7 +3423,7 @@
     }
   },
   {
-    "chunk_id": "08be8052-b8a5-4ce1-b0e9-d77c1894a75b",
+    "chunk_id": "a1f73f71-1136-4ca6-b170-cdd6df7554c6",
     "chunk_type": "figure",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -3439,11 +3439,11 @@
     },
     "artifact_path": null,
     "source_preview": "image:255x103",
-    "structured_text": "GenerationResult(text=' The image contains a rectangular black-and-white sign with a bold, white, rectangular label in the upper left corner. The sign reads:\\n\\n\"Favorable\"\\n\\nThe sign contains a bold, white, rectangular block in the upper left corner. The text in the block reads:\\n\\n\"Favorable\"\\n\\nThe sign contains a bold, white, rectangular block in the upper left corner. The text in the block reads:\\n\\n\"Favorable\"\\n\\nThe sign contains a bold, white, rectangular block in the upper left corner....",
+    "structured_text": "GenerationResult(text=' The image contains a rectangular label with the word \"Favorable\" written in a bold, sans-serif font. The letter \"F\" is larger than the rest of the word. The letter \"A\" is slightly larger than the rest of the word. The word \"Favorable\" is written in a smaller, sans-serif font. The letter \"C\" is slightly larger than the rest of the word. The letter \"A\" is smaller than the rest of the word. The letter \"F\" is larger than the rest of the word. The letter \"A\" is also slightly l...",
     "intuition_summary": "",
     "key_concepts": [],
     "confidence": 0.6,
-    "agent_notes": "figure_type=? | ",
+    "agent_notes": "figure_type=other | ",
     "cross_links": [],
     "validation": {
       "is_valid": true,
@@ -3455,7 +3455,7 @@
     }
   },
   {
-    "chunk_id": "8252bd24-8c87-4e89-9952-a1fda3576110",
+    "chunk_id": "e9c9bb8a-c3f4-4995-ba4e-07d9b400e226",
     "chunk_type": "figure",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -3471,11 +3471,11 @@
     },
     "artifact_path": null,
     "source_preview": "image:198x103",
-    "structured_text": "GenerationResult(text=' The image contains a white rectangular label with black text. The text reads: \"Critical\" in a bold, sans-serif font. The lettering is centered and the letter itself is a rectangle. The letter itself is a rectangle with a black border. The letter is a rectangle with a black border. The letter is a rectangle with a black border. The letter is a rectangle with a black border. The letter is a rectangle with a black border. The letter is a rectangle with a black border. The le...",
+    "structured_text": "GenerationResult(text=' The image contains a rectangular label with the text \"Critical\" in a dark blue box in the upper left corner. The text \"Critical\" is in a sans-serif font, and the letter \"C\" is larger than the rest of the text. The rectangular label itself is a dark blue box with a white outline. The text \"Critical\" is in a sans-serif font, and the letter \"C\" is larger than the rest of the text. The rectangular label contains a dark blue box with a white outline. The text \"Critical\" is in ...",
     "intuition_summary": "",
     "key_concepts": [],
     "confidence": 0.6,
-    "agent_notes": "figure_type=? | ",
+    "agent_notes": "figure_type=other | ",
     "cross_links": [],
     "validation": {
       "is_valid": true,
@@ -3487,7 +3487,7 @@
     }
   },
   {
-    "chunk_id": "4068d6bd-d62c-4857-b649-054fa0c47285",
+    "chunk_id": "25c455cc-78a6-4496-8243-1413d45ae864",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -3519,7 +3519,7 @@
     }
   },
   {
-    "chunk_id": "235b7c43-631a-430d-b226-349d87e615c6",
+    "chunk_id": "9ad5d170-364e-46cd-8f5f-f08fce6f339a",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -3551,7 +3551,7 @@
     }
   },
   {
-    "chunk_id": "e211dfe8-c96d-444e-9461-26581e36c900",
+    "chunk_id": "237c173a-bab4-405e-a576-78c5037d0745",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -3583,7 +3583,7 @@
     }
   },
   {
-    "chunk_id": "bce77fc8-0483-4349-8d81-a96923964c0a",
+    "chunk_id": "2dcd7bd1-fcf3-4014-b249-d6cb1618575f",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -3615,7 +3615,7 @@
     }
   },
   {
-    "chunk_id": "f1b56ef4-9ae0-4982-beec-9875e2cc5060",
+    "chunk_id": "ace7b82b-717d-4ff1-a1b7-3e1146563148",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -3647,7 +3647,7 @@
     }
   },
   {
-    "chunk_id": "45a371c0-d357-4629-a893-471e38c60254",
+    "chunk_id": "34d931dc-39ae-428f-a819-6212f163207f",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -3679,7 +3679,7 @@
     }
   },
   {
-    "chunk_id": "b881dc9a-9455-41f0-9d62-f24214ef0475",
+    "chunk_id": "3455e083-3c73-49d1-8327-42bcb983c18e",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -3715,7 +3715,7 @@
     }
   },
   {
-    "chunk_id": "6c9124a3-46ff-47cd-96ca-f56a8f31a478",
+    "chunk_id": "495de1f7-55da-476e-906d-bb42689df326",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -3747,7 +3747,7 @@
     }
   },
   {
-    "chunk_id": "93d0a8ca-4d22-420f-8c17-3cdd9b92cdb2",
+    "chunk_id": "dfbb7ff8-dac1-459c-b350-fe4e401937eb",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -3783,7 +3783,7 @@
     }
   },
   {
-    "chunk_id": "9763cb0a-daee-47b2-abf1-c5bcbd374e9d",
+    "chunk_id": "a1118499-7745-4476-8f93-11024de3cba4",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -3815,7 +3815,7 @@
     }
   },
   {
-    "chunk_id": "98db5e79-c9ce-4a3d-bbcb-78e9860da9ae",
+    "chunk_id": "cbf42f89-13ab-467f-9836-c61370ba0d83",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -3847,7 +3847,7 @@
     }
   },
   {
-    "chunk_id": "928f3e80-18a8-4fb4-a188-b901c866ae27",
+    "chunk_id": "d3dbe4c3-92e1-4105-91c3-629253e5eacd",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -3879,7 +3879,7 @@
     }
   },
   {
-    "chunk_id": "d8a8f098-8bd3-4c0b-9155-741bc25296b7",
+    "chunk_id": "47238ef3-559a-4032-9ef8-031bd5a609d5",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -3911,7 +3911,7 @@
     }
   },
   {
-    "chunk_id": "860fed47-38d5-49e4-8b20-9e328da1c6cf",
+    "chunk_id": "fb4fb2c2-6f31-41a2-8490-518aad56f0aa",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -3943,7 +3943,7 @@
     }
   },
   {
-    "chunk_id": "9ddcaf6f-d2b5-441b-bc10-4ebf32edc46a",
+    "chunk_id": "ec259f01-1f50-4327-9804-c05635ecf2aa",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -3975,7 +3975,7 @@
     }
   },
   {
-    "chunk_id": "20d79221-8650-477d-9c8e-a254250ce688",
+    "chunk_id": "2c1c5b39-8473-4bfb-a1dd-eb49e70f58fb",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -4007,7 +4007,7 @@
     }
   },
   {
-    "chunk_id": "e310e67c-6abc-4d7f-ba06-0cb4cabd775a",
+    "chunk_id": "228691f9-6064-4e08-bf38-24bc3c82d313",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -4052,7 +4052,7 @@
     }
   },
   {
-    "chunk_id": "490d600f-e6f1-4d75-84cb-2527a46907fc",
+    "chunk_id": "cab107f5-73f4-4522-b960-778f73b4797f",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -4084,7 +4084,7 @@
     }
   },
   {
-    "chunk_id": "3ca57dc7-db9f-4cfe-87ec-591b15586044",
+    "chunk_id": "6ad07f34-69b3-4dfe-ac47-b686e46d1958",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -4116,7 +4116,7 @@
     }
   },
   {
-    "chunk_id": "5cf028fd-d28e-4e76-ab47-5288d410b5df",
+    "chunk_id": "a16fdef2-16ec-4883-81f6-897a0a8d34bb",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -4148,7 +4148,7 @@
     }
   },
   {
-    "chunk_id": "e51996e7-aa13-4619-b37e-0058455655b7",
+    "chunk_id": "6ad63870-a8f9-4508-a003-3baa0af700fe",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -4180,7 +4180,7 @@
     }
   },
   {
-    "chunk_id": "d9fe439e-b348-48a9-ab73-8e127502f56e",
+    "chunk_id": "271aec8f-f246-40b3-93f0-0083e6007128",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -4212,7 +4212,7 @@
     }
   },
   {
-    "chunk_id": "d369eed0-d9e1-4c7c-9626-f6cd359521dc",
+    "chunk_id": "8384f0a2-3dd5-4e41-8856-bb96566031f4",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -4244,7 +4244,7 @@
     }
   },
   {
-    "chunk_id": "b8088c0b-850f-4057-889c-39abc4ea6e31",
+    "chunk_id": "d09e1ddc-7c0f-476d-924c-d4eb5e3ae228",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -4276,7 +4276,7 @@
     }
   },
   {
-    "chunk_id": "c5495667-4a4e-4490-840e-f92c618a300e",
+    "chunk_id": "9b4538f2-ecac-4a3a-a2cf-d14f2398edea",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -4312,7 +4312,7 @@
     }
   },
   {
-    "chunk_id": "89f577c3-3382-46f1-80f3-6b0e183ce8c5",
+    "chunk_id": "78f173f5-1e07-4ff8-a765-787e77417010",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -4344,7 +4344,7 @@
     }
   },
   {
-    "chunk_id": "958b91a3-63f6-4440-9d42-a8912299df8b",
+    "chunk_id": "405601cc-cf57-44dc-a935-5d9ee6257a41",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -4376,7 +4376,7 @@
     }
   },
   {
-    "chunk_id": "2dc437ea-1dd6-4820-aa06-7a953c1251ad",
+    "chunk_id": "9808585f-cdd1-4ad0-ab3c-93187984b586",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -4408,7 +4408,7 @@
     }
   },
   {
-    "chunk_id": "19566540-0e02-40ac-9688-e47556c0ef26",
+    "chunk_id": "90a656d5-8bae-4793-8792-f51bdfeade32",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -4440,7 +4440,7 @@
     }
   },
   {
-    "chunk_id": "ac47059d-5903-48e2-a213-e4dc46b47bc6",
+    "chunk_id": "9143730c-0b71-4cc6-8d36-f198046ef6ae",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -4472,7 +4472,7 @@
     }
   },
   {
-    "chunk_id": "05125e5e-2a6f-4d1c-bce2-79197b8ad0ff",
+    "chunk_id": "57ae6a88-fdf6-410a-9906-b239cab5e0d6",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -4504,7 +4504,7 @@
     }
   },
   {
-    "chunk_id": "f4bcf7e4-683c-43e9-b970-a57d3f18c681",
+    "chunk_id": "aa70fc41-e74b-414c-bed7-a363e05338a2",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -4536,7 +4536,7 @@
     }
   },
   {
-    "chunk_id": "6fd968a5-0589-489d-9c61-3af2501a39e6",
+    "chunk_id": "1404a2b1-7c82-4922-811d-6f3693645ed3",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -4568,7 +4568,7 @@
     }
   },
   {
-    "chunk_id": "9b12ccbc-a9a1-46d1-94b3-7a6691f6c5f1",
+    "chunk_id": "586e80a0-543c-48c8-adae-c6f4b7740a30",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -4600,7 +4600,7 @@
     }
   },
   {
-    "chunk_id": "747140d3-eeb0-4f25-8087-150dd50f11e2",
+    "chunk_id": "854689cb-de63-4e7c-ba87-19182d58e840",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -4632,7 +4632,7 @@
     }
   },
   {
-    "chunk_id": "161d3c17-4ff1-4c1b-851b-88ea9f324f80",
+    "chunk_id": "f3b75190-8d09-4c97-9fc6-8ef8adccdb19",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -4664,7 +4664,7 @@
     }
   },
   {
-    "chunk_id": "977c7781-7c39-44ef-93c7-0da73e7edf03",
+    "chunk_id": "a855a182-22f1-4f2b-84e6-0fe968a2e4e8",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -4696,7 +4696,7 @@
     }
   },
   {
-    "chunk_id": "eab5dc34-cd55-4add-8b19-8413687fb9d2",
+    "chunk_id": "f0745bda-6acd-4691-a61e-16157a1926f8",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -4728,7 +4728,7 @@
     }
   },
   {
-    "chunk_id": "ef06fb54-d6fe-4c22-ac5b-8c2558e66a23",
+    "chunk_id": "5d80a81e-00f7-44c5-8feb-09909d0d3317",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -4760,7 +4760,7 @@
     }
   },
   {
-    "chunk_id": "41975164-536c-4ca3-9912-a48ae83de29f",
+    "chunk_id": "ce4f6ac5-d909-4610-848f-fc4cac04b105",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -4792,7 +4792,7 @@
     }
   },
   {
-    "chunk_id": "1eaa2aff-7397-4ed8-a93f-579cda1bc136",
+    "chunk_id": "7b780f03-92b3-4056-af8b-50c8cef24b4a",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -4824,7 +4824,7 @@
     }
   },
   {
-    "chunk_id": "21c4b374-fb1f-4715-a309-4d5c824c55f8",
+    "chunk_id": "c319c945-d809-42a9-85f4-8e3605b425bd",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -4859,7 +4859,7 @@
     }
   },
   {
-    "chunk_id": "30656d93-329b-463e-8c60-83da2631284a",
+    "chunk_id": "6dc45141-893f-40e6-bd96-0228f11e4e1f",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -4891,7 +4891,7 @@
     }
   },
   {
-    "chunk_id": "a15bbd0b-79ca-4fa5-9073-764d56462ff1",
+    "chunk_id": "6e28edbb-8d84-47c4-9aa6-05a466c82e22",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -4926,7 +4926,7 @@
     }
   },
   {
-    "chunk_id": "0ae81651-e956-439f-b7df-96619ce4e460",
+    "chunk_id": "c464f03f-7d99-4a07-872b-f56b8fc2e532",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -4958,7 +4958,7 @@
     }
   },
   {
-    "chunk_id": "9a148130-0155-4e47-87e8-416de42632a2",
+    "chunk_id": "244f2755-59be-4ebf-b080-fb098205a822",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -4990,7 +4990,7 @@
     }
   },
   {
-    "chunk_id": "c67c781b-4f6b-4053-9b5d-c91934eb8690",
+    "chunk_id": "fcf24797-7455-4f72-bbc6-208509da29b2",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -5022,7 +5022,7 @@
     }
   },
   {
-    "chunk_id": "c7b49392-f5a8-4476-b129-6035b312342f",
+    "chunk_id": "696b361f-ba79-4df5-8a64-1832bc08b9d4",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -5054,7 +5054,7 @@
     }
   },
   {
-    "chunk_id": "1ee22997-3692-4291-9131-656e9731f64c",
+    "chunk_id": "3b9788b5-08c5-40ac-83d6-89ed33a2a64c",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -5086,7 +5086,7 @@
     }
   },
   {
-    "chunk_id": "6d2b8433-89d8-43cb-b098-5331dab6e75d",
+    "chunk_id": "ce076c5e-bdf5-412f-b5b6-4c5f2d75b6a6",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -5118,7 +5118,7 @@
     }
   },
   {
-    "chunk_id": "773465bc-d4c2-40b2-a73f-dbb7e97bcd32",
+    "chunk_id": "d2300afb-2756-45ae-af9c-3eef05aae5d5",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -5150,7 +5150,7 @@
     }
   },
   {
-    "chunk_id": "0181256e-2f06-4fe6-ab27-219df9e06f32",
+    "chunk_id": "f46275ea-37d8-49c1-8606-96c35f51d089",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -5182,7 +5182,7 @@
     }
   },
   {
-    "chunk_id": "d4a03663-e81b-464f-ac2f-3a3de9fd9268",
+    "chunk_id": "0231181f-703f-4d0c-8e0c-3b4123f2a496",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -5214,7 +5214,7 @@
     }
   },
   {
-    "chunk_id": "0c365db8-b89a-463a-afe5-24f38c7a4e70",
+    "chunk_id": "ce90eb7c-d164-4fe4-a78e-f092d2a31ab6",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -5250,7 +5250,7 @@
     }
   },
   {
-    "chunk_id": "f8d4812f-08b5-43b5-bd50-7bf903ba871a",
+    "chunk_id": "eb185984-6ba0-4319-b10d-281f07942c7a",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -5282,7 +5282,7 @@
     }
   },
   {
-    "chunk_id": "afd8fdba-a07b-4f47-b29c-f0188b8f9ae9",
+    "chunk_id": "36414dc9-2b65-4460-8f73-ca1138d5b46c",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -5314,7 +5314,7 @@
     }
   },
   {
-    "chunk_id": "4e6e2d59-f20f-4640-89c0-700dd117926a",
+    "chunk_id": "13cc42d1-bea3-48b6-8af9-aa1cff69809c",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -5346,7 +5346,7 @@
     }
   },
   {
-    "chunk_id": "59535d6f-996f-4f41-bbfe-260680050cbc",
+    "chunk_id": "d73be138-6d59-450a-8512-ae81fc903d00",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -5380,7 +5380,7 @@
     }
   },
   {
-    "chunk_id": "5f24c052-f921-498e-84de-f16437e8f107",
+    "chunk_id": "1fabc073-78e5-4542-bd3b-f17f2749f21d",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -5416,7 +5416,7 @@
     }
   },
   {
-    "chunk_id": "60cdbb38-0446-4509-b32d-c8e5a479a8c6",
+    "chunk_id": "467a68b8-c99b-4872-8292-4aec7c0ed278",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -5448,7 +5448,7 @@
     }
   },
   {
-    "chunk_id": "bc962630-51e6-4357-bbab-5c21c8e545c2",
+    "chunk_id": "8b461e2c-c878-4157-8744-9ed1b6a12e32",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -5480,7 +5480,7 @@
     }
   },
   {
-    "chunk_id": "d19a381a-c16f-4c9a-a601-e47fa0ae57d9",
+    "chunk_id": "42f6057a-4620-43f5-846b-c97065b13eee",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -5512,7 +5512,7 @@
     }
   },
   {
-    "chunk_id": "a4528dd2-3696-4597-9f04-898a37368fd9",
+    "chunk_id": "e0e51a28-a011-41a1-b6f9-ce6ca637e454",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -5544,7 +5544,7 @@
     }
   },
   {
-    "chunk_id": "84bd4bf2-147a-480c-995e-f8dcc5d2db39",
+    "chunk_id": "3679cb2a-db0d-4bb0-a3a0-44a836216c79",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -5576,7 +5576,7 @@
     }
   },
   {
-    "chunk_id": "be72f4cc-9c5f-43ae-97db-5bb5a3742ad8",
+    "chunk_id": "6e4800ac-33c3-4a08-9e54-363be2cb09e4",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -5608,7 +5608,7 @@
     }
   },
   {
-    "chunk_id": "744cca4e-aeb8-4ddb-903c-25307b6b7c82",
+    "chunk_id": "417b7d62-747b-47f5-9c89-3bdbf7be71af",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -5640,7 +5640,7 @@
     }
   },
   {
-    "chunk_id": "7ae8905d-cf4b-4c51-9c97-c44a02dfcdf6",
+    "chunk_id": "d3187b89-84ba-4c98-a111-e4b45a9bd558",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -5672,7 +5672,7 @@
     }
   },
   {
-    "chunk_id": "d7c859bc-6307-4f4d-9a2d-284a57bc969a",
+    "chunk_id": "3a37bae5-f019-415b-b62e-9107b762b106",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -5704,7 +5704,7 @@
     }
   },
   {
-    "chunk_id": "eca4d07a-4b6f-4852-a0cb-41ba902574bb",
+    "chunk_id": "1c6153ca-0a8b-4a7d-b052-0438e5938529",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -5740,7 +5740,7 @@
     }
   },
   {
-    "chunk_id": "27a34068-dc5e-4e37-80aa-7eda6c1e5996",
+    "chunk_id": "4d64a1e3-8031-46c8-96ea-31c7ed59a240",
     "chunk_type": "text",
     "page_num": 4,
     "source_file": "21_77.pdf",
@@ -5772,7 +5772,7 @@
     }
   },
   {
-    "chunk_id": "bd115817-a57f-4346-8eeb-f82f03362a11",
+    "chunk_id": "b6a55b08-30c4-487c-8a24-fcba1d95b61c",
     "chunk_type": "figure",
     "page_num": 5,
     "source_file": "21_77.pdf",
@@ -5788,11 +5788,11 @@
     },
     "artifact_path": null,
     "source_preview": "image:659x942",
-    "structured_text": "GenerationResult(text=' The image is a black and white photograph of a river flowing through a forest. The river is wide and shallow, and the water is clear and shallow. The water is flowing towards the viewer, and the reflection of the sky and the trees in the river is visible. The trees are tall and green, and the forest is dense. The sky is overcast with clouds, and the trees are silhouetted against the sky. The river is flowing towards the viewer, and the reflection of the sky and the trees ...",
+    "structured_text": "GenerationResult(text=\" The image contains a black and white photograph of a river flowing through a forest. The photograph includes a man standing at the far bank, looking down at the water below. He is wearing a hat and has his back to the camera. The water appears to be flowing swiftly, with the water level slightly above the bank. The sky is overcast and the sun is shining brightly, casting shadows and creating a sense of motion. The photograph is framed and slightly tilted, with the man's f...",
     "intuition_summary": "",
     "key_concepts": [],
     "confidence": 0.6,
-    "agent_notes": "figure_type=? | ",
+    "agent_notes": "figure_type=other | ",
     "cross_links": [],
     "validation": {
       "is_valid": true,
@@ -5804,7 +5804,7 @@
     }
   },
   {
-    "chunk_id": "72ad156d-3883-40fb-b209-391b9ee7f3e1",
+    "chunk_id": "f155fadb-7929-4d7f-94c3-bfa9422dc865",
     "chunk_type": "text",
     "page_num": 5,
     "source_file": "21_77.pdf",
@@ -5841,7 +5841,7 @@
     }
   },
   {
-    "chunk_id": "7e533f62-d08a-4153-ad2c-3976450c3ed9",
+    "chunk_id": "20aa3d12-96d5-4ddb-b6e7-cc34ef1635cf",
     "chunk_type": "text",
     "page_num": 5,
     "source_file": "21_77.pdf",
@@ -5878,7 +5878,7 @@
     }
   },
   {
-    "chunk_id": "681515b3-5432-4977-bd7a-4575ff57e5e6",
+    "chunk_id": "5d3e8e6b-bf91-4aa0-a4b6-cfd05343fae8",
     "chunk_type": "text",
     "page_num": 5,
     "source_file": "21_77.pdf",
@@ -5910,7 +5910,7 @@
     }
   },
   {
-    "chunk_id": "9ba66976-0d62-4abc-bcd6-93933e24fd69",
+    "chunk_id": "4f89b2ef-a499-4289-b8ae-e626ba321a3f",
     "chunk_type": "text",
     "page_num": 5,
     "source_file": "21_77.pdf",
@@ -5942,7 +5942,7 @@
     }
   },
   {
-    "chunk_id": "d0140deb-1693-46e1-996d-1917004e1229",
+    "chunk_id": "72a696a4-6652-4d8e-a9a3-04bd48179b8f",
     "chunk_type": "text",
     "page_num": 5,
     "source_file": "21_77.pdf",
@@ -5974,7 +5974,7 @@
     }
   },
   {
-    "chunk_id": "5feb12c5-e386-419d-8d1b-d2a594ee8552",
+    "chunk_id": "5bc78a4b-0a03-45e4-9a41-3548129d2664",
     "chunk_type": "text",
     "page_num": 5,
     "source_file": "21_77.pdf",
@@ -6006,7 +6006,7 @@
     }
   },
   {
-    "chunk_id": "96c06524-cf6f-40df-bd52-f1e3a77119fc",
+    "chunk_id": "b82e1cfd-c913-46d1-b2a3-6d7dedf4590c",
     "chunk_type": "text",
     "page_num": 5,
     "source_file": "21_77.pdf",
@@ -6042,7 +6042,7 @@
     }
   },
   {
-    "chunk_id": "566dac2f-1858-411b-b208-3ba61ff9dfb8",
+    "chunk_id": "d0e9621d-4c38-4d90-bb50-310d5a29e5bb",
     "chunk_type": "text",
     "page_num": 5,
     "source_file": "21_77.pdf",
@@ -6074,7 +6074,7 @@
     }
   },
   {
-    "chunk_id": "256ca126-84d7-4a10-b39d-edd14fffebd3",
+    "chunk_id": "08255e87-5185-4120-a07c-f0b6e8239c85",
     "chunk_type": "text",
     "page_num": 5,
     "source_file": "21_77.pdf",
@@ -6106,7 +6106,7 @@
     }
   },
   {
-    "chunk_id": "0bb6afad-e454-4706-a868-6e1f5ada6873",
+    "chunk_id": "de152137-85c6-4e66-a9a1-a4741660d23a",
     "chunk_type": "text",
     "page_num": 5,
     "source_file": "21_77.pdf",
@@ -6141,7 +6141,7 @@
     }
   },
   {
-    "chunk_id": "39bd3d0f-99b6-4ad7-a10a-650af12699b9",
+    "chunk_id": "71c09084-126b-4c12-811f-ad118ee68210",
     "chunk_type": "text",
     "page_num": 5,
     "source_file": "21_77.pdf",
@@ -6173,7 +6173,7 @@
     }
   },
   {
-    "chunk_id": "a7f4c783-ca3e-414e-9007-0549e8bfb9c5",
+    "chunk_id": "7a48b6b0-9595-4f7d-9f38-3537ce227d61",
     "chunk_type": "text",
     "page_num": 5,
     "source_file": "21_77.pdf",
@@ -6205,7 +6205,7 @@
     }
   },
   {
-    "chunk_id": "239c2d35-a199-4032-9466-8e3c0208f22d",
+    "chunk_id": "e350fa81-de3e-4eb0-afa9-17a0e46baa56",
     "chunk_type": "text",
     "page_num": 5,
     "source_file": "21_77.pdf",
@@ -6237,7 +6237,7 @@
     }
   },
   {
-    "chunk_id": "8fe4b8f7-55b4-4d5f-bc4e-50f33ccb4490",
+    "chunk_id": "aebe69f9-a697-43b0-8841-f2b932b2b859",
     "chunk_type": "text",
     "page_num": 5,
     "source_file": "21_77.pdf",
@@ -6269,7 +6269,7 @@
     }
   },
   {
-    "chunk_id": "44cdc623-74bf-45f4-ab64-e27404ba541e",
+    "chunk_id": "3369b213-266b-48f0-b64c-6a20f95eb004",
     "chunk_type": "text",
     "page_num": 5,
     "source_file": "21_77.pdf",
@@ -6301,7 +6301,7 @@
     }
   },
   {
-    "chunk_id": "10c44fd7-df74-481c-a0d7-4fda14cc6a43",
+    "chunk_id": "00f25666-2355-460b-a0f8-4425c6b2dfb6",
     "chunk_type": "text",
     "page_num": 5,
     "source_file": "21_77.pdf",
@@ -6335,7 +6335,7 @@
     }
   },
   {
-    "chunk_id": "9dcd4b4b-84d8-4626-a785-d5f3f427e15e",
+    "chunk_id": "d6c6ae34-0d70-487b-a822-9c6116350ad6",
     "chunk_type": "text",
     "page_num": 5,
     "source_file": "21_77.pdf",
@@ -6367,7 +6367,7 @@
     }
   },
   {
-    "chunk_id": "ccb4cc55-bca6-435f-b8c5-5936fb7f4d47",
+    "chunk_id": "d43bca5a-66c7-479f-9a84-c16e72569c48",
     "chunk_type": "text",
     "page_num": 5,
     "source_file": "21_77.pdf",
@@ -6399,7 +6399,7 @@
     }
   },
   {
-    "chunk_id": "a03504ff-ad80-4fa3-9da1-a963874be0fb",
+    "chunk_id": "ba09c0cf-9a1c-4a7c-bfa1-bd2348cc8b34",
     "chunk_type": "text",
     "page_num": 5,
     "source_file": "21_77.pdf",
@@ -6431,7 +6431,7 @@
     }
   },
   {
-    "chunk_id": "bf35f7dc-3914-4f3e-a328-62de63abac62",
+    "chunk_id": "45bc6b43-7e21-4b79-81b8-18ee3b6ad423",
     "chunk_type": "text",
     "page_num": 5,
     "source_file": "21_77.pdf",
@@ -6463,7 +6463,7 @@
     }
   },
   {
-    "chunk_id": "0fc3a129-22e3-449d-9c6a-f9cfdce3c981",
+    "chunk_id": "a4d32fc8-25f1-4890-b7c8-5adeb99539f3",
     "chunk_type": "text",
     "page_num": 5,
     "source_file": "21_77.pdf",
@@ -6495,7 +6495,7 @@
     }
   },
   {
-    "chunk_id": "048b4318-5a1c-402b-be77-bb6f16842a48",
+    "chunk_id": "d5c7ff2b-c9ff-4081-8ad2-c6fade0058b4",
     "chunk_type": "text",
     "page_num": 5,
     "source_file": "21_77.pdf",
@@ -6527,7 +6527,7 @@
     }
   },
   {
-    "chunk_id": "5e396bb0-51ef-4c1f-ac24-bde770a01c41",
+    "chunk_id": "df7c040e-41cc-40d4-af22-de0d8d6da332",
     "chunk_type": "text",
     "page_num": 5,
     "source_file": "21_77.pdf",
@@ -6559,7 +6559,7 @@
     }
   },
   {
-    "chunk_id": "042cfc33-1a3c-4c59-a365-2c4dac7e47ca",
+    "chunk_id": "4649c0c0-2895-42c8-8484-16f617639cf4",
     "chunk_type": "text",
     "page_num": 5,
     "source_file": "21_77.pdf",
@@ -6591,7 +6591,7 @@
     }
   },
   {
-    "chunk_id": "018a7cae-3972-4f98-afc2-92ba2f8db7d2",
+    "chunk_id": "963097f6-093a-438d-bbcc-af6d08786e88",
     "chunk_type": "text",
     "page_num": 5,
     "source_file": "21_77.pdf",
@@ -6623,7 +6623,7 @@
     }
   },
   {
-    "chunk_id": "40b5074f-548d-408a-a23f-7314b1c0f398",
+    "chunk_id": "d1923ea0-3347-4682-90be-82abaeef99ef",
     "chunk_type": "text",
     "page_num": 5,
     "source_file": "21_77.pdf",
@@ -6655,7 +6655,7 @@
     }
   },
   {
-    "chunk_id": "cbd13f3e-d12a-45a6-b95b-96d0393dd897",
+    "chunk_id": "45339463-7515-4d63-8467-327d52b25f4e",
     "chunk_type": "text",
     "page_num": 5,
     "source_file": "21_77.pdf",
@@ -6687,7 +6687,7 @@
     }
   },
   {
-    "chunk_id": "57880456-6734-4275-b9b0-bfd4bec38f03",
+    "chunk_id": "db55e4c5-1c13-495e-9d00-392e42151640",
     "chunk_type": "text",
     "page_num": 5,
     "source_file": "21_77.pdf",
@@ -6724,7 +6724,7 @@
     }
   },
   {
-    "chunk_id": "ee895f30-48ae-4269-862d-e7cd2018be6b",
+    "chunk_id": "187e6bd3-e8ac-46f8-a4a9-97be0b7abc3c",
     "chunk_type": "text",
     "page_num": 5,
     "source_file": "21_77.pdf",
@@ -6756,7 +6756,7 @@
     }
   },
   {
-    "chunk_id": "e029248d-e3ea-4d84-9ba6-dd236f8d86d1",
+    "chunk_id": "e97bcc17-64a0-489f-a64f-ec1051faf68b",
     "chunk_type": "text",
     "page_num": 5,
     "source_file": "21_77.pdf",
@@ -6788,7 +6788,7 @@
     }
   },
   {
-    "chunk_id": "8a49d1ca-0e34-4e6d-9bc9-cbadaac42997",
+    "chunk_id": "7a27c9ea-cd9d-43dc-a65c-e9332ed49632",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
@@ -6820,7 +6820,7 @@
     }
   },
   {
-    "chunk_id": "94a18afb-6613-46ae-b7f8-0fbdc3d1e4b9",
+    "chunk_id": "340dd214-70fd-48ba-b491-fa329221514c",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
@@ -6852,7 +6852,7 @@
     }
   },
   {
-    "chunk_id": "8aeb0bb6-6e37-42ad-b6df-2e4b530f25ed",
+    "chunk_id": "57140fa8-9e75-4fd3-be23-352616b9f645",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
@@ -6884,7 +6884,7 @@
     }
   },
   {
-    "chunk_id": "71ad713f-c6b7-46c2-aaf2-686641d387ed",
+    "chunk_id": "3ccd3bbe-9402-4782-a6cd-3e14cb1a36f2",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
@@ -6916,7 +6916,7 @@
     }
   },
   {
-    "chunk_id": "b8c690fe-980d-4bb5-9b8f-a45ca3fe9619",
+    "chunk_id": "8318d80b-a3a5-4a88-a1dd-1aac023a8853",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
@@ -6953,7 +6953,7 @@
     }
   },
   {
-    "chunk_id": "a1a673db-8c65-40c4-97a1-235f7f66beda",
+    "chunk_id": "741fdbe8-d2e7-4a9e-bb6d-d078fcdae885",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
@@ -6985,7 +6985,7 @@
     }
   },
   {
-    "chunk_id": "9b78131c-bce3-4ce2-b8fb-9466061e7cd8",
+    "chunk_id": "e8455441-d0e2-4c85-b743-60432a35c9c8",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
@@ -7017,7 +7017,7 @@
     }
   },
   {
-    "chunk_id": "54cc681b-9ae0-4439-ac24-6a6b7c8b09de",
+    "chunk_id": "865a366d-4da4-46e7-b6e0-a654c937c21d",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
@@ -7054,7 +7054,7 @@
     }
   },
   {
-    "chunk_id": "31f5d8cb-ec5b-413b-9446-c36d5d98eefb",
+    "chunk_id": "51afb06b-fbc0-45b4-86f5-849fefd68c3a",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
@@ -7086,7 +7086,7 @@
     }
   },
   {
-    "chunk_id": "1dc758bc-1493-4341-b31c-e20db7a08db3",
+    "chunk_id": "0d6ec220-d2a4-4c56-993c-98a1eecf22b6",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
@@ -7118,7 +7118,7 @@
     }
   },
   {
-    "chunk_id": "8831f765-b2d9-4b8b-a807-24022ddd4ce5",
+    "chunk_id": "34e38590-4b69-44b0-be57-28785b8a8d32",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
@@ -7150,7 +7150,7 @@
     }
   },
   {
-    "chunk_id": "97104d10-3c7e-45cc-b3c1-2c29a8ee0d43",
+    "chunk_id": "ffa4dcc3-c875-4428-a3ff-a9c14a6ff3d1",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
@@ -7182,7 +7182,7 @@
     }
   },
   {
-    "chunk_id": "a6827909-7bfe-45d5-a444-512d6c326e78",
+    "chunk_id": "34f942ef-bc85-4758-8a9d-8d38570d7f6c",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
@@ -7218,7 +7218,7 @@
     }
   },
   {
-    "chunk_id": "b45d1a56-7652-4a9b-a2ad-b70fe08ff3c3",
+    "chunk_id": "5e8e667e-0c74-46f4-adfc-8d04ab337564",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
@@ -7250,7 +7250,7 @@
     }
   },
   {
-    "chunk_id": "7d006737-e4c6-4ece-ba66-2825f5562367",
+    "chunk_id": "8f59fbcc-9f15-4fd1-a5f2-28b426cef6b9",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
@@ -7287,7 +7287,7 @@
     }
   },
   {
-    "chunk_id": "6a77b6e4-50bd-4193-8697-0f3a07b29e9b",
+    "chunk_id": "54b8b236-d835-4006-a1da-29773dfa1b7d",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
@@ -7319,7 +7319,7 @@
     }
   },
   {
-    "chunk_id": "d2610daf-d7d3-4690-82c0-1484b39ff684",
+    "chunk_id": "4e3fec89-0317-4b75-9c08-95587cb85b65",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
@@ -7351,7 +7351,7 @@
     }
   },
   {
-    "chunk_id": "ac906601-4980-4cde-b424-d43a9859b9f3",
+    "chunk_id": "dcd3f0c6-b57b-4135-8831-5c82a8e6dc85",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
@@ -7383,7 +7383,7 @@
     }
   },
   {
-    "chunk_id": "785cc0d2-b2bf-4d8d-b9fe-e45199afcc4a",
+    "chunk_id": "48249c94-6b1f-4478-82df-e017b94cf5b1",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
@@ -7415,7 +7415,7 @@
     }
   },
   {
-    "chunk_id": "f28b8808-18d5-4c59-833f-088e79798ade",
+    "chunk_id": "061bb29e-ccf1-4b6a-b69d-ada24c785cf5",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
@@ -7447,7 +7447,7 @@
     }
   },
   {
-    "chunk_id": "2885b0e4-4b45-4737-a9e4-21f80ad00a98",
+    "chunk_id": "51226b18-7220-4be6-8732-3eb72a14bc5f",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
@@ -7479,7 +7479,7 @@
     }
   },
   {
-    "chunk_id": "c4755c86-2ace-4f9b-b558-0f1560c33a62",
+    "chunk_id": "4e21cde3-262b-4f5b-a091-aaf727a8bfc3",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
@@ -7515,7 +7515,7 @@
     }
   },
   {
-    "chunk_id": "88b346d1-444d-41ce-af4c-e1b9b307901b",
+    "chunk_id": "22ef9f1a-2ba1-4952-8fca-32072d79dbc2",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
@@ -7547,7 +7547,7 @@
     }
   },
   {
-    "chunk_id": "a6e66dd8-464d-48de-9e9c-708a205f779d",
+    "chunk_id": "5e95045c-6dfe-444d-9070-dccf719d7bb1",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
@@ -7579,7 +7579,7 @@
     }
   },
   {
-    "chunk_id": "385f5f14-d0aa-40f1-9567-b669ef44758b",
+    "chunk_id": "cb5a235d-d364-4f57-a9a5-3383e02abddb",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
@@ -7614,7 +7614,7 @@
     }
   },
   {
-    "chunk_id": "ee2fd67e-b377-4f40-82a8-6bbf9a5fcbd1",
+    "chunk_id": "7c75e09a-3dd2-40e9-b013-51f591d4113e",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
@@ -7646,7 +7646,7 @@
     }
   },
   {
-    "chunk_id": "3fb7901d-8285-4012-aa5d-205f633ce0b3",
+    "chunk_id": "40d7b63c-896a-43e3-baba-1199d85657c1",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
@@ -7678,7 +7678,7 @@
     }
   },
   {
-    "chunk_id": "7522fd3f-1f95-4305-80b9-659fc4c2f91b",
+    "chunk_id": "3ded38b7-e766-4c84-84c3-ff24e7278675",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
@@ -7710,7 +7710,7 @@
     }
   },
   {
-    "chunk_id": "de8c2c5a-95ab-4c9a-89f1-0deb2c99ad13",
+    "chunk_id": "c3f93839-4237-4ded-8545-c1d8ce4f37cb",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
@@ -7742,7 +7742,7 @@
     }
   },
   {
-    "chunk_id": "ab9b2bb1-6089-4028-8841-52118c80cf90",
+    "chunk_id": "1e0d6102-80db-4f5e-ab0b-395f15d84e0d",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
@@ -7786,7 +7786,7 @@
     }
   },
   {
-    "chunk_id": "81aa7266-2f31-4b57-8aee-f9ff7ba6934c",
+    "chunk_id": "e431d253-75a6-4f3a-94b9-3f0d44b32f9a",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
@@ -7821,7 +7821,7 @@
     }
   },
   {
-    "chunk_id": "70bebd09-86da-4874-bca7-fe4041ac4e29",
+    "chunk_id": "b1ba6df5-4d6f-448b-aec7-d37acf91d375",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
@@ -7859,7 +7859,7 @@
     }
   },
   {
-    "chunk_id": "28a1b143-305a-40f3-9bf8-b34032421fdc",
+    "chunk_id": "95a4dc40-275b-4ccb-b020-f9e9cd7c6f95",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
@@ -7891,7 +7891,7 @@
     }
   },
   {
-    "chunk_id": "d832aad2-c491-46ef-914b-a5c4a4bb8a85",
+    "chunk_id": "a85e1fcc-e0ea-4ae9-b115-49a1495acad3",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
@@ -7923,7 +7923,7 @@
     }
   },
   {
-    "chunk_id": "da207bc2-c973-44ff-86c5-757efd29008f",
+    "chunk_id": "1a72bec0-6299-4dfb-9c65-d3de55e1b6b4",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
@@ -7955,7 +7955,7 @@
     }
   },
   {
-    "chunk_id": "6bec472b-c5fa-4524-9520-b4c605a44ac5",
+    "chunk_id": "54f61754-3d54-4bd7-9032-a200002d14c8",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
@@ -7990,7 +7990,7 @@
     }
   },
   {
-    "chunk_id": "a224d309-f74d-4159-8784-e1d907a0d5b1",
+    "chunk_id": "d998d68c-6fd2-471e-b20a-c02477ff2c3b",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
@@ -8022,7 +8022,7 @@
     }
   },
   {
-    "chunk_id": "a8f41183-22f2-482a-873a-31fd9a2008c7",
+    "chunk_id": "b1c48ba2-a792-42f5-89c1-18f31e2e83c4",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
@@ -8054,7 +8054,7 @@
     }
   },
   {
-    "chunk_id": "dbbc3ed4-5ee0-48e8-9d70-01cfe2cebecc",
+    "chunk_id": "e3fd815d-b879-4a24-855a-19d9c7314556",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
@@ -8090,7 +8090,7 @@
     }
   },
   {
-    "chunk_id": "fbd5c020-8d34-409d-972c-8fa38d0cd98a",
+    "chunk_id": "5d5b449e-7adc-4fca-a448-3fef9695b922",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
@@ -8122,7 +8122,7 @@
     }
   },
   {
-    "chunk_id": "921b3fff-20af-42d3-8b43-c2d59cecc665",
+    "chunk_id": "d9936dc1-c77c-4230-9f22-ca7051fca5af",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
@@ -8154,7 +8154,7 @@
     }
   },
   {
-    "chunk_id": "7d1a8e04-b8c7-40f4-9e1d-3f63901de9f2",
+    "chunk_id": "21a52c96-4a74-4b48-8bed-25afa4d7c1c8",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
@@ -8186,7 +8186,7 @@
     }
   },
   {
-    "chunk_id": "01f3d1c0-5a1e-44b4-a2db-17adac1be845",
+    "chunk_id": "cfa8345f-f56e-400f-94b8-d8b739e38cbf",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
@@ -8218,7 +8218,7 @@
     }
   },
   {
-    "chunk_id": "b7cda7df-94f6-48f4-9736-360417022a73",
+    "chunk_id": "2a5d8545-dbe7-4b1e-9d0d-6b3035dcb08e",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
@@ -8255,7 +8255,7 @@
     }
   },
   {
-    "chunk_id": "af3ad4b1-5dcf-4c72-a9d7-a91f295d7bcb",
+    "chunk_id": "10f6f86f-661f-40d8-a94c-1d3d74e865a2",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
@@ -8290,7 +8290,7 @@
     }
   },
   {
-    "chunk_id": "e4773029-f2f6-4ccb-9cc7-15e957b7f66d",
+    "chunk_id": "6750d766-dfa3-4c32-b6c2-186e445a66c8",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
@@ -8322,7 +8322,7 @@
     }
   },
   {
-    "chunk_id": "4768da52-4d17-488c-b585-27e7328c479d",
+    "chunk_id": "80321e41-7d6b-41c8-bc60-229521234c4b",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
@@ -8358,7 +8358,7 @@
     }
   },
   {
-    "chunk_id": "bc8cc0a1-9a40-4752-b1fa-f16ffdaa4c35",
+    "chunk_id": "73b2a36e-c3cd-4b7d-b032-d6e2bd9d0873",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
@@ -8390,7 +8390,7 @@
     }
   },
   {
-    "chunk_id": "9c5a1a67-0153-4460-9e7c-77ece24d3b25",
+    "chunk_id": "8098c8f1-164d-4537-b741-1da227fb8004",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
@@ -8422,7 +8422,7 @@
     }
   },
   {
-    "chunk_id": "95b82ec7-729d-43de-b75e-44c937d02ec6",
+    "chunk_id": "72af44fe-003b-4c9a-bcbd-b8fcd182d810",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
@@ -8454,7 +8454,7 @@
     }
   },
   {
-    "chunk_id": "398a29fb-1dbb-42d0-991e-bd9e9dbbe96b",
+    "chunk_id": "6ff79b26-e405-4563-a596-3b921eb68759",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
@@ -8486,7 +8486,7 @@
     }
   },
   {
-    "chunk_id": "e1e8f757-d1c0-45f2-bc4b-758e8f1963da",
+    "chunk_id": "fc58461e-0ff0-48a9-a1c7-e609930d9829",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
@@ -8518,7 +8518,7 @@
     }
   },
   {
-    "chunk_id": "1a686321-1b8a-42d0-8721-f7e23a431acb",
+    "chunk_id": "7b5ca9a7-5ae3-4b04-9085-8d793a4ecadd",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
@@ -8550,7 +8550,7 @@
     }
   },
   {
-    "chunk_id": "8efd2fec-2bd8-40c7-bc4d-88c983f1478b",
+    "chunk_id": "a34d3906-995f-4c23-8fca-aecde947ea87",
     "chunk_type": "text",
     "page_num": 6,
     "source_file": "21_77.pdf",
