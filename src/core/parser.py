@@ -37,6 +37,9 @@ class PDFParser:
     INDENT_TOLERANCE = 24.0
     COL_GAP_THRESHOLD = 72.0  # horizontal gap in pts that signals a column boundary
     BLOCK_INDENT_TOLERANCE = 80.0  # indent shift in pts that triggers a new block
+    TABLE_FIGURE_OVERLAP_THRESHOLD = 0.5
+    MAX_TABLE_EMPTY_RATIO = 0.6
+    CAPTION_SEARCH_MARGIN = 28.0
 
     def parse(self, pdf_path: str | Path) -> list[RawChunk]:
         """
@@ -59,30 +62,14 @@ class PDFParser:
                 plumb_page = doc_plumb.pages[page_idx]
                 page_width = float(plumb_page.width)
                 page_height = float(plumb_page.height)
+                page_words = plumb_page.extract_words(use_text_flow=True, keep_blank_chars=False) or []
 
                 table_bboxes: list[BBox] = []
+                figure_chunks: list[RawChunk] = []
+                figure_bboxes: list[BBox] = []
 
-                # Extract tables with bounding boxes.
-                for table in plumb_page.find_tables():
-                    rows = table.extract()
-                    if rows and len(rows) >= self.MIN_TABLE_ROWS:
-                        bbox = self._normalize_bbox(table.bbox)
-                        table_bboxes.append(bbox)
-                        markdown = self._to_markdown(rows)
-                        chunks.append(
-                            RawChunk(
-                                chunk_type=ChunkType.TABLE,
-                                page_num=page_idx + 1,
-                                raw_content=markdown,
-                                bbox=bbox,
-                                page_width=page_width,
-                                page_height=page_height,
-                                source_preview=markdown[:280],
-                                source_file=pdf_path.name,
-                            )
-                        )
-
-                # Extract images and their placement rectangles.
+                # Extract images and their placement rectangles first so table
+                # filtering can reject figure-like regions.
                 for img_info in fitz_page.get_images(full=True):
                     try:
                         xref = img_info[0]
@@ -93,7 +80,9 @@ class PDFParser:
 
                         for rect in rects:
                             bbox = self._fitz_rect_to_bbox(rect) if rect is not None else None
-                            chunks.append(
+                            if bbox is not None:
+                                figure_bboxes.append(bbox)
+                            figure_chunks.append(
                                 RawChunk(
                                     chunk_type=ChunkType.FIGURE,
                                     page_num=page_idx + 1,
@@ -109,9 +98,40 @@ class PDFParser:
                         log.warning("Error extracting image from page %d: %s. Skipping.", page_idx + 1, e)
                         continue
 
+                # Extract tables with bounding boxes.
+                for table in plumb_page.find_tables():
+                    rows = table.extract()
+                    bbox = self._normalize_bbox(table.bbox)
+                    if (
+                        rows
+                        and len(rows) >= self.MIN_TABLE_ROWS
+                        and self._is_probable_table(
+                            rows=rows,
+                            bbox=bbox,
+                            page_words=page_words,
+                            figure_bboxes=figure_bboxes,
+                        )
+                    ):
+                        table_bboxes.append(bbox)
+                        markdown = self._to_markdown(rows)
+                        chunks.append(
+                            RawChunk(
+                                chunk_type=ChunkType.TABLE,
+                                page_num=page_idx + 1,
+                                raw_content=markdown,
+                                bbox=bbox,
+                                page_width=page_width,
+                                page_height=page_height,
+                                source_preview=markdown[:280],
+                                source_file=pdf_path.name,
+                            )
+                        )
+
+                chunks.extend(figure_chunks)
+
                 # Extract text blocks with bounding boxes.
                 for text_chunk in self._extract_text_blocks(
-                    plumb_page=plumb_page,
+                    words=page_words,
                     page_num=page_idx + 1,
                     page_width=page_width,
                     page_height=page_height,
@@ -128,7 +148,7 @@ class PDFParser:
 
     def _extract_text_blocks(
         self,
-        plumb_page: pdfplumber.page.Page,
+        words: list[dict[str, Any]],
         page_num: int,
         page_width: float,
         page_height: float,
@@ -136,7 +156,6 @@ class PDFParser:
         excluded_bboxes: list[BBox],
     ) -> list[RawChunk]:
         """Extract text as block-level chunks with approximate layout boxes."""
-        words = plumb_page.extract_words(use_text_flow=True, keep_blank_chars=False) or []
         if not words:
             return []
 
@@ -167,6 +186,61 @@ class PDFParser:
             )
 
         return text_chunks
+
+    def _is_probable_table(
+        self,
+        rows: list[list[Any]],
+        bbox: BBox,
+        page_words: list[dict[str, Any]],
+        figure_bboxes: list[BBox],
+    ) -> bool:
+        """Return True when a detected grid looks like a real table."""
+        normalized_rows = [[str(cell or "").strip() for cell in row] for row in rows]
+        if len(normalized_rows) < self.MIN_TABLE_ROWS:
+            return False
+
+        total_cells = sum(len(row) for row in normalized_rows)
+        non_empty_cells = [cell for row in normalized_rows for cell in row if cell]
+        if total_cells == 0 or len(non_empty_cells) < 4:
+            return False
+
+        max_cols = max((len(row) for row in normalized_rows), default=0)
+        multi_cell_rows = sum(1 for row in normalized_rows if sum(1 for cell in row if cell) >= 2)
+        if max_cols < 2 or multi_cell_rows < 2:
+            return False
+
+        empty_ratio = 1.0 - (len(non_empty_cells) / total_cells)
+        if empty_ratio > self.MAX_TABLE_EMPTY_RATIO:
+            return False
+
+        if any(
+            self._bbox_overlap_ratio(bbox, figure_bbox) >= self.TABLE_FIGURE_OVERLAP_THRESHOLD for figure_bbox in figure_bboxes
+        ):
+            return False
+
+        caption_text = self._nearby_caption_text(page_words, bbox).lower()
+        has_table_cue = any(token in caption_text for token in ("table", "表"))
+        has_figure_cue = any(token in caption_text for token in ("figure", "fig.", "fig ", "図", "chart", "graph", "plot"))
+        if has_figure_cue and not has_table_cue:
+            return False
+
+        return True
+
+    def _nearby_caption_text(self, page_words: list[dict[str, Any]], bbox: BBox) -> str:
+        """Collect nearby caption text around a candidate table bbox."""
+        nearby: list[tuple[float, float, str]] = []
+        search_top = bbox[1] - self.CAPTION_SEARCH_MARGIN
+        search_bottom = bbox[3] + self.CAPTION_SEARCH_MARGIN
+
+        for word in page_words:
+            word_bbox = self._word_bbox(word)
+            if word_bbox[3] < search_top or word_bbox[1] > search_bottom:
+                continue
+            if self._horizontal_overlap_ratio(word_bbox, bbox) <= 0.2:
+                continue
+            nearby.append((word_bbox[1], word_bbox[0], str(word.get("text", "")).strip()))
+
+        return " ".join(text for _, _, text in sorted(nearby) if text)
 
     def _group_words_into_lines(self, words: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Group pdfplumber words into visual lines."""
@@ -322,6 +396,18 @@ class PDFParser:
     def _is_mostly_within_any_bbox(self, bbox: BBox, excluded_bboxes: list[BBox]) -> bool:
         """Return True when the bbox overlaps excluded regions significantly."""
         return any(self._bbox_overlap_ratio(bbox, other) >= 0.6 for other in excluded_bboxes)
+
+    @staticmethod
+    def _horizontal_overlap_ratio(left: BBox, right: BBox) -> float:
+        """Compute horizontal overlap ratio against the left bbox width."""
+        inter_x0 = max(left[0], right[0])
+        inter_x1 = min(left[2], right[2])
+        if inter_x1 <= inter_x0:
+            return 0.0
+
+        intersection = inter_x1 - inter_x0
+        left_width = max(left[2] - left[0], 1.0)
+        return intersection / left_width
 
     @staticmethod
     def _bbox_overlap_ratio(left: BBox, right: BBox) -> float:
