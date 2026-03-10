@@ -37,7 +37,7 @@ class PDFParser:
     INDENT_TOLERANCE = 24.0
     COL_GAP_THRESHOLD = 72.0  # horizontal gap in pts that signals a column boundary
     BLOCK_INDENT_TOLERANCE = 80.0  # indent shift in pts that triggers a new block
-    TABLE_FIGURE_OVERLAP_THRESHOLD = 0.5
+    TABLE_FIGURE_OVERLAP_THRESHOLD = 0.65
     MAX_TABLE_EMPTY_RATIO = 0.6
     CAPTION_SEARCH_MARGIN = 28.0
 
@@ -197,31 +197,36 @@ class PDFParser:
         """Return True when a detected grid looks like a real table."""
         normalized_rows = [[str(cell or "").strip() for cell in row] for row in rows]
         if len(normalized_rows) < self.MIN_TABLE_ROWS:
+            log.debug("Rejecting table candidate: insufficient rows (%d < %d) at bbox %s", len(normalized_rows), self.MIN_TABLE_ROWS, bbox)
             return False
 
         total_cells = sum(len(row) for row in normalized_rows)
         non_empty_cells = [cell for row in normalized_rows for cell in row if cell]
         if total_cells == 0 or len(non_empty_cells) < 4:
+            log.debug("Rejecting table candidate: insufficient content (total=%d, non_empty=%d) at bbox %s", total_cells, len(non_empty_cells), bbox)
             return False
 
         max_cols = max((len(row) for row in normalized_rows), default=0)
         multi_cell_rows = sum(1 for row in normalized_rows if sum(1 for cell in row if cell) >= 2)
         if max_cols < 2 or multi_cell_rows < 2:
+            log.debug("Rejecting table candidate: weak structure (cols=%d, multi_cell_rows=%d) at bbox %s", max_cols, multi_cell_rows, bbox)
             return False
 
         empty_ratio = 1.0 - (len(non_empty_cells) / total_cells)
         if empty_ratio > self.MAX_TABLE_EMPTY_RATIO:
+            log.debug("Rejecting table candidate: too sparse (empty_ratio=%.2f > %.2f) at bbox %s", empty_ratio, self.MAX_TABLE_EMPTY_RATIO, bbox)
             return False
 
-        if any(
-            self._bbox_overlap_ratio(bbox, figure_bbox) >= self.TABLE_FIGURE_OVERLAP_THRESHOLD for figure_bbox in figure_bboxes
-        ):
+        overlapping_figures = [(i, self._bbox_overlap_ratio(bbox, fb)) for i, fb in enumerate(figure_bboxes) if self._bbox_overlap_ratio(bbox, fb) >= self.TABLE_FIGURE_OVERLAP_THRESHOLD]
+        if overlapping_figures:
+            log.debug("Rejecting table candidate: overlaps with figures %s (threshold=%.2f) at bbox %s", overlapping_figures, self.TABLE_FIGURE_OVERLAP_THRESHOLD, bbox)
             return False
 
         caption_text = self._nearby_caption_text(page_words, bbox).lower()
         has_table_cue = any(token in caption_text for token in ("table", "表"))
         has_figure_cue = any(token in caption_text for token in ("figure", "fig.", "fig ", "図", "chart", "graph", "plot"))
         if has_figure_cue and not has_table_cue:
+            log.debug("Rejecting table candidate: figure-like caption (caption='%s') at bbox %s", caption_text[:80], bbox)
             return False
 
         return True
