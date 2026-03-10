@@ -13,6 +13,9 @@ from enum import Enum
 from typing import Any
 
 
+BBox = tuple[float, float, float, float]
+
+
 # ═══════════════════════════════════════════════════════════
 # CHUNK TYPES AND RAW DATA
 # ═══════════════════════════════════════════════════════════
@@ -42,7 +45,11 @@ class RawChunk:
     chunk_type: ChunkType
     page_num: int
     raw_content: Any
-    bbox: tuple | None = None
+    bbox: BBox | None = None
+    page_width: float = 0.0
+    page_height: float = 0.0
+    artifact_path: str = ""
+    source_preview: str = ""
     source_file: str = ""
 
 
@@ -127,6 +134,11 @@ class ProcessedChunk:
     chunk_type: ChunkType = ChunkType.TEXT
     page_num: int = 0
     source_file: str = ""
+    bbox: BBox | None = None
+    page_width: float = 0.0
+    page_height: float = 0.0
+    artifact_path: str = ""
+    source_preview: str = ""
     structured_text: str = ""
     intuition_summary: str = ""
     key_concepts: list[str] = field(default_factory=list)

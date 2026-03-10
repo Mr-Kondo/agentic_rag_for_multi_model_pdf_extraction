@@ -95,9 +95,17 @@ def cmd_ingest(args: argparse.Namespace) -> int:
     log.info(f"{'=' * 70}\n")
 
     if args.use_crewai:
-        chunks = pipeline.ingest_with_crewai(pdf_path, validates=args.validate)
+        chunks = pipeline.ingest_with_crewai(
+            pdf_path,
+            validates=args.validate,
+            audit_output_dir=args.output if args.output else None,
+        )
     else:
-        chunks = pipeline.ingest(pdf_path, validates=args.validate)
+        chunks = pipeline.ingest(
+            pdf_path,
+            validates=args.validate,
+            audit_output_dir=args.output if args.output else None,
+        )
 
     # Print statistics
     stats = {ct.value: sum(1 for c in chunks if c.chunk_type == ct) for ct in ChunkType}
@@ -259,9 +267,17 @@ def cmd_pipeline(args: argparse.Namespace) -> int:
     log.info(f"{'=' * 70}\n")
 
     if args.use_crewai:
-        chunks = pipeline.ingest_with_crewai(pdf_path, validates=args.validate)
+        chunks = pipeline.ingest_with_crewai(
+            pdf_path,
+            validates=args.validate,
+            audit_output_dir=args.output if args.output else None,
+        )
     else:
-        chunks = pipeline.ingest(pdf_path, validates=args.validate)
+        chunks = pipeline.ingest(
+            pdf_path,
+            validates=args.validate,
+            audit_output_dir=args.output if args.output else None,
+        )
 
     # Print statistics
     stats = {ct.value: sum(1 for c in chunks if c.chunk_type == ct) for ct in ChunkType}

@@ -142,6 +142,54 @@ output/
 └── your_paper_answer.json    # RAG回答（検証結果、ソース引用、推論過程）
 ```
 
+### 監査レポート（Audit Report）
+
+`--output` フラグを指定すると、チャンク品質を視覚的に検査できる監査レポートを生成します。
+
+```bash
+python app.py ingest ./input/your_paper.pdf --validate --output ./output
+```
+
+生成されるファイル:
+
+```
+output/
+├── your_paper_chunks.json
+├── your_paper_answer.json
+├── your_paper_audit.json          # 全チャンクの provenance メタデータ（JSON）
+├── your_paper_audit.html          # スタンドアロン HTML ビューア
+└── your_paper_audit/
+    ├── pages/
+    │   ├── page_001.png           # ページ画像（bbox overlay 用）
+    │   └── page_002.png
+    └── figures/
+        └── <chunk_id>.png         # 抽出された図画像
+```
+
+`your_paper_audit.html` をブラウザで開くと、ページ画像上に bbox オーバーレイが表示されます。
+
+**bbox オーバーレイ配色:**
+
+| 色 | チャンク種別 |
+|---|---|
+| 緑（solid） | text — accepted |
+| 茶（solid） | table — accepted |
+| 青（solid） | figure — accepted |
+| 赤（dashed） | discarded |
+
+**サイドバーのフィルタボタン:**
+
+| フィルタ | 表示対象 |
+|---|---|
+| all | 全チャンク |
+| text | テキストチャンクのみ |
+| table | テーブルチャンクのみ |
+| figure | 図チャンクのみ |
+| corrected | バリデーション修正済みチャンク |
+| discarded | 不採用チャンク |
+
+チャンクカードまたは bbox をクリックすると詳細パネルに raw プレビュー、構造化テキスト、バリデーション結果、修正差分（行単位 diff）が表示されます。
+
 ### データフロー（LangGraph版）
 
 ```

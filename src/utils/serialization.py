@@ -17,6 +17,18 @@ OUTPUT_DIR = Path("./output")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 
+def _serialize_bbox(bbox: tuple[float, float, float, float] | None) -> dict | None:
+    """Convert bbox tuple into a named dict for JSON serialization."""
+    if bbox is None:
+        return None
+    return {
+        "x0": bbox[0],
+        "y0": bbox[1],
+        "x1": bbox[2],
+        "y1": bbox[3],
+    }
+
+
 def serialize_chunk(chunk: ProcessedChunk) -> dict:
     """
     Convert ProcessedChunk to JSON-serializable dict.
@@ -34,17 +46,37 @@ def serialize_chunk(chunk: ProcessedChunk) -> dict:
         "chunk_type": chunk.chunk_type.value,
         "page_num": chunk.page_num,
         "source_file": chunk.source_file,
+        "bbox": _serialize_bbox(chunk.bbox),
+        "page_size": {
+            "width": chunk.page_width,
+            "height": chunk.page_height,
+        },
+        "artifact_path": chunk.artifact_path or None,
+        "source_preview": chunk.source_preview,
         "structured_text": chunk.structured_text[:500] + "..." if len(chunk.structured_text) > 500 else chunk.structured_text,
         "intuition_summary": chunk.intuition_summary,
         "key_concepts": chunk.key_concepts,
         "confidence": chunk.confidence,
         "agent_notes": chunk.agent_notes,
+        "cross_links": [
+            {
+                "source_chunk_id": link.source_chunk_id,
+                "target_chunk_id": link.target_chunk_id,
+                "link_type": link.link_type,
+                "confidence": link.confidence,
+                "description": link.description,
+            }
+            for link in chunk.cross_links
+        ],
         "validation": {
+            "is_valid": chunk.validation.is_valid,
             "verdict_score": chunk.validation.verdict_score,
             "issues": chunk.validation.issues,
+            "validator_notes": chunk.validation.validator_notes,
             "corrected_text": chunk.validation.corrected.structured_text[:500] + "..."
             if chunk.validation.corrected and len(chunk.validation.corrected.structured_text or "") > 500
             else (chunk.validation.corrected.structured_text if chunk.validation.corrected else None),
+            "corrected_chunk_id": chunk.validation.corrected.chunk_id if chunk.validation.corrected else None,
         }
         if chunk.validation
         else None,

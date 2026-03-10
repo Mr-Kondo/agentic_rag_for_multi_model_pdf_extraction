@@ -24,6 +24,19 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
+def _chunk_kwargs(chunk: "RawChunk") -> dict:
+    """Copy provenance metadata from RawChunk into ProcessedChunk kwargs."""
+    return {
+        "page_num": chunk.page_num,
+        "source_file": chunk.source_file,
+        "bbox": chunk.bbox,
+        "page_width": chunk.page_width,
+        "page_height": chunk.page_height,
+        "artifact_path": chunk.artifact_path,
+        "source_preview": chunk.source_preview,
+    }
+
+
 # ═══════════════════════════════════════════════════════════
 # PROMPT TEMPLATES
 # ═══════════════════════════════════════════════════════════
@@ -117,8 +130,7 @@ class TextAgent(BaseAgent):
         p = self._safe_json(raw)
         return ProcessedChunk(
             chunk_type=ChunkType.TEXT,
-            page_num=chunk.page_num,
-            source_file=chunk.source_file,
+            **_chunk_kwargs(chunk),
             structured_text=p.get("structured_text", content[:2000]),
             intuition_summary=p.get("intuition_summary", ""),
             key_concepts=p.get("key_concepts", []),
@@ -184,8 +196,7 @@ class TableAgent(BaseAgent):
         schema_ann = f"\n<!-- schema: {json.dumps(p.get('schema', {}), ensure_ascii=False)} -->"
         return ProcessedChunk(
             chunk_type=ChunkType.TABLE,
-            page_num=chunk.page_num,
-            source_file=chunk.source_file,
+            **_chunk_kwargs(chunk),
             structured_text=p.get("structured_text", content) + schema_ann,
             intuition_summary=p.get("intuition_summary", ""),
             key_concepts=p.get("key_concepts", []),
@@ -275,8 +286,7 @@ class VisionAgent(BaseAgent):
         p = self._safe_json(output)
         return ProcessedChunk(
             chunk_type=ChunkType.FIGURE,
-            page_num=chunk.page_num,
-            source_file=chunk.source_file,
+            **_chunk_kwargs(chunk),
             structured_text=p.get("structured_text", output[:1000]),
             intuition_summary=p.get("intuition_summary", ""),
             key_concepts=p.get("key_concepts", []),
@@ -302,8 +312,7 @@ class VisionAgent(BaseAgent):
             text = "[OCR unavailable]"
         return ProcessedChunk(
             chunk_type=ChunkType.FIGURE,
-            page_num=chunk.page_num,
-            source_file=chunk.source_file,
+            **_chunk_kwargs(chunk),
             structured_text=text,
             intuition_summary="OCR fallback.",
             confidence=0.3,
