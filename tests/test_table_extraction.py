@@ -3,9 +3,6 @@
 Tests TableFromImageExtractor core functionality.
 """
 
-import io
-from unittest.mock import MagicMock, patch
-
 import pytest
 from PIL import Image, ImageDraw
 
@@ -102,6 +99,26 @@ class TestTableFromImageExtractor:
             # If extraction succeeds, verify it has some content
             non_empty_lines = [l for l in result.split("\n") if l.strip() and "|" in l]
             assert len(non_empty_lines) >= 1, "Should have at least header with pipe delimiters"
+
+    def test_detects_probable_table_image(self, extractor):
+        """Grid-heavy image should be classified as table-like before OCR."""
+        img = self._create_simple_table_image(rows=4, cols=4)
+
+        result = extractor.is_probable_table_image(img)
+
+        assert result is True
+
+    def test_rejects_probable_table_image_for_sparse_lines(self, extractor):
+        """Sparse axis-like lines should not be classified as table-like."""
+        img = Image.new("RGB", (240, 160), color="white")
+        draw = ImageDraw.Draw(img)
+        draw.line([(20, 130), (220, 130)], fill="black", width=3)
+        draw.line([(20, 20), (20, 130)], fill="black", width=3)
+        draw.line([(60, 30), (80, 50)], fill="black", width=2)
+
+        result = extractor.is_probable_table_image(img)
+
+        assert result is False
 
     def test_insufficient_rows_returns_none(self, extractor):
         """Test that grid with < MIN_TABLE_ROWS returns None."""

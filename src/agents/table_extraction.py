@@ -35,6 +35,7 @@ class TableFromImageExtractor:
     MIN_TABLE_COLS = 3
     MIN_CELL_HEIGHT = 15
     MIN_CELL_WIDTH = 20
+    MIN_GRID_LINE_DENSITY = 0.005
     TESSERACT_CONFIG = r"--oem 3 --psm 6"
 
     def __init__(self):
@@ -71,24 +72,25 @@ class TableFromImageExtractor:
 
             # Detect table grid structure
             cells = self._detect_table_structure(img_cv)
-            if cells is None or len(cells) < self.MIN_TABLE_ROWS:
+            normalized_cells = self._normalize_candidate_rows(cells)
+            if normalized_cells is None or len(normalized_cells) < self.MIN_TABLE_ROWS:
                 log.debug(
                     "TableFromImageExtractor: insufficient rows (got %d, need %d)",
-                    len(cells) if cells else 0,
+                    len(normalized_cells) if normalized_cells else 0,
                     self.MIN_TABLE_ROWS,
                 )
                 return None
 
-            if len(cells[0]) < self.MIN_TABLE_COLS:
+            if len(normalized_cells[0]) < self.MIN_TABLE_COLS:
                 log.debug(
                     "TableFromImageExtractor: insufficient columns (got %d, need %d)",
-                    len(cells[0]),
+                    len(normalized_cells[0]),
                     self.MIN_TABLE_COLS,
                 )
                 return None
 
             # Extract text from detected cells
-            cells_with_text = self._extract_cell_text(img_cv, cells)
+            cells_with_text = self._extract_cell_text(img_cv, normalized_cells)
 
             # Check content sparsity
             non_empty_cells = sum(1 for row in cells_with_text for cell in row if cell.strip())
@@ -113,7 +115,63 @@ class TableFromImageExtractor:
             log.warning("TableFromImageExtractor.extract_table_from_image() failed: %s", e)
             return None
 
-    def _detect_table_structure(self, img: np.ndarray) -> Optional[list[tuple[int, int, int, int]]]:
+    def is_probable_table_image(self, image: Image.Image) -> bool:
+        """
+        Determine whether an image likely contains a table before running OCR.
+
+        Uses deterministic geometry checks based on detected grid structure and
+        line density. This is intentionally cheap and acts as a primary gate
+        before relying on VLM semantic classification.
+
+        Args:
+            image: PIL image to inspect
+
+        Returns:
+            True when the image looks like a structured table grid
+        """
+        try:
+            img_cv = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+            rows = self._detect_table_structure(img_cv)
+            if not rows:
+                return False
+
+            normalized_rows = self._normalize_candidate_rows(rows)
+            if not normalized_rows:
+                return False
+
+            row_count = len(normalized_rows)
+            col_counts = [len(row) for row in normalized_rows if row]
+            if row_count < self.MIN_TABLE_ROWS or not col_counts:
+                return False
+
+            median_cols = int(np.median(col_counts))
+            consistent_rows = sum(1 for count in col_counts if abs(count - median_cols) <= 1)
+            horizontal_density, vertical_density = self._line_densities(img_cv)
+            dense_rows = sum(1 for count in col_counts if count >= self.MIN_TABLE_COLS)
+
+            is_probable = (
+                median_cols >= self.MIN_TABLE_COLS
+                and dense_rows >= self.MIN_TABLE_ROWS
+                and consistent_rows >= max(2, row_count // 2)
+                and horizontal_density >= self.MIN_GRID_LINE_DENSITY
+                and vertical_density >= self.MIN_GRID_LINE_DENSITY
+            )
+            log.debug(
+                "TableFromImageExtractor: probable_table=%s rows=%d median_cols=%d consistent_rows=%d h=%.4f v=%.4f",
+                is_probable,
+                row_count,
+                median_cols,
+                dense_rows,
+                consistent_rows,
+                horizontal_density,
+                vertical_density,
+            )
+            return is_probable
+        except Exception as e:
+            log.debug("TableFromImageExtractor.is_probable_table_image() failed: %s", e)
+            return False
+
+    def _detect_table_structure(self, img: np.ndarray) -> Optional[list[list[tuple[int, int, int, int]]]]:
         """
         Detect table grid structure using contour analysis.
 
@@ -199,6 +257,47 @@ class TableFromImageExtractor:
         except Exception as e:
             log.warning("TableFromImageExtractor._detect_table_structure() failed: %s", e)
             return None
+
+    def _normalize_candidate_rows(
+        self,
+        rows: Optional[list[list[tuple[int, int, int, int]]]],
+    ) -> Optional[list[list[tuple[int, int, int, int]]]]:
+        """Drop sparse edge rows and keep the stable table core when present."""
+        if not rows:
+            return None
+
+        col_counts = [len(row) for row in rows if row]
+        dense_rows = [row for row in rows if len(row) >= self.MIN_TABLE_COLS]
+        if len(dense_rows) < self.MIN_TABLE_ROWS:
+            return rows
+
+        target_cols = int(np.median([len(row) for row in dense_rows]))
+        normalized_rows = [row for row in dense_rows if abs(len(row) - target_cols) <= 1]
+        if len(normalized_rows) >= self.MIN_TABLE_ROWS:
+            log.debug(
+                "TableFromImageExtractor: normalized candidate rows from col_counts=%s to kept=%s",
+                col_counts,
+                [len(row) for row in normalized_rows],
+            )
+            return normalized_rows
+
+        return dense_rows
+
+    def _line_densities(self, img: np.ndarray) -> tuple[float, float]:
+        """Return horizontal and vertical line pixel densities for table-like grids."""
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        _, binary = cv2.threshold(gray, 150, 255, cv2.THRESH_BINARY_INV)
+
+        horizontal_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (40, 1))
+        horizontal_lines = cv2.morphologyEx(binary, cv2.MORPH_OPEN, horizontal_kernel, iterations=1)
+
+        vertical_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, 40))
+        vertical_lines = cv2.morphologyEx(binary, cv2.MORPH_OPEN, vertical_kernel, iterations=1)
+
+        pixel_count = float(binary.size) if binary.size else 1.0
+        horizontal_density = float(np.count_nonzero(horizontal_lines)) / pixel_count
+        vertical_density = float(np.count_nonzero(vertical_lines)) / pixel_count
+        return horizontal_density, vertical_density
 
     def _extract_cell_text(self, img: np.ndarray, cells: list[list[tuple[int, int, int, int]]]) -> list[list[str]]:
         """

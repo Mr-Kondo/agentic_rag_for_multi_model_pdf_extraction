@@ -242,6 +242,21 @@ class VisionAgent(BaseAgent):
         Returns:
             ProcessedChunk with figure description and metadata
         """
+        table_extractor = TableFromImageExtractor()
+        if table_extractor.is_probable_table_image(chunk.raw_content):
+            log.info("VisionAgent: geometry heuristic detected table-like image on page %d", chunk.page_num)
+            table_markdown = table_extractor.extract_table_from_image(chunk.raw_content)
+            if table_markdown is not None:
+                return ProcessedChunk(
+                    chunk_type=ChunkType.TABLE,
+                    **_chunk_kwargs(chunk),
+                    structured_text=table_markdown,
+                    intuition_summary="Extracted from table-like image via geometry heuristic.",
+                    key_concepts=[],
+                    confidence=0.75,
+                    agent_notes="extracted_from_geometry_heuristic",
+                )
+
         if not self._use_vision or self._processor is None:
             return self._ocr_fallback(chunk)
 
@@ -288,11 +303,16 @@ class VisionAgent(BaseAgent):
         p = self._safe_json(output)
         figure_type = p.get("figure_type", "other")
         confidence = float(p.get("confidence", 0.6))
+        log.info(
+            "VisionAgent: page=%d figure_type=%s confidence=%.2f",
+            chunk.page_num,
+            figure_type,
+            confidence,
+        )
 
         # Check if this is a table image - attempt to extract table structure
         if figure_type == "table_image" and confidence >= 0.4:
             try:
-                table_extractor = TableFromImageExtractor()
                 table_markdown = table_extractor.extract_table_from_image(chunk.raw_content)
                 if table_markdown is not None:
                     log.debug("VisionAgent: table image extraction successful (%s)", chunk.source_file)

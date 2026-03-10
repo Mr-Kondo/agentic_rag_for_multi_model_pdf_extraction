@@ -99,7 +99,10 @@ class PDFParser:
                         continue
 
                 # Extract tables with bounding boxes.
-                for table in plumb_page.find_tables():
+                table_candidates = plumb_page.find_tables()
+                accepted_tables = 0
+                log.info("Page %d: pdfplumber.find_tables() returned %d candidates", page_idx + 1, len(table_candidates))
+                for table in table_candidates:
                     rows = table.extract()
                     bbox = self._normalize_bbox(table.bbox)
                     if (
@@ -113,6 +116,7 @@ class PDFParser:
                         )
                     ):
                         table_bboxes.append(bbox)
+                        accepted_tables += 1
                         markdown = self._to_markdown(rows)
                         chunks.append(
                             RawChunk(
@@ -126,6 +130,7 @@ class PDFParser:
                                 source_file=pdf_path.name,
                             )
                         )
+                log.info("Page %d: accepted %d/%d table candidates", page_idx + 1, accepted_tables, len(table_candidates))
 
                 chunks.extend(figure_chunks)
 
