@@ -39,6 +39,7 @@ from src.core.models import (
 from src.core.parser import PDFParser
 from src.core.store import ChunkStore
 from src.integrations.langfuse import LangfuseTracer
+from src.utils.audit import save_chunk_audit
 
 log = logging.getLogger(__name__)
 
@@ -209,6 +210,7 @@ class AgenticRAGPipeline:
         self,
         pdf_path: str | Path,
         validates: bool = True,
+        audit_output_dir: str | Path | None = None,
     ) -> list[ProcessedChunk]:
         """
         Ingest a PDF document into the vector store.
@@ -222,6 +224,7 @@ class AgenticRAGPipeline:
         Args:
             pdf_path: Path to PDF file to ingest
             validates: If True, run chunk quality validation (CHECKPOINT A)
+            audit_output_dir: Optional directory for HTML/JSON audit artifacts
 
         Returns:
             List of accepted ProcessedChunk objects stored in vector DB
@@ -325,6 +328,14 @@ class AgenticRAGPipeline:
                 s.update(output={"upserted": len(accepted)})
             log.info("✓ Chunks stored")
 
+            if audit_output_dir is not None:
+                save_chunk_audit(
+                    pdf_path=pdf_path,
+                    extracted=extracted,
+                    accepted=accepted,
+                    output_dir=audit_output_dir,
+                )
+
             log.info("=" * 70 + "\n")
 
         return accepted
@@ -333,6 +344,7 @@ class AgenticRAGPipeline:
         self,
         pdf_path: str | Path,
         validates: bool = True,
+        audit_output_dir: str | Path | None = None,
     ) -> list[ProcessedChunk]:
         """
         Ingest a PDF document using CrewAI crews for parallel extraction.
@@ -347,13 +359,14 @@ class AgenticRAGPipeline:
         Args:
             pdf_path: Path to PDF file to ingest
             validates: If True, run chunk quality validation
+            audit_output_dir: Optional directory for HTML/JSON audit artifacts
 
         Returns:
             List of accepted ProcessedChunk objects stored in vector DB
         """
         if not self.use_crewai or not self.crew_ingestion:
             log.warning("CrewAI not initialized; falling back to standard ingest")
-            return self.ingest(pdf_path, validates)
+            return self.ingest(pdf_path, validates, audit_output_dir=audit_output_dir)
 
         pdf_path = Path(pdf_path)
 
@@ -381,7 +394,15 @@ class AgenticRAGPipeline:
                     log.info("✓ CrewAI processing complete: %d chunks stored", len(stored))
                 except Exception as e:
                     log.error("CrewAI processing failed: %s — falling back to standard ingest", e, exc_info=True)
-                    return self.ingest(pdf_path, validates)
+                    return self.ingest(pdf_path, validates, audit_output_dir=audit_output_dir)
+
+            if audit_output_dir is not None:
+                save_chunk_audit(
+                    pdf_path=pdf_path,
+                    extracted=list(zip(raw_chunks, stored)),
+                    accepted=stored,
+                    output_dir=audit_output_dir,
+                )
 
             log.info("=" * 70 + "\n")
 
