@@ -27,8 +27,8 @@ class ConfigLoader:
         "models": {
             "text_extraction": "mlx-community/Phi-3.5-mini-Instruct-4bit",
             "table_extraction": "mlx-community/Qwen2.5-3B-Instruct-4bit",
-            "vision_extraction": "mlx-community/GLM-4.6V-Flash-4bit",
-            "chunk_validator": "mlx-community/SmolVLM-256M-Instruct-4bit",
+            "vision_extraction": "mlx-community/SmolVLM-256M-Instruct-4bit",
+            "chunk_validator": "mlx-community/Qwen2-VL-7B-Instruct-4bit",
             "orchestrator": "mlx-community/DeepSeek-R1-Distill-Llama-8B-4bit",
             "answer_validator": "mlx-community/Qwen3-8B-4bit",
             "dspy_lm": "mlx-community/Qwen2.5-7B-Instruct-4bit",
