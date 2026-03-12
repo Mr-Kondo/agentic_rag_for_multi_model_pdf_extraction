@@ -152,6 +152,11 @@ class ExtractionCrew:
                     chunk_type=chunk.chunk_type,
                     page_num=chunk.page_num,
                     source_file=chunk.source_file,
+                    bbox=chunk.bbox,
+                    page_width=chunk.page_width,
+                    page_height=chunk.page_height,
+                    artifact_path=chunk.artifact_path,
+                    source_preview=chunk.source_preview,
                     structured_text=str(chunk.raw_content)[:2000],  # Placeholder
                     confidence=0.8,
                     agent_notes="Extracted via direct MLX agents (no crew orchestration)",

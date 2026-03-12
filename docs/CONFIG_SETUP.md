@@ -171,7 +171,7 @@ If `settings.json` is missing or contains invalid JSON:
 - `text_extraction`: TextAgent model (default: Phi-3.5-mini-Instruct-4bit)
 - `table_extraction`: TableAgent model (default: Qwen2.5-3B-Instruct-4bit)
 - `vision_extraction`: VisionAgent model (default: SmolVLM-256M-Instruct-4bit)
-- `chunk_validator`: ChunkValidatorAgent (default: SmolVLM-256M-Instruct-4bit)
+- `chunk_validator`: ChunkValidatorAgent (default: Qwen2-VL-7B-Instruct-4bit)
 - `orchestrator`: ReasoningOrchestratorAgent (default: DeepSeek-R1-Distill-Llama-8B-4bit)
 - `answer_validator`: AnswerValidatorAgent (default: Qwen3-8B-4bit)
 - `dspy_lm`: DSPy language model (default: Qwen2.5-7B-Instruct-4bit)

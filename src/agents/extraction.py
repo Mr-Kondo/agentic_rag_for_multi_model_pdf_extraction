@@ -14,6 +14,7 @@ from mlx_vlm import generate as vlm_generate
 from mlx_vlm.prompt_utils import apply_chat_template
 
 from src.agents.base import BaseAgent
+from src.agents.table_extraction import TableFromImageExtractor
 from src.core.cache import _model_cache
 from src.core.models import ChunkType, ProcessedChunk
 
@@ -22,6 +23,19 @@ if TYPE_CHECKING:
     from src.integrations.langfuse import TraceHandle
 
 log = logging.getLogger(__name__)
+
+
+def _chunk_kwargs(chunk: "RawChunk") -> dict:
+    """Copy provenance metadata from RawChunk into ProcessedChunk kwargs."""
+    return {
+        "page_num": chunk.page_num,
+        "source_file": chunk.source_file,
+        "bbox": chunk.bbox,
+        "page_width": chunk.page_width,
+        "page_height": chunk.page_height,
+        "artifact_path": chunk.artifact_path,
+        "source_preview": chunk.source_preview,
+    }
 
 
 # ═══════════════════════════════════════════════════════════
@@ -50,6 +64,7 @@ Given a Markdown table, return ONLY valid JSON:
 }"""
 
 _VISION_SYSTEM = """You are a scientific figure analyst.
+Carefully identify the type of visual content. If you detect a structured table in the image, classify it as 'table_image' with HIGH confidence (0.8+).
 Return ONLY valid JSON:
 {
   "figure_type": "<bar_chart|line_chart|scatter_plot|flowchart|table_image|map|photograph|equation|network_diagram|other>",
@@ -117,8 +132,7 @@ class TextAgent(BaseAgent):
         p = self._safe_json(raw)
         return ProcessedChunk(
             chunk_type=ChunkType.TEXT,
-            page_num=chunk.page_num,
-            source_file=chunk.source_file,
+            **_chunk_kwargs(chunk),
             structured_text=p.get("structured_text", content[:2000]),
             intuition_summary=p.get("intuition_summary", ""),
             key_concepts=p.get("key_concepts", []),
@@ -184,8 +198,7 @@ class TableAgent(BaseAgent):
         schema_ann = f"\n<!-- schema: {json.dumps(p.get('schema', {}), ensure_ascii=False)} -->"
         return ProcessedChunk(
             chunk_type=ChunkType.TABLE,
-            page_num=chunk.page_num,
-            source_file=chunk.source_file,
+            **_chunk_kwargs(chunk),
             structured_text=p.get("structured_text", content) + schema_ann,
             intuition_summary=p.get("intuition_summary", ""),
             key_concepts=p.get("key_concepts", []),
@@ -229,6 +242,21 @@ class VisionAgent(BaseAgent):
         Returns:
             ProcessedChunk with figure description and metadata
         """
+        table_extractor = TableFromImageExtractor()
+        if table_extractor.is_probable_table_image(chunk.raw_content):
+            log.info("VisionAgent: geometry heuristic detected table-like image on page %d", chunk.page_num)
+            table_markdown = table_extractor.extract_table_from_image(chunk.raw_content)
+            if table_markdown is not None:
+                return ProcessedChunk(
+                    chunk_type=ChunkType.TABLE,
+                    **_chunk_kwargs(chunk),
+                    structured_text=table_markdown,
+                    intuition_summary="Extracted from table-like image via geometry heuristic.",
+                    key_concepts=[],
+                    confidence=0.75,
+                    agent_notes="extracted_from_geometry_heuristic",
+                )
+
         if not self._use_vision or self._processor is None:
             return self._ocr_fallback(chunk)
 
@@ -273,15 +301,42 @@ class VisionAgent(BaseAgent):
             return self._ocr_fallback(chunk)
 
         p = self._safe_json(output)
+        figure_type = p.get("figure_type", "other")
+        confidence = float(p.get("confidence", 0.6))
+        log.info(
+            "VisionAgent: page=%d figure_type=%s confidence=%.2f",
+            chunk.page_num,
+            figure_type,
+            confidence,
+        )
+
+        # Check if this is a table image - attempt to extract table structure
+        if figure_type == "table_image" and confidence >= 0.4:
+            try:
+                table_markdown = table_extractor.extract_table_from_image(chunk.raw_content)
+                if table_markdown is not None:
+                    log.debug("VisionAgent: table image extraction successful (%s)", chunk.source_file)
+                    return ProcessedChunk(
+                        chunk_type=ChunkType.TABLE,
+                        **_chunk_kwargs(chunk),
+                        structured_text=table_markdown,
+                        intuition_summary=p.get("intuition_summary", ""),
+                        key_concepts=p.get("key_concepts", []),
+                        confidence=confidence,
+                        agent_notes=f"extracted_from_image | {p.get('agent_notes', '')}",
+                    )
+            except Exception as e:
+                log.debug("VisionAgent: table extraction failed: %s. Falling back to FIGURE.", e)
+
+        # Default: return as FIGURE chunk
         return ProcessedChunk(
             chunk_type=ChunkType.FIGURE,
-            page_num=chunk.page_num,
-            source_file=chunk.source_file,
+            **_chunk_kwargs(chunk),
             structured_text=p.get("structured_text", output[:1000]),
             intuition_summary=p.get("intuition_summary", ""),
             key_concepts=p.get("key_concepts", []),
-            confidence=float(p.get("confidence", 0.6)),
-            agent_notes=f"figure_type={p.get('figure_type', '?')} | {p.get('agent_notes', '')}",
+            confidence=confidence,
+            agent_notes=f"figure_type={figure_type} | {p.get('agent_notes', '')}",
         )
 
     def _ocr_fallback(self, chunk: "RawChunk") -> ProcessedChunk:
@@ -302,8 +357,7 @@ class VisionAgent(BaseAgent):
             text = "[OCR unavailable]"
         return ProcessedChunk(
             chunk_type=ChunkType.FIGURE,
-            page_num=chunk.page_num,
-            source_file=chunk.source_file,
+            **_chunk_kwargs(chunk),
             structured_text=text,
             intuition_summary="OCR fallback.",
             confidence=0.3,
