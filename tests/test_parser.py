@@ -67,3 +67,60 @@ def test_regular_table_candidate_is_accepted() -> None:
     )
 
     assert is_table is True
+
+
+def test_fallback_candidate_rejected_for_prose_like_cells_without_table_cue() -> None:
+    parser = PDFParser()
+    rows = [
+        ["This section describes the methodology in detail", "The approach was validated with multiple runs"],
+        ["The authors discuss assumptions and limitations extensively", "Findings are contextualized with prior work"],
+    ]
+
+    rejection = parser._table_rejection_reason(
+        rows=rows,
+        bbox=(10.0, 20.0, 560.0, 300.0),
+        page_words=[],
+        figure_bboxes=[],
+        is_fallback=True,
+    )
+
+    assert rejection == "fallback_low_table_signal"
+
+
+def test_fallback_candidate_with_table_cue_can_be_accepted() -> None:
+    parser = PDFParser()
+    rows = [["Category", "Status"], ["Alpha", "Open"], ["Beta", "Closed"]]
+    page_words = [
+        _word("Table", 10.0, 8.0, 42.0, 18.0),
+        _word("2.", 44.0, 8.0, 52.0, 18.0),
+        _word("Lookup", 56.0, 8.0, 98.0, 18.0),
+    ]
+
+    rejection = parser._table_rejection_reason(
+        rows=rows,
+        bbox=(10.0, 20.0, 180.0, 140.0),
+        page_words=page_words,
+        figure_bboxes=[],
+        is_fallback=True,
+    )
+
+    assert rejection is None
+
+
+def test_default_candidate_rejected_for_prose_like_cells_without_table_cue() -> None:
+    parser = PDFParser()
+    rows = [
+        ["This section describes the methodology in detail", "The approach was validated with multiple runs"],
+        ["The authors discuss assumptions and limitations extensively", "Findings are contextualized with prior work"],
+        ["Additional narrative paragraphs explain implications", "The content is mostly prose rather than metrics"],
+    ]
+
+    rejection = parser._table_rejection_reason(
+        rows=rows,
+        bbox=(10.0, 20.0, 560.0, 320.0),
+        page_words=[],
+        figure_bboxes=[],
+        is_fallback=False,
+    )
+
+    assert rejection == "default_prose_like_without_table_cue"

@@ -24,18 +24,18 @@ class TableFromImageExtractor:
     table format.
 
     Attributes:
-        MIN_TABLE_ROWS: Minimum rows to consider valid table (default: 3)
-        MIN_TABLE_COLS: Minimum columns to consider valid table (default: 3)
+        MIN_TABLE_ROWS: Minimum rows to consider valid table (default: 2)
+        MIN_TABLE_COLS: Minimum columns to consider valid table (default: 2)
         MIN_CELL_HEIGHT: Minimum pixel height for a row (default: 15)
         MIN_CELL_WIDTH: Minimum pixel width for a column (default: 20)
         TESSERACT_CONFIG: Configuration string for pytesseract
     """
 
-    MIN_TABLE_ROWS = 3
-    MIN_TABLE_COLS = 3
+    MIN_TABLE_ROWS = 2
+    MIN_TABLE_COLS = 2
     MIN_CELL_HEIGHT = 15
     MIN_CELL_WIDTH = 20
-    MIN_GRID_LINE_DENSITY = 0.005
+    MIN_GRID_LINE_DENSITY = 0.003
     TESSERACT_CONFIG = r"--oem 3 --psm 6"
 
     def __init__(self):

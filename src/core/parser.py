@@ -40,6 +40,15 @@ class PDFParser:
     TABLE_FIGURE_OVERLAP_THRESHOLD = 0.65
     MAX_TABLE_EMPTY_RATIO = 0.6
     CAPTION_SEARCH_MARGIN = 28.0
+    DEFAULT_MIN_NUMERIC_RATIO_WITHOUT_TABLE_CUE = 0.20
+    DEFAULT_MAX_LONG_CELL_RATIO_WITHOUT_TABLE_CUE = 0.40
+    FALLBACK_MIN_NUMERIC_RATIO = 0.35
+    FALLBACK_MAX_LONG_CELL_RATIO = 0.45
+    FALLBACK_LONG_CELL_CHAR_THRESHOLD = 40
+    FALLBACK_TABLE_SETTINGS = {
+        "vertical_strategy": "text",
+        "horizontal_strategy": "text",
+    }
 
     def parse(self, pdf_path: str | Path) -> list[RawChunk]:
         """
@@ -99,22 +108,21 @@ class PDFParser:
                         continue
 
                 # Extract tables with bounding boxes.
-                table_candidates = plumb_page.find_tables()
+                table_candidates = self._find_table_candidates(plumb_page)
                 accepted_tables = 0
-                log.info("Page %d: pdfplumber.find_tables() returned %d candidates", page_idx + 1, len(table_candidates))
-                for table in table_candidates:
+                rejected_reasons: dict[str, int] = {}
+                log.info("Page %d: discovered %d table candidates", page_idx + 1, len(table_candidates))
+                for table, is_fallback in table_candidates:
                     rows = table.extract()
                     bbox = self._normalize_bbox(table.bbox)
-                    if (
-                        rows
-                        and len(rows) >= self.MIN_TABLE_ROWS
-                        and self._is_probable_table(
-                            rows=rows,
-                            bbox=bbox,
-                            page_words=page_words,
-                            figure_bboxes=figure_bboxes,
-                        )
-                    ):
+                    reject_reason = self._table_rejection_reason(
+                        rows=rows,
+                        bbox=bbox,
+                        page_words=page_words,
+                        figure_bboxes=figure_bboxes,
+                        is_fallback=is_fallback,
+                    )
+                    if rows and len(rows) >= self.MIN_TABLE_ROWS and reject_reason is None:
                         table_bboxes.append(bbox)
                         accepted_tables += 1
                         markdown = self._to_markdown(rows)
@@ -130,7 +138,11 @@ class PDFParser:
                                 source_file=pdf_path.name,
                             )
                         )
+                    elif reject_reason is not None:
+                        rejected_reasons[reject_reason] = rejected_reasons.get(reject_reason, 0) + 1
                 log.info("Page %d: accepted %d/%d table candidates", page_idx + 1, accepted_tables, len(table_candidates))
+                if rejected_reasons:
+                    log.debug("Page %d: table rejection reasons=%s", page_idx + 1, rejected_reasons)
 
                 chunks.extend(figure_chunks)
 
@@ -192,6 +204,46 @@ class PDFParser:
 
         return text_chunks
 
+    def _find_table_candidates(self, plumb_page: pdfplumber.page.Page) -> list[tuple[Any, bool]]:
+        """Find table candidates and mark whether they came from fallback strategy."""
+        default_candidates: list[Any] = []
+        fallback_candidates: list[Any] = []
+
+        try:
+            default_candidates = plumb_page.find_tables()
+        except Exception as e:
+            log.warning("find_tables() failed with default strategy: %s", e)
+
+        # Precision-first policy: fallback text strategy is used only when
+        # default table discovery found no candidates on the page.
+        if not default_candidates:
+            try:
+                fallback_candidates = plumb_page.find_tables(table_settings=self.FALLBACK_TABLE_SETTINGS)
+            except Exception as e:
+                log.debug("find_tables() fallback strategy not available: %s", e)
+
+        candidates_with_source: list[tuple[Any, bool]] = [(candidate, False) for candidate in default_candidates] + [
+            (candidate, True) for candidate in fallback_candidates
+        ]
+
+        deduped: list[tuple[Any, bool]] = []
+        seen_keys: set[tuple[float, float, float, float]] = set()
+        for candidate, is_fallback in candidates_with_source:
+            bbox = getattr(candidate, "bbox", None)
+            if bbox is None:
+                continue
+            try:
+                normalized = self._normalize_bbox(bbox)
+            except Exception:
+                continue
+            key = tuple(round(v, 2) for v in normalized)
+            if key in seen_keys:
+                continue
+            seen_keys.add(key)
+            deduped.append((candidate, is_fallback))
+
+        return deduped
+
     def _is_probable_table(
         self,
         rows: list[list[Any]],
@@ -200,6 +252,17 @@ class PDFParser:
         figure_bboxes: list[BBox],
     ) -> bool:
         """Return True when a detected grid looks like a real table."""
+        return self._table_rejection_reason(rows, bbox, page_words, figure_bboxes) is None
+
+    def _table_rejection_reason(
+        self,
+        rows: list[list[Any]],
+        bbox: BBox,
+        page_words: list[dict[str, Any]],
+        figure_bboxes: list[BBox],
+        is_fallback: bool = False,
+    ) -> str | None:
+        """Return rejection reason for a table candidate, or None if accepted."""
         normalized_rows = [[str(cell or "").strip() for cell in row] for row in rows]
         if len(normalized_rows) < self.MIN_TABLE_ROWS:
             log.debug(
@@ -208,7 +271,7 @@ class PDFParser:
                 self.MIN_TABLE_ROWS,
                 bbox,
             )
-            return False
+            return "insufficient_rows"
 
         total_cells = sum(len(row) for row in normalized_rows)
         non_empty_cells = [cell for row in normalized_rows for cell in row if cell]
@@ -219,7 +282,7 @@ class PDFParser:
                 len(non_empty_cells),
                 bbox,
             )
-            return False
+            return "insufficient_content"
 
         max_cols = max((len(row) for row in normalized_rows), default=0)
         multi_cell_rows = sum(1 for row in normalized_rows if sum(1 for cell in row if cell) >= 2)
@@ -230,7 +293,7 @@ class PDFParser:
                 multi_cell_rows,
                 bbox,
             )
-            return False
+            return "weak_structure"
 
         empty_ratio = 1.0 - (len(non_empty_cells) / total_cells)
         if empty_ratio > self.MAX_TABLE_EMPTY_RATIO:
@@ -240,7 +303,7 @@ class PDFParser:
                 self.MAX_TABLE_EMPTY_RATIO,
                 bbox,
             )
-            return False
+            return "too_sparse"
 
         overlapping_figures = [
             (i, self._bbox_overlap_ratio(bbox, fb))
@@ -254,16 +317,81 @@ class PDFParser:
                 self.TABLE_FIGURE_OVERLAP_THRESHOLD,
                 bbox,
             )
-            return False
+            return "overlaps_figure"
 
         caption_text = self._nearby_caption_text(page_words, bbox).lower()
         has_table_cue = any(token in caption_text for token in ("table", "表"))
         has_figure_cue = any(token in caption_text for token in ("figure", "fig.", "fig ", "図", "chart", "graph", "plot"))
         if has_figure_cue and not has_table_cue:
             log.debug("Rejecting table candidate: figure-like caption (caption='%s') at bbox %s", caption_text[:80], bbox)
+            return "figure_like_caption"
+
+        numeric_ratio = self._numeric_cell_ratio(non_empty_cells)
+        long_cell_ratio = self._long_cell_ratio(non_empty_cells)
+
+        if not is_fallback and not has_table_cue:
+            if (
+                numeric_ratio < self.DEFAULT_MIN_NUMERIC_RATIO_WITHOUT_TABLE_CUE
+                and long_cell_ratio > self.DEFAULT_MAX_LONG_CELL_RATIO_WITHOUT_TABLE_CUE
+            ):
+                log.debug(
+                    "Rejecting default table candidate: prose-like cells without table cue "
+                    "(numeric_ratio=%.2f, long_cell_ratio=%.2f) at bbox %s",
+                    numeric_ratio,
+                    long_cell_ratio,
+                    bbox,
+                )
+                return "default_prose_like_without_table_cue"
+
+        if is_fallback:
+            if not has_table_cue and numeric_ratio < self.FALLBACK_MIN_NUMERIC_RATIO:
+                log.debug(
+                    "Rejecting fallback table candidate: low numeric signal (ratio=%.2f < %.2f) at bbox %s",
+                    numeric_ratio,
+                    self.FALLBACK_MIN_NUMERIC_RATIO,
+                    bbox,
+                )
+                return "fallback_low_table_signal"
+
+            if long_cell_ratio > self.FALLBACK_MAX_LONG_CELL_RATIO:
+                log.debug(
+                    "Rejecting fallback table candidate: prose-like cells (ratio=%.2f > %.2f) at bbox %s",
+                    long_cell_ratio,
+                    self.FALLBACK_MAX_LONG_CELL_RATIO,
+                    bbox,
+                )
+                return "fallback_prose_like_cells"
+
+        return None
+
+    def _numeric_cell_ratio(self, non_empty_cells: list[str]) -> float:
+        """Estimate how table-like a candidate is based on numeric cell prevalence."""
+        if not non_empty_cells:
+            return 0.0
+        numeric_cells = sum(1 for cell in non_empty_cells if self._looks_numeric_cell(cell))
+        return numeric_cells / len(non_empty_cells)
+
+    def _long_cell_ratio(self, non_empty_cells: list[str]) -> float:
+        """Estimate prose-likeness by counting very long sentence-like cells."""
+        if not non_empty_cells:
+            return 0.0
+        long_cells = sum(
+            1 for cell in non_empty_cells if len(cell) >= self.FALLBACK_LONG_CELL_CHAR_THRESHOLD or cell.count(" ") >= 8
+        )
+        return long_cells / len(non_empty_cells)
+
+    @staticmethod
+    def _looks_numeric_cell(text: str) -> bool:
+        """Return True when a cell resembles a numeric metric value."""
+        normalized = text.strip().replace(",", "").replace("%", "").replace("$", "")
+        if not normalized:
             return False
 
-        return True
+        digit_count = sum(ch.isdigit() for ch in normalized)
+        alpha_count = sum(ch.isalpha() for ch in normalized)
+        if digit_count == 0:
+            return False
+        return digit_count >= max(1, alpha_count)
 
     def _nearby_caption_text(self, page_words: list[dict[str, Any]], bbox: BBox) -> str:
         """Collect nearby caption text around a candidate table bbox."""
