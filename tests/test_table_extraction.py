@@ -122,8 +122,8 @@ class TestTableFromImageExtractor:
 
     def test_insufficient_rows_returns_none(self, extractor):
         """Test that grid with < MIN_TABLE_ROWS returns None."""
-        # Create 2-row image (below MIN_TABLE_ROWS=3)
-        img = self._create_simple_table_image(rows=2, cols=3)
+        # Create 1-row image (below MIN_TABLE_ROWS=2)
+        img = self._create_simple_table_image(rows=1, cols=3)
 
         result = extractor.extract_table_from_image(img)
 
@@ -131,8 +131,8 @@ class TestTableFromImageExtractor:
 
     def test_insufficient_cols_returns_none(self, extractor):
         """Test that grid with < MIN_TABLE_COLS returns None or minimal result."""
-        # Create 3x2 image (below MIN_TABLE_COLS=3)
-        img = self._create_simple_table_image(rows=3, cols=2)
+        # Create 3x1 image (below MIN_TABLE_COLS=2)
+        img = self._create_simple_table_image(rows=3, cols=1)
 
         result = extractor.extract_table_from_image(img)
 
