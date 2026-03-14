@@ -11,7 +11,7 @@ Apple Silicon (MLX) 向けに最適化した、PDF解析とRAG質問応答のロ
 - 実行環境想定: macOS (Apple Silicon)
 - 主要モード:
 - Sequential pipeline（標準）
-- LangGraph query pipeline (`--use-langgraph`)
+- LangGraph pipeline（ingest/queryで利用可能）
 - CrewAI integration (`--use-crewai`)
 
 ## 主な機能
@@ -23,7 +23,7 @@ Apple Silicon (MLX) 向けに最適化した、PDF解析とRAG質問応答のロ
 - CHECKPOINT B: 回答の根拠性検証
 - 3つの実行モード:
 - Sequential
-- LangGraph（queryのみ）
+- LangGraph（ingest/query対応）
 - CrewAI
 - ChromaDBベースのセマンティック検索
 - Langfuseトレーシング（環境変数設定時のみ有効）
@@ -96,7 +96,10 @@ python app.py pipeline ./input/sample.pdf "要点を3つで要約して"
 ### モード切り替え
 
 ```bash
-# LangGraph (queryのみ)
+# LangGraph ingest
+python app.py ingest ./input/sample.pdf --use-langgraph
+
+# LangGraph query
 python app.py query "結論は？" --use-langgraph
 
 # CrewAI (ingest/query/pipelineで使用可能)
@@ -107,7 +110,7 @@ python app.py query "図表間の関係は？" --use-crewai
 ### 主要オプション
 
 - `--validate` / `--no-validate`
-- `--use-langgraph`（query、pipelineのqueryフェーズ）
+- `--use-langgraph`（ingestとqueryでLangGraphを使用。pipelineではqueryフェーズに適用）
 - `--use-crewai`
 - `--session-id <id>`
 - `--storage-dir <dir>`
@@ -123,7 +126,9 @@ python app.py query "図表間の関係は？" --use-crewai
 - ingest/queryの両方を担当
 - LangGraph:
 - `src/core/langgraph_pipeline.py`
-- 現在はquery専用
+- ingest: `LangGraphIngestPipeline` を `ingest --use-langgraph` で使用
+- query: `LangGraphQueryPipeline` を `query --use-langgraph` で使用
+- pipelineコマンドではqueryフェーズのみ `--use-langgraph` が適用される
 - CrewAI:
 - `src/core/crewai_pipeline.py` + `src/integrations/crew_mlx_tools.py`
 - `--use-crewai` 経路では、外部API依存を避けるために一部Crewをスキップし、ローカルMLX処理を優先する設計
@@ -136,6 +141,7 @@ python app.py query "図表間の関係は？" --use-crewai
 
 - `<pdf_stem>_chunks.json`
 - `<pdf_stem>_answer.json`
+- `query_answer.json`（`query` コマンド実行時）
 - `<pdf_stem>_audit.json`（監査出力有効時）
 - `<pdf_stem>_audit.html`（監査出力有効時）
 - `<pdf_stem>_audit/pages/*.png`（監査出力有効時）
@@ -144,7 +150,8 @@ python app.py query "図表間の関係は？" --use-crewai
 注意点:
 
 - `save_chunks()` / `save_answer()` は `src/utils/serialization.py` の `OUTPUT_DIR` (`./output`) に保存します。
-- `--output` は監査レポート生成 (`save_chunk_audit`) の出力先として使われます。
+- `--output` は主に監査レポート (`save_chunk_audit`) の出力先として使われます。
+- CLIのログ文言上は `--output` へ保存されるように見える箇所がありますが、chunks/answer JSON の実保存先は `./output` です。
 
 ## モデル既定値 (CLIデフォルト)
 
@@ -177,7 +184,7 @@ pytest tests/test_dspy_validator.py -v
 - MLX依存のため、Apple Silicon前提の設計です。
 - OCRは自動起動しません。スキャンPDFでは前処理が必要です。
 - テーブル検出はPDF構造の品質に依存します。
-- LangGraphのingestグラフ化は将来拡張対象です。
+- `pipeline --use-langgraph` は現状 query フェーズに適用されます（ingest フェーズは Sequential または CrewAI）。
 
 ## 関連ドキュメント
 

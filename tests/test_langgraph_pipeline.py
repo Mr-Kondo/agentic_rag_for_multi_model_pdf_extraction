@@ -14,7 +14,7 @@ This focuses on structure, routing, and state management.
 import pytest
 from unittest.mock import MagicMock, patch
 
-from src.core.graph_state import QueryState, init_query_state
+from src.core.graph_state import QueryState, init_ingest_state, init_query_state
 from src.core.langgraph_pipeline import (
     LangGraphQueryPipeline,
     retrieve_node,
@@ -22,6 +22,7 @@ from src.core.langgraph_pipeline import (
     route_after_quality_check,
     route_after_decide_validate,
     route_after_grounding_check,
+    _safe_extracted_pairs,
 )
 from src.core.models import RAGAnswer
 
@@ -337,3 +338,25 @@ class TestStateSafety:
         assert len(state["errors"]) == 2
         assert "Error 1" in state["errors"]
         assert "Error 2" in state["errors"]
+
+
+class TestIngestStateSafety:
+    """Regression tests for ingest state hidden pair handling."""
+
+    def test_init_ingest_state_initializes_hidden_pairs(self):
+        """Ensure ingest state always includes list-valued _extracted_pairs."""
+        state = init_ingest_state(pdf_path="dummy.pdf", validates=True)
+
+        assert "_extracted_pairs" in state
+        assert isinstance(state["_extracted_pairs"], list)
+        assert state["_extracted_pairs"] == []
+
+    def test_safe_extracted_pairs_missing_key_returns_empty_and_warns(self):
+        """Ensure helper prevents NoneType crashes when hidden key is absent."""
+        state = init_ingest_state(pdf_path="dummy.pdf", validates=True)
+        state.pop("_extracted_pairs", None)
+
+        pairs = _safe_extracted_pairs(state, phase="validate_chunks")
+
+        assert pairs == []
+        assert any("_extracted_pairs" in warning for warning in state["warnings"])
