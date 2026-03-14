@@ -1,209 +1,120 @@
-# Model Configuration System - Implementation Guide
+# Configuration Setup Guide
 
-## Overview
+Last updated: 2026-03-15
 
-The repository now uses a **settings.json**-based configuration system for managing model IDs across the entire pipeline. This eliminates hardcoded model references and allows easy customization without code changes.
+このガイドは、現行実装に合わせた設定手順をまとめたものです。
 
-### 🔑 Important: External API Keys Not Required
+## 1. 前提
 
-**The system runs completely locally using MLX models.** No external API keys (OpenAI, HuggingFace, etc.) are required for operation. All models are:
-- Quantized 4-bit MLX compatible models
-- Cached locally after first download
-- Optimized for Apple Silicon
-- Fully self-contained within the pipeline
+- Python 3.13+
+- macOS (Apple Silicon)
+- ローカル実行前提（MLXモデル）
 
-You can safely omit `OPENAI_API_KEY` from your `.env` file.
+本プロジェクトはローカルMLX実行を基本としており、OpenAI等の外部推論APIキーは必須ではありません。
 
-## Files Created
+## 2. 設定ファイル
 
-### 1. `src/core/config.py` (155 lines)
-Configuration loader with built-in defaults and fallback mechanism.
+### 2.1 settings.json
 
-**Key Features:**
-- Reads from `settings.json` in project root
-- Falls back to defaults if file missing or incomplete
-- Supports dot-notation for nested config access
-- Deep merge of user config with defaults
-
-**Usage:**
-```python
-from src.core.config import config
-
-# Get a specific model ID
-text_model = config.get_model("text_extraction")
-
-# Get nested config with dot notation
-confidence_threshold = config.get("validation.confidence_threshold")
-
-# Get all models
-all_models = config.config["models"]
-```
-
-### 2. `settings.json` (22 lines)
-Default configuration file with all model IDs and pipeline settings.
-
-**Structure:**
-```json
-{
-  "models": {
-    "text_extraction": "...",
-    "table_extraction": "...",
-    "vision_extraction": "...",
-    "orchestrator": "...",
-    "answer_validator": "...",
-    "dspy_lm": "...",
-    "embedder": "..."
-  },
-  "pipeline": {...},
-  "cache": {...},
-  "validation": {...}
-}
-```
-
-### 3. `settings.example.json` (25 lines)
-Template file for users to copy and customize.
-
-### 4. `.gitignore` Update
-Added entry to prevent committing user-customized `settings.json`:
-```
-# Configuration (user-customized)
-settings.json
-```
-
-## Files Modified
-
-### 1. `src/core/pipeline.py`
-- Added import: `from src.core.config import config`
-- Updated `AgenticRAGPipeline.build()` method signature:
-  - Changed integer defaults to `Optional[str]` with `None` defaults
-  - Load models from config if not provided as arguments
-  ```python
-  text_model = text_model or config.get_model("text_extraction")
-  table_model = table_model or config.get_model("table_extraction")
-  # ... etc
-  ```
-
-### 2. `src/core/langgraph_pipeline.py`
-- Added import: `from src.core.config import config`
-- Updated `LangGraphQueryPipeline.build()` method:
-  - Load orchestrator and answer_validator models from config
-  - Maintains override capability via method parameters
-
-### 3. `src/integrations/crew_mlx_tools.py`
-- Added import: `from src.core.config import config`
-- Updated all tool classes:
-  - `MLXTextExtractionTool`: Load text extraction model from config
-  - `MLXTableExtractionTool`: Load table extraction model from config
-  - `MLXVisionExtractionTool`: Load vision extraction model from config
-  - `CrewMLXToolkit`: Initialize all tools with config-based models
-
-### 4. `src/integrations/dspy_adapter.py`
-- Added import: `from src.core.config import config`
-- Updated `configure_mlx_lm()` function:
-  - Load dspy_lm model ID from config by default
-  - Maintains backward compatibility with explicit model_id parameter
-
-## How It Works
-
-### Configuration Loading Flow
-
-```
-1. Application Start
-   └─→ import src.core.config.ConfigLoader
-   
-2. ConfigLoader Initialization
-   ├─→ Load defaults from _DEFAULTS dict
-   ├─→ Check for settings.json in project root
-   ├─→ If found: Deep merge with defaults
-   ├─→ If not found: Use defaults only + warn in logs
-   └─→ config singleton instance ready
-
-3. Module Import
-   └─→ from src.core.config import config
-       (Reuses singleton instance)
-
-4. Model ID Access
-   ├─→ Explicit override: TextAgent(model_id="custom/model")
-   ├─→ Config default: TextAgent(model_id=config.get_model("text_extraction"))
-   └─→ Built-in default: config.get_model("text_extraction") → "mlx-community/Phi-3.5-mini-Instruct-4bit"
-```
-
-### Customization Example
-
-To use different models, edit `settings.json`:
-
-```json
-{
-  "models": {
-    "text_extraction": "my-custom-text-model-4bit",
-    "table_extraction": "my-custom-table-model-4bit",
-    "orchestrator": "my-custom-reasoning-8b",
-    "_comment": "All models are MLX-compatible"
-  }
-}
-```
-
-Next application start will automatically use these custom models.
-
-## Fallback Behavior
-
-If `settings.json` is missing or contains invalid JSON:
-
-1. **Load phase**: Log warning "settings.json not found..."
-2. **Fallback**: Use hardcoded defaults from `ConfigLoader._DEFAULTS`
-3. **Application**: Continues normally with defaults
-4. **User action**: Copy `settings.example.json` to `settings.json` to customize
-
-## Key Features
-
-✅ **No Hardcoded Model IDs**: All references moved to `settings.json`  
-✅ **Centralized Configuration**: Single source of truth for all models  
-✅ **Easy Customization**: Edit JSON, no code changes needed  
-✅ **Version Control Safe**: `settings.json` in `.gitignore`  
-✅ **Backward Compatible**: Existing code works unchanged  
-✅ **Fallback Defaults**: Works without `settings.json` file  
-✅ **Type Hints**: Proper Python typing throughout  
-✅ **Logging**: Info and warning messages for debugging  
-
-## Configuration Keys Reference
-
-### Models
-- `text_extraction`: TextAgent model (default: Phi-3.5-mini-Instruct-4bit)
-- `table_extraction`: TableAgent model (default: Qwen2.5-3B-Instruct-4bit)
-- `vision_extraction`: VisionAgent model (default: SmolVLM-256M-Instruct-4bit)
-- `chunk_validator`: ChunkValidatorAgent (default: Qwen2-VL-7B-Instruct-4bit)
-- `orchestrator`: ReasoningOrchestratorAgent (default: DeepSeek-R1-Distill-Llama-8B-4bit)
-- `answer_validator`: AnswerValidatorAgent (default: Qwen3-8B-4bit)
-- `dspy_lm`: DSPy language model (default: Qwen2.5-7B-Instruct-4bit)
-- `embedder`: Embedding model (default: intfloat/multilingual-e5-small)
-
-### Pipeline
-- `max_context_chunks`: Number of chunks retrieved (default: 8)
-- `embedder_batch_size`: Batch size for embeddings (default: 32)
-- `chunk_size`: Character size of chunks (default: 800)
-
-### Validation
-- `confidence_threshold`: Self-reflection threshold (default: 0.5)
-- `enable_checkpoint_a`: Enable chunk validation (default: true)
-- `enable_checkpoint_b`: Enable answer validation (default: true)
-
-## Testing Configuration
-
-Verify the configuration system:
+プロジェクトルートの `settings.json` を使用します。
 
 ```bash
-# Check configuration loads
-python -c "from src.core.config import config; print(config.get_model('orchestrator'))"
-
-# Expected output:
-# mlx-community/DeepSeek-R1-Distill-Llama-8B-4bit
+cp settings.example.json settings.json
 ```
 
-## Future Enhancements
+`src/core/config.py` が起動時に `settings.json` を読み込み、不足キーはデフォルトで補完します。
 
-Potential improvements:
-- Environment variable overrides (`.env` support)
-- Profile support (dev/test/prod)
-- Schema validation with Pydantic
-- Model aliasing for easier switching
-- Remote configuration server support
+### 2.2 主なキー
+
+`settings.json` の主なセクション:
+
+- `models`
+  - `text_extraction`
+  - `table_extraction`
+  - `vision_extraction`
+  - `orchestrator`
+  - `chunk_validator`
+  - `answer_validator`
+  - `dspy_lm`
+  - `embedder`
+- `pipeline`
+  - `max_context_chunks`
+  - `embedder_batch_size`
+  - `chunk_size`
+- `validation`
+  - `confidence_threshold`
+  - `enable_checkpoint_a`
+  - `enable_checkpoint_b`
+
+## 3. CLIオーバーライド
+
+`settings.json` の値は、CLI引数で一時的に上書きできます。
+
+代表例:
+
+```bash
+python app.py ingest input/sample.pdf \
+  --text-model mlx-community/Phi-3.5-mini-Instruct-4bit \
+  --table-model mlx-community/Qwen2.5-3B-Instruct-4bit
+```
+
+query/pipelineでも同様に`--orchestrator-model`などを指定できます。
+
+## 4. 出力先設定
+
+CLIには `--output` がありますが、用途は2系統です。
+
+- chunks/answer JSON:
+  - `src/utils/serialization.py` の `OUTPUT_DIR=./output` に保存
+  - `--output` の指定値とは独立
+- 監査レポート（audit）:
+  - `--output` の指定先を使用
+
+運用上は「JSONは `./output`、監査は `--output`」として扱うと混乱が少なくなります。
+
+## 5. Langfuse設定（任意）
+
+トレースを有効にする場合は環境変数を設定します。
+
+```bash
+LANGFUSE_PUBLIC_KEY=pk-lf-...
+LANGFUSE_SECRET_KEY=sk-lf-...
+LANGFUSE_HOST=https://cloud.langfuse.com
+```
+
+未設定でも処理は継続します（no-op動作）。
+
+## 6. モデルキャッシュ
+
+モデルは `src/core/cache.py` によりキャッシュ管理されます。
+
+- 初回ロードは時間がかかる場合があります
+- 同一モデルの再利用で起動コストを削減
+- 必要に応じて `cleanup_unused_models()` が未使用モデルを解放
+
+## 7. 動作確認
+
+### 7.1 設定の読込確認
+
+```bash
+python -c "from src.core.config import config; print(config.get_model('orchestrator'))"
+```
+
+### 7.2 CLIヘルプ確認
+
+```bash
+python app.py --help
+python app.py ingest --help
+python app.py query --help
+python app.py pipeline --help
+```
+
+## 8. よくある注意点
+
+- `settings.json`のJSON構文エラー時はデフォルト値へフォールバックします。
+- `--validate` はデフォルトで有効です（`--no-validate` で無効化）。
+- `--use-langgraph` の適用範囲:
+  - ingest: LangGraphIngestPipeline
+  - query: LangGraphQueryPipeline
+  - pipeline: queryフェーズに適用
+- `--use-crewai`はingest/query/pipelineで利用可能です。
