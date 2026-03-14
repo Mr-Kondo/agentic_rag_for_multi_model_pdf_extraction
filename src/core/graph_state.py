@@ -16,7 +16,7 @@ Design Principles:
 """
 
 import logging
-from typing import Any, Dict, List, Optional, TypedDict
+from typing import Any, Dict, List, Optional, Tuple, TypedDict
 
 from src.core.models import RAGAnswer, RawChunk, ProcessedChunk
 from src.integrations.langfuse import TraceHandle
@@ -130,6 +130,8 @@ class IngestState(TypedDict, total=False):
         all_extracted: All extracted chunks merged
         validated_chunks: Chunks after validation (if validates=True)
         accepted_chunks: Final chunks to be stored
+        _extracted_pairs: Internal raw/processed pair list for validation and audit
+        _audit_output_dir: Internal output directory for audit artifacts
 
         # Metadata
         trace: Langfuse trace handle for observability
@@ -156,6 +158,8 @@ class IngestState(TypedDict, total=False):
     all_extracted: List[ProcessedChunk]
     validated_chunks: List[ProcessedChunk]
     accepted_chunks: List[ProcessedChunk]
+    _extracted_pairs: List[Tuple[RawChunk, ProcessedChunk]]
+    _audit_output_dir: Optional[str]
 
     # ──────── Metadata ────────
     trace: Optional[TraceHandle]
@@ -260,6 +264,8 @@ def init_ingest_state(
         all_extracted=[],
         validated_chunks=[],
         accepted_chunks=[],
+        _extracted_pairs=[],
+        _audit_output_dir=None,
         # Metadata
         trace=trace,
         errors=[],

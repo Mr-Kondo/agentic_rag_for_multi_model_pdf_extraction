@@ -32,6 +32,7 @@ from src.core.cache import _model_cache
 from src.core.models import ChunkType
 from src.core.pipeline import AgenticRAGPipeline
 from src.core.langgraph_pipeline import LangGraphQueryPipeline
+from src.core.langgraph_pipeline import LangGraphIngestPipeline
 from src.utils.serialization import save_answer, save_chunks
 
 # Configure logging
@@ -77,30 +78,54 @@ def cmd_ingest(args: argparse.Namespace) -> int:
         log.error(f"❌ PDF file not found: {pdf_path}")
         return 1
 
-    log.info("Building RAG pipeline...")
-    pipeline = AgenticRAGPipeline.build(
-        text_model=args.text_model,
-        table_model=args.table_model,
-        vision_model=args.vision_model,
-        orchestrator_model=args.orchestrator_model,
-        chunk_validator_model=args.chunk_validator_model,
-        answer_validator_model=args.answer_validator_model,
-        persist_dir=args.storage_dir,
-        lazy_agents=args.lazy_agents,
-        use_crewai=args.use_crewai,
-    )
-
     log.info(f"\n{'=' * 70}")
     log.info(f"📂 Ingesting: {pdf_path.name}")
     log.info(f"{'=' * 70}\n")
 
-    if args.use_crewai:
+    if args.use_langgraph:
+        log.info("Building LangGraph ingest pipeline...")
+        lg_pipeline = LangGraphIngestPipeline.build(
+            text_model=args.text_model,
+            table_model=args.table_model,
+            vision_model=args.vision_model,
+            chunk_validator_model=args.chunk_validator_model,
+            persist_dir=args.storage_dir,
+        )
+        chunks = lg_pipeline.ingest(
+            pdf_path,
+            validates=args.validate,
+            audit_output_dir=args.output if args.output else None,
+        )
+    elif args.use_crewai:
+        log.info("Building RAG pipeline (CrewAI)...")
+        pipeline = AgenticRAGPipeline.build(
+            text_model=args.text_model,
+            table_model=args.table_model,
+            vision_model=args.vision_model,
+            orchestrator_model=args.orchestrator_model,
+            chunk_validator_model=args.chunk_validator_model,
+            answer_validator_model=args.answer_validator_model,
+            persist_dir=args.storage_dir,
+            lazy_agents=args.lazy_agents,
+            use_crewai=True,
+        )
         chunks = pipeline.ingest_with_crewai(
             pdf_path,
             validates=args.validate,
             audit_output_dir=args.output if args.output else None,
         )
     else:
+        log.info("Building RAG pipeline...")
+        pipeline = AgenticRAGPipeline.build(
+            text_model=args.text_model,
+            table_model=args.table_model,
+            vision_model=args.vision_model,
+            orchestrator_model=args.orchestrator_model,
+            chunk_validator_model=args.chunk_validator_model,
+            answer_validator_model=args.answer_validator_model,
+            persist_dir=args.storage_dir,
+            lazy_agents=args.lazy_agents,
+        )
         chunks = pipeline.ingest(
             pdf_path,
             validates=args.validate,
@@ -420,6 +445,12 @@ For more information, see: https://github.com/yourusername/agentic-rag
         action="store_true",
         default=False,
         help="Use CrewAI crews for parallel extraction and cross-linking (faster, more efficient)",
+    )
+    ingest_parser.add_argument(
+        "--use-langgraph",
+        action="store_true",
+        default=False,
+        help="Use LangGraph-based pipeline (improved workflow visibility)",
     )
     ingest_parser.set_defaults(func=cmd_ingest)
 

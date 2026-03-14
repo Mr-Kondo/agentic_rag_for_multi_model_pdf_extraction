@@ -1,44 +1,52 @@
 """
 LangGraph-based RAG pipeline for improved readability and performance.
 
-This module implements the query pipeline using LangGraph's state graph
-architecture, providing:
+This module implements both the query pipeline and the ingest pipeline using
+LangGraph's state graph architecture, providing:
 - Visual workflow representation (nodes and edges)
 - Conditional branching (quality gates)
 - Better error handling and recovery
 - Easier debugging with intermediate state snapshots
-- Foundation for future optimizations (parallelization, checkpointing)
 
-Key improvements over sequential pipeline:
-1. Explicit workflow structure: Easy to understand data flow
-2. Quality gates: Skip unnecessary processing (e.g., no hits → no generation)
-3. Conditional validation: Only validate when needed
-4. Revision loop: Automatic hallucination correction
-5. State tracking: Clear phase boundaries and error accumulation
+Pipelines
+---------
+LangGraphQueryPipeline:
+    8-node StateGraph for answer generation with optional validation.
+    Use via --use-langgraph on the query and pipeline subcommands.
 
-Performance characteristics:
-- Query pipeline: Comparable to original (focus on quality gates)
-- Future ingest pipeline: 3-6x speedup via parallelization (Phase 2)
+LangGraphIngestPipeline:
+    4-node StateGraph for PDF extraction with optional chunk validation.
+    Use via --use-langgraph on the ingest and pipeline subcommands.
 
 Usage:
     >>> from src.core.langgraph_pipeline import LangGraphQueryPipeline
     >>> pipeline = LangGraphQueryPipeline.build()
     >>> answer = pipeline.query("What are the main findings?", validates=True)
+
+    >>> from src.core.langgraph_pipeline import LangGraphIngestPipeline
+    >>> ingest_pipeline = LangGraphIngestPipeline.build()
+    >>> chunks = ingest_pipeline.ingest("paper.pdf", validates=True)
 """
 
 import logging
-from typing import Any, Dict, Literal
+from pathlib import Path
+from typing import Any, Dict, List, Literal, Tuple
 
 from langgraph.graph import END, StateGraph
 
+from src.agents.extraction import TableAgent, TextAgent, VisionAgent
 from src.agents.orchestrator import ReasoningOrchestratorAgent
-from src.agents.validation import AnswerValidatorAgent
-from src.core.graph_state import QueryState, init_query_state
-from src.core.models import RAGAnswer, ValidationSummary
+from src.agents.router import AgentRouter
+from src.agents.validation import AnswerValidatorAgent, ChunkValidatorAgent
+from src.core.config import config
+from src.core.graph_state import IngestState, QueryState, init_ingest_state, init_query_state
+from src.core.models import ProcessedChunk, RAGAnswer, RawChunk, ValidationSummary
+from src.core.parser import PDFParser
 from src.core.store import ChunkStore
 from src.integrations.langfuse import LangfuseTracer
+from src.utils.audit import save_chunk_audit
 
-__all__ = ["LangGraphQueryPipeline"]
+__all__ = ["LangGraphQueryPipeline", "LangGraphIngestPipeline"]
 
 log = logging.getLogger(__name__)
 
@@ -736,3 +744,393 @@ class LangGraphQueryPipeline:
         log.info("=" * 70 + "\n")
 
         return result
+
+
+# ============================================================================
+# Ingest Routing Functions
+# ============================================================================
+
+
+def route_after_extract(state: IngestState) -> Literal["validate_chunks", "store"]:
+    """Route based on whether chunk validation is enabled."""
+    if state.get("validates"):
+        return "validate_chunks"
+    return "store"
+
+
+def _safe_extracted_pairs(state: IngestState, phase: str) -> List[Tuple[RawChunk, ProcessedChunk]]:
+    """Return extracted raw/processed pairs with defensive fallback for invalid state."""
+    pairs = state.get("_extracted_pairs")
+    if not isinstance(pairs, list):
+        warning_msg = (
+            f"[{phase}] Missing or invalid _extracted_pairs in state (got {type(pairs).__name__}); falling back to empty list"
+        )
+        log.warning(warning_msg)
+        state["warnings"].append(warning_msg)
+        return []
+    return pairs
+
+
+# ============================================================================
+# LangGraphIngestPipeline
+# ============================================================================
+
+
+class LangGraphIngestPipeline:
+    """
+    LangGraph-based ingest pipeline for sequential PDF document processing.
+
+    Uses LangGraph's state graph to implement the PDF ingest workflow with
+    explicit phases, conditional chunk validation, and audit trail support.
+
+    Workflow:
+        START
+          |
+        parse  (PDFParser, no LLM)
+          |
+        extract  (TextAgent / TableAgent / VisionAgent)
+          |
+        validate_chunks  (optional, CHECKPOINT A — ChunkValidatorAgent)
+          |
+        store  (ChromaDB upsert + optional audit)
+          |
+        END
+
+    Notes:
+        - Extraction agents (small SLMs) are loaded at build time and remain
+          loaded for the duration of the ingest call.
+        - ChunkValidatorAgent is loaded/unloaded with its context manager to
+          free VRAM promptly after validation completes.
+        - Audit artifacts (HTML/JSON) are written from the store node when
+          audit_output_dir is provided to ingest().
+
+    Usage:
+        >>> pipeline = LangGraphIngestPipeline.build()
+        >>> chunks = pipeline.ingest("paper.pdf", validates=True)
+        >>> print(f"Ingested {len(chunks)} chunks")
+    """
+
+    def __init__(
+        self,
+        text_agent: TextAgent,
+        table_agent: TableAgent,
+        vision_agent: VisionAgent,
+        chunk_validator: ChunkValidatorAgent,
+        store: ChunkStore,
+        tracer: LangfuseTracer,
+    ):
+        """
+        Initialize ingest pipeline with extraction and validation components.
+
+        Args:
+            text_agent: Agent for processing text chunks
+            table_agent: Agent for processing table chunks
+            vision_agent: Agent for processing figure/image chunks
+            chunk_validator: Agent for chunk quality validation (CHECKPOINT A)
+            store: Vector store for persisting extracted chunks
+            tracer: Langfuse tracer for observability
+        """
+        self.parser = PDFParser()
+        self.router = AgentRouter(text_agent, table_agent, vision_agent)
+        self.chunk_validator = chunk_validator
+        self.store = store
+        self.tracer = tracer
+        self.graph = self._build_graph()
+        log.info("LangGraphIngestPipeline initialized")
+
+    @classmethod
+    def build(
+        cls,
+        text_model: str | None = None,
+        table_model: str | None = None,
+        vision_model: str | None = None,
+        chunk_validator_model: str | None = None,
+        persist_dir: str = "./chroma_db",
+    ) -> "LangGraphIngestPipeline":
+        """
+        Build ingest pipeline with models resolved from settings.json.
+
+        Args:
+            text_model: Model ID for text extraction (~3-4B)
+            table_model: Model ID for table extraction (~3B)
+            vision_model: Model ID for vision extraction (~256M-2B)
+            chunk_validator_model: Model ID for chunk validation (~7B VLM)
+            persist_dir: ChromaDB persistence directory
+
+        Returns:
+            Initialized LangGraphIngestPipeline
+        """
+        text_model = text_model or config.get_model("text_extraction")
+        table_model = table_model or config.get_model("table_extraction")
+        vision_model = vision_model or config.get_model("vision_extraction")
+        chunk_validator_model = chunk_validator_model or config.get_model("chunk_validator")
+
+        log.info("Building LangGraphIngestPipeline...")
+        log.info("  text_model       : %s", text_model)
+        log.info("  table_model      : %s", table_model)
+        log.info("  vision_model     : %s", vision_model)
+        log.info("  chunk_validator  : %s", chunk_validator_model)
+
+        text_agent = TextAgent(text_model)
+        table_agent = TableAgent(table_model)
+        vision_agent = VisionAgent(vision_model)
+        chunk_validator = ChunkValidatorAgent(chunk_validator_model)
+        store = ChunkStore(persist_dir)
+        tracer = LangfuseTracer()
+
+        return cls(
+            text_agent=text_agent,
+            table_agent=table_agent,
+            vision_agent=vision_agent,
+            chunk_validator=chunk_validator,
+            store=store,
+            tracer=tracer,
+        )
+
+    def _build_graph(self) -> StateGraph:
+        """
+        Build the LangGraph state graph for the ingest pipeline.
+
+        Nodes are implemented as closures to access pipeline components
+        (router, chunk_validator, store, tracer) without global state.
+
+        Returns:
+            Compiled state graph ready for execution
+        """
+        log.info("Building LangGraph ingest workflow...")
+
+        router = self.router
+        chunk_validator = self.chunk_validator
+        store = self.store
+        tracer = self.tracer
+
+        def _parse(state: IngestState) -> IngestState:
+            """Node 1: Parse PDF into raw chunks (PDFParser, no LLM)."""
+            trace = state.get("trace")
+            pdf_path = Path(state["pdf_path"])
+
+            log.info("[parse] Parsing PDF: %s", pdf_path.name)
+
+            if trace:
+                with trace.span("parse_pdf") as s:
+                    raw_chunks = self.parser.parse(pdf_path)
+                    s.update(output={"n_raw": len(raw_chunks)})
+            else:
+                raw_chunks = self.parser.parse(pdf_path)
+
+            log.info("[parse] Parsed %d raw chunks", len(raw_chunks))
+
+            state["raw_chunks"] = raw_chunks
+            state["current_phase"] = "extract"
+            state["stats"]["raw_count"] = len(raw_chunks)
+            return state
+
+        def _extract(state: IngestState) -> IngestState:
+            """Node 2: Route each raw chunk to its specialized extraction agent."""
+            trace = state.get("trace")
+            raw_chunks = state["raw_chunks"]
+
+            log.info("[extract] Extracting %d chunks with specialized agents...", len(raw_chunks))
+
+            pairs: List[Tuple[RawChunk, ProcessedChunk]] = []
+            for raw in raw_chunks:
+                processed = router.route(raw, trace=trace)
+                pairs.append((raw, processed))
+
+            all_processed = [processed for _, processed in pairs]
+            log.info("[extract] Extracted %d chunks", len(all_processed))
+
+            state["all_extracted"] = all_processed
+            # Store raw-processed pairs as hidden state for validation and audit use.
+            state["_extracted_pairs"] = pairs
+            # Default acceptance uses confidence floor; overwritten if validation runs.
+            state["accepted_chunks"] = [p for p in all_processed if p.confidence >= 0.25]
+            state["current_phase"] = "decide_validate"
+            state["stats"]["extracted_count"] = len(all_processed)
+            return state
+
+        def _validate_chunks(state: IngestState) -> IngestState:
+            """Node 3: CHECKPOINT A — validate each chunk against its source."""
+            trace = state.get("trace")
+            pairs = _safe_extracted_pairs(state, phase="validate_chunks")
+
+            log.info("[validate_chunks] CHECKPOINT A: validating %d chunks...", len(pairs))
+
+            accepted: List[ProcessedChunk] = []
+            corrected_count = 0
+            discarded_count = 0
+
+            try:
+                with chunk_validator:
+                    log.info("  [LOAD] ChunkValidatorAgent loaded")
+                    for raw, processed in pairs:
+                        val = chunk_validator.validate_chunk(raw=raw, processed=processed, trace=trace)
+                        processed.validation = val
+
+                        if trace:
+                            tracer.score(
+                                trace_id=trace.trace_id,
+                                name="chunk_quality",
+                                value=val.verdict_score,
+                                comment=(f"p.{processed.page_num} {processed.chunk_type.value} | " + "; ".join(val.issues)),
+                            )
+
+                        if not val.is_valid:
+                            if val.corrected is not None:
+                                val.corrected.validation = val
+                                accepted.append(val.corrected)
+                                corrected_count += 1
+                            else:
+                                discarded_count += 1
+                        elif processed.confidence >= 0.25:
+                            accepted.append(processed)
+                        else:
+                            discarded_count += 1
+
+                log.info("  [UNLOAD] ChunkValidatorAgent unloaded")
+
+            except Exception as e:
+                log.error(
+                    "[validate_chunks] Validation failed (%s) — falling back to confidence filter",
+                    e,
+                )
+                accepted = [p for _, p in pairs if p.confidence >= 0.25]
+                state["warnings"].append(f"Chunk validation failed: {e}")
+
+            log.info(
+                "[validate_chunks] Done: accepted=%d corrected=%d discarded=%d",
+                len(accepted),
+                corrected_count,
+                discarded_count,
+            )
+
+            state["accepted_chunks"] = accepted
+            state["current_phase"] = "store"
+            state["stats"]["corrected_count"] = corrected_count
+            state["stats"]["discarded_count"] = discarded_count
+            return state
+
+        def _store(state: IngestState) -> IngestState:
+            """Node 4: Upsert accepted chunks into ChromaDB, optionally write audit."""
+            trace = state.get("trace")
+            accepted = state["accepted_chunks"]
+            pdf_path = Path(state["pdf_path"])
+            audit_dir = state.get("_audit_output_dir")  # type: ignore
+
+            log.info("[store] Upserting %d chunks into vector store...", len(accepted))
+
+            if trace:
+                with trace.span("upsert_store", input={"n": len(accepted)}) as s:
+                    store.upsert(accepted)
+                    s.update(output={"upserted": len(accepted)})
+            else:
+                store.upsert(accepted)
+
+            log.info("[store] Upserted successfully")
+
+            if audit_dir is not None:
+                pairs = _safe_extracted_pairs(state, phase="store")
+                save_chunk_audit(
+                    pdf_path=pdf_path,
+                    extracted=pairs,
+                    accepted=accepted,
+                    output_dir=audit_dir,
+                )
+                log.info("[store] Audit written to %s", audit_dir)
+
+            state["current_phase"] = "done"
+            state["stats"]["accepted_count"] = len(accepted)
+            return state
+
+        # ──────── Build Graph ────────
+        builder = StateGraph(IngestState)
+
+        builder.add_node("parse", _parse)
+        builder.add_node("extract", _extract)
+        builder.add_node("validate_chunks", _validate_chunks)
+        builder.add_node("store", _store)
+
+        builder.set_entry_point("parse")
+        builder.add_edge("parse", "extract")
+        builder.add_edge("validate_chunks", "store")
+        builder.add_edge("store", END)
+
+        builder.add_conditional_edges(
+            "extract",
+            route_after_extract,
+            {
+                "validate_chunks": "validate_chunks",
+                "store": "store",
+            },
+        )
+
+        graph = builder.compile()
+        log.info("LangGraph ingest workflow compiled successfully")
+        return graph
+
+    def ingest(
+        self,
+        pdf_path: str | Path,
+        validates: bool = True,
+        audit_output_dir: str | Path | None = None,
+    ) -> List[ProcessedChunk]:
+        """
+        Execute ingest pipeline using LangGraph workflow.
+
+        Args:
+            pdf_path: Path to PDF file to ingest
+            validates: Whether to run chunk quality validation (CHECKPOINT A)
+            audit_output_dir: Optional directory for HTML/JSON audit artifacts
+
+        Returns:
+            List of accepted ProcessedChunk objects stored in vector DB
+
+        Example:
+            >>> pipeline = LangGraphIngestPipeline.build()
+            >>> chunks = pipeline.ingest("paper.pdf", validates=True)
+            >>> print(f"Ingested {len(chunks)} chunks")
+        """
+        pdf_path = Path(pdf_path)
+
+        log.info("=" * 70)
+        log.info("LANGGRAPH INGEST PHASE: %s", pdf_path.name)
+        log.info("=" * 70)
+
+        with self.tracer.trace(
+            "langgraph_ingest",
+            input={"file": pdf_path.name, "validates": validates},
+            metadata={"pipeline": "langgraph_ingest_v1"},
+        ) as trace:
+            state = init_ingest_state(
+                pdf_path=str(pdf_path),
+                validates=validates,
+                trace=trace,
+            )
+            # Inject non-schema keys for audit path and tracer access.
+            state["_audit_output_dir"] = (  # type: ignore
+                str(audit_output_dir) if audit_output_dir else None
+            )
+
+            log.info("Executing LangGraph ingest workflow...")
+            final_state = self.graph.invoke(state)
+
+            accepted = final_state.get("accepted_chunks", [])
+            stats = final_state.get("stats", {})
+
+            log.info("Pipeline statistics:")
+            log.info("  - Raw chunks parsed  : %d", stats.get("raw_count", 0))
+            log.info("  - Extracted chunks   : %d", stats.get("extracted_count", 0))
+            log.info("  - Accepted chunks    : %d", stats.get("accepted_count", len(accepted)))
+            log.info("  - Corrected chunks   : %d", stats.get("corrected_count", 0))
+            log.info("  - Discarded chunks   : %d", stats.get("discarded_count", 0))
+
+            for warning in final_state.get("warnings", []):
+                log.warning("  %s", warning)
+            for error in final_state.get("errors", []):
+                log.error("  %s", error)
+
+        log.info("=" * 70)
+        log.info("LangGraph ingest complete")
+        log.info("=" * 70 + "\n")
+
+        return accepted
