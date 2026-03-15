@@ -243,6 +243,54 @@ def test_processed_chunk_with_cross_links():
     assert chunk.cross_links[0].link_type == "reference"
 
 
+def test_process_chunks_skips_validation_when_disabled():
+    """Validation crew is bypassed when validates=False."""
+    pipeline = CrewAIIngestionPipeline.__new__(CrewAIIngestionPipeline)
+    pipeline.chunk_store = MagicMock()
+
+    processed = ProcessedChunk(chunk_type=ChunkType.TEXT, page_num=1, structured_text="text")
+
+    pipeline.extraction_crew = MagicMock()
+    pipeline.extraction_crew.extract_chunks.return_value = [processed]
+
+    pipeline.validation_crew = MagicMock()
+    pipeline.validation_crew.validate_chunks.return_value = ([processed], [])
+
+    pipeline.linking_crew = MagicMock()
+    pipeline.linking_crew.detect_links.return_value = []
+
+    raw = RawChunk(chunk_type=ChunkType.TEXT, page_num=1, raw_content="raw", source_file="test.pdf")
+    stored = pipeline.process_chunks([raw], validates=False)
+
+    pipeline.validation_crew.validate_chunks.assert_not_called()
+    pipeline.chunk_store.upsert.assert_called_once_with([processed])
+    assert stored == [processed]
+
+
+def test_process_chunks_calls_validation_when_enabled():
+    """Validation crew runs when validates=True."""
+    pipeline = CrewAIIngestionPipeline.__new__(CrewAIIngestionPipeline)
+    pipeline.chunk_store = MagicMock()
+
+    processed = ProcessedChunk(chunk_type=ChunkType.TEXT, page_num=1, structured_text="text")
+
+    pipeline.extraction_crew = MagicMock()
+    pipeline.extraction_crew.extract_chunks.return_value = [processed]
+
+    pipeline.validation_crew = MagicMock()
+    pipeline.validation_crew.validate_chunks.return_value = ([processed], [])
+
+    pipeline.linking_crew = MagicMock()
+    pipeline.linking_crew.detect_links.return_value = []
+
+    raw = RawChunk(chunk_type=ChunkType.TEXT, page_num=1, raw_content="raw", source_file="test.pdf")
+    stored = pipeline.process_chunks([raw], validates=True)
+
+    pipeline.validation_crew.validate_chunks.assert_called_once_with([processed])
+    pipeline.chunk_store.upsert.assert_called_once_with([processed])
+    assert stored == [processed]
+
+
 # ═══════════════════════════════════════════════════════════
 # INTEGRATION TESTS
 # ═══════════════════════════════════════════════════════════

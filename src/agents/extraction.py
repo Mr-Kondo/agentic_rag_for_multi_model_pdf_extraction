@@ -25,6 +25,24 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
+def _is_structured_table_markdown(table_markdown: str | None) -> bool:
+    """Return True when markdown has a minimally valid table structure."""
+    if not table_markdown:
+        return False
+
+    lines = [line.strip() for line in table_markdown.splitlines() if line.strip()]
+    if len(lines) < 3:
+        return False
+
+    header_line = lines[0]
+    separator_line = lines[1]
+    if "|" not in header_line or "|" not in separator_line or "---" not in separator_line:
+        return False
+
+    header_cells = [cell.strip() for cell in header_line.strip("|").split("|")]
+    return len(header_cells) >= 2
+
+
 def _chunk_kwargs(chunk: "RawChunk") -> dict:
     """Copy provenance metadata from RawChunk into ProcessedChunk kwargs."""
     return {
@@ -246,7 +264,7 @@ class VisionAgent(BaseAgent):
         if table_extractor.is_probable_table_image(chunk.raw_content):
             log.info("VisionAgent: geometry heuristic detected table-like image on page %d", chunk.page_num)
             table_markdown = table_extractor.extract_table_from_image(chunk.raw_content)
-            if table_markdown is not None:
+            if _is_structured_table_markdown(table_markdown):
                 return ProcessedChunk(
                     chunk_type=ChunkType.TABLE,
                     **_chunk_kwargs(chunk),
@@ -314,7 +332,7 @@ class VisionAgent(BaseAgent):
         if figure_type == "table_image" and confidence >= 0.4:
             try:
                 table_markdown = table_extractor.extract_table_from_image(chunk.raw_content)
-                if table_markdown is not None:
+                if _is_structured_table_markdown(table_markdown):
                     log.debug("VisionAgent: table image extraction successful (%s)", chunk.source_file)
                     return ProcessedChunk(
                         chunk_type=ChunkType.TABLE,
@@ -327,6 +345,24 @@ class VisionAgent(BaseAgent):
                     )
             except Exception as e:
                 log.debug("VisionAgent: table extraction failed: %s. Falling back to FIGURE.", e)
+
+        # Last-chance rescue: for figure chunks only, try deterministic table extraction.
+        # This improves table recall without changing parser text/table decisions.
+        try:
+            rescued_markdown = table_extractor.extract_table_from_image(chunk.raw_content)
+            if _is_structured_table_markdown(rescued_markdown):
+                log.info("VisionAgent: rescued table extraction on page %d", chunk.page_num)
+                return ProcessedChunk(
+                    chunk_type=ChunkType.TABLE,
+                    **_chunk_kwargs(chunk),
+                    structured_text=rescued_markdown,
+                    intuition_summary="Rescued from figure via deterministic table extraction.",
+                    key_concepts=p.get("key_concepts", []),
+                    confidence=max(0.55, min(confidence, 0.75)),
+                    agent_notes=f"rescued_table_from_figure | figure_type={figure_type}",
+                )
+        except Exception as e:
+            log.debug("VisionAgent: rescue extraction failed: %s", e)
 
         # Default: return as FIGURE chunk
         return ProcessedChunk(

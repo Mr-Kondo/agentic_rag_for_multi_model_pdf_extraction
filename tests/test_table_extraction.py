@@ -6,6 +6,7 @@ Tests TableFromImageExtractor core functionality.
 import pytest
 from PIL import Image, ImageDraw
 
+from src.agents.extraction import _is_structured_table_markdown
 from src.agents.table_extraction import TableFromImageExtractor
 from src.core.models import ChunkType, RawChunk
 
@@ -207,3 +208,15 @@ class TestVisionAgentTableIntegration:
         result = extractor.extract_table_from_image(chunk.raw_content)
 
         assert result is not None, "Should successfully extract table from image"
+
+
+class TestVisionRescueMarkdownGuard:
+    """Tests for markdown validation guard used by figure->table rescue path."""
+
+    def test_structured_markdown_is_accepted(self):
+        markdown = "| Col A | Col B |\n| --- | --- |\n| 10 | 20 |"
+        assert _is_structured_table_markdown(markdown) is True
+
+    def test_non_table_markdown_is_rejected(self):
+        markdown = "This is a figure description without tabular structure."
+        assert _is_structured_table_markdown(markdown) is False
