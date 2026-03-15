@@ -818,6 +818,7 @@ class LangGraphIngestPipeline:
         chunk_validator: ChunkValidatorAgent,
         store: ChunkStore,
         tracer: LangfuseTracer,
+        enable_figure_aware_fallback: bool = False,
     ):
         """
         Initialize ingest pipeline with extraction and validation components.
@@ -829,8 +830,9 @@ class LangGraphIngestPipeline:
             chunk_validator: Agent for chunk quality validation (CHECKPOINT A)
             store: Vector store for persisting extracted chunks
             tracer: Langfuse tracer for observability
+            enable_figure_aware_fallback: Enable parser fallback table search on figure pages
         """
-        self.parser = PDFParser()
+        self.parser = PDFParser(enable_figure_aware_fallback=enable_figure_aware_fallback)
         self.router = AgentRouter(text_agent, table_agent, vision_agent)
         self.chunk_validator = chunk_validator
         self.store = store
@@ -846,6 +848,7 @@ class LangGraphIngestPipeline:
         vision_model: str | None = None,
         chunk_validator_model: str | None = None,
         persist_dir: str = "./chroma_db",
+        enable_figure_aware_fallback: bool = False,
     ) -> "LangGraphIngestPipeline":
         """
         Build ingest pipeline with models resolved from settings.json.
@@ -856,6 +859,7 @@ class LangGraphIngestPipeline:
             vision_model: Model ID for vision extraction (~256M-2B)
             chunk_validator_model: Model ID for chunk validation (~7B VLM)
             persist_dir: ChromaDB persistence directory
+            enable_figure_aware_fallback: Enable parser fallback table search on figure pages
 
         Returns:
             Initialized LangGraphIngestPipeline
@@ -885,6 +889,7 @@ class LangGraphIngestPipeline:
             chunk_validator=chunk_validator,
             store=store,
             tracer=tracer,
+            enable_figure_aware_fallback=enable_figure_aware_fallback,
         )
 
     def _build_graph(self) -> StateGraph:

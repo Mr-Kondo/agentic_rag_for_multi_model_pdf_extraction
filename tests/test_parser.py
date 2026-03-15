@@ -124,3 +124,86 @@ def test_default_candidate_rejected_for_prose_like_cells_without_table_cue() -> 
     )
 
     assert rejection == "default_prose_like_without_table_cue"
+
+
+def test_build_table_metrics_aggregates_candidate_sources_and_reasons() -> None:
+    parser = PDFParser()
+    table_candidates = [
+        (object(), False),
+        (object(), False),
+        (object(), True),
+    ]
+    metrics = parser._build_table_metrics(
+        table_candidates=table_candidates,
+        accepted_tables=1,
+        rejected_reasons={"fallback_low_table_signal": 1, "too_sparse": 1},
+    )
+
+    assert metrics["total_candidates"] == 3
+    assert metrics["default_candidates"] == 2
+    assert metrics["fallback_candidates"] == 1
+    assert metrics["accepted_candidates"] == 1
+    assert metrics["rejected_candidates"] == 2
+    assert metrics["rejected_reasons"] == {"fallback_low_table_signal": 1, "too_sparse": 1}
+
+
+class _DummyCandidate:
+    def __init__(self, bbox: tuple[float, float, float, float]):
+        self.bbox = bbox
+
+
+class _DummyPage:
+    def __init__(self, default_candidates: list[object], fallback_candidates: list[object]):
+        self._default_candidates = default_candidates
+        self._fallback_candidates = fallback_candidates
+        self.calls: list[str] = []
+
+    def find_tables(self, table_settings=None):
+        if table_settings is None:
+            self.calls.append("default")
+            return self._default_candidates
+        self.calls.append("fallback")
+        return self._fallback_candidates
+
+
+def test_find_table_candidates_skips_fallback_when_default_exists_and_flag_off() -> None:
+    parser = PDFParser(enable_figure_aware_fallback=False)
+    page = _DummyPage(
+        default_candidates=[_DummyCandidate((0.0, 0.0, 100.0, 100.0))],
+        fallback_candidates=[_DummyCandidate((10.0, 10.0, 110.0, 110.0))],
+    )
+
+    result = parser._find_table_candidates(page, has_figures=True)
+
+    assert page.calls == ["default"]
+    assert len(result) == 1
+    assert result[0][1] is False
+
+
+def test_find_table_candidates_uses_fallback_when_flag_on_and_figures_present() -> None:
+    parser = PDFParser(enable_figure_aware_fallback=True)
+    page = _DummyPage(
+        default_candidates=[_DummyCandidate((0.0, 0.0, 100.0, 100.0))],
+        fallback_candidates=[_DummyCandidate((10.0, 10.0, 110.0, 110.0))],
+    )
+
+    result = parser._find_table_candidates(page, has_figures=True)
+
+    assert page.calls == ["default", "fallback"]
+    assert len(result) == 2
+    assert result[0][1] is False
+    assert result[1][1] is True
+
+
+def test_find_table_candidates_uses_fallback_when_no_default_candidates() -> None:
+    parser = PDFParser(enable_figure_aware_fallback=False)
+    page = _DummyPage(
+        default_candidates=[],
+        fallback_candidates=[_DummyCandidate((10.0, 10.0, 110.0, 110.0))],
+    )
+
+    result = parser._find_table_candidates(page, has_figures=False)
+
+    assert page.calls == ["default", "fallback"]
+    assert len(result) == 1
+    assert result[0][1] is True

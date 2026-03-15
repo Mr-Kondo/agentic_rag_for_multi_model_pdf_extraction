@@ -97,6 +97,7 @@ class AgenticRAGPipeline:
         persist_dir: str = "./chroma_db",
         lazy_agents: bool = False,  # True → small SLMs also load/unload per chunk
         use_crewai: bool = False,  # True → use CrewAI crews for orchestration
+        enable_figure_aware_fallback: bool = False,
     ) -> "AgenticRAGPipeline":
         """Initialize RAG pipeline with optional model overrides from settings.json."""
         # Load defaults from configuration
@@ -119,6 +120,7 @@ class AgenticRAGPipeline:
             persist_dir: Directory for ChromaDB vector store persistence
             lazy_agents: If True, load/unload extraction agents per chunk (saves VRAM)
             use_crewai: If True, use CrewAI crews for orchestration (parallel extraction, cross-linking)
+            enable_figure_aware_fallback: Enable parser fallback table search on figure pages
 
         Returns:
             Configured AgenticRAGPipeline instance ready for use
@@ -131,7 +133,7 @@ class AgenticRAGPipeline:
         obj.lazy_agents = lazy_agents
 
         log.info("📂 Setting up vector store: %s", persist_dir)
-        obj.parser = PDFParser()
+        obj.parser = PDFParser(enable_figure_aware_fallback=enable_figure_aware_fallback)
         obj.store = ChunkStore(persist_dir)
         log.info("✓ Vector store initialized")
 
@@ -390,7 +392,7 @@ class AgenticRAGPipeline:
             log.info("🤖 Processing chunks with CrewAI crews...")
             with trace.span("crewai_processing"):
                 try:
-                    stored = self.crew_ingestion.process_chunks(raw_chunks)
+                    stored = self.crew_ingestion.process_chunks(raw_chunks, validates=validates)
                     log.info("✓ CrewAI processing complete: %d chunks stored", len(stored))
                 except Exception as e:
                     log.error("CrewAI processing failed: %s — falling back to standard ingest", e, exc_info=True)

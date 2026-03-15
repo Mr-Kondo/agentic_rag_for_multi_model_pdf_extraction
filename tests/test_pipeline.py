@@ -68,6 +68,38 @@ class TestPipelineInitialization:
 
             assert pipeline is not None
 
+    def test_build_passes_figure_fallback_flag_to_parser(self):
+        """Parser should receive explicit figure-aware fallback flag from build()."""
+        with (
+            patch("src.core.pipeline.TextAgent"),
+            patch("src.core.pipeline.TableAgent"),
+            patch("src.core.pipeline.VisionAgent"),
+            patch("src.core.pipeline.ReasoningOrchestratorAgent"),
+            patch("src.core.pipeline.ChunkValidatorAgent"),
+            patch("src.core.pipeline.AnswerValidatorAgent"),
+            patch("src.core.pipeline.PDFParser") as mock_parser,
+            patch("src.core.pipeline.ChunkStore"),
+            patch("src.core.pipeline.LangfuseTracer"),
+        ):
+            AgenticRAGPipeline.build(enable_figure_aware_fallback=True)
+            mock_parser.assert_called_once_with(enable_figure_aware_fallback=True)
+
+    def test_build_defaults_figure_fallback_flag_off(self):
+        """Parser should default figure-aware fallback to False when not specified."""
+        with (
+            patch("src.core.pipeline.TextAgent"),
+            patch("src.core.pipeline.TableAgent"),
+            patch("src.core.pipeline.VisionAgent"),
+            patch("src.core.pipeline.ReasoningOrchestratorAgent"),
+            patch("src.core.pipeline.ChunkValidatorAgent"),
+            patch("src.core.pipeline.AnswerValidatorAgent"),
+            patch("src.core.pipeline.PDFParser") as mock_parser,
+            patch("src.core.pipeline.ChunkStore"),
+            patch("src.core.pipeline.LangfuseTracer"),
+        ):
+            AgenticRAGPipeline.build()
+            mock_parser.assert_called_once_with(enable_figure_aware_fallback=False)
+
 
 class TestPipelineIngestion:
     """Test suite for ingestion workflow."""
