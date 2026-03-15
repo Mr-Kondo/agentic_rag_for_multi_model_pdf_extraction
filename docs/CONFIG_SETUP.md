@@ -55,10 +55,12 @@ cp settings.example.json settings.json
 ```bash
 python app.py ingest input/sample.pdf \
   --text-model mlx-community/Phi-3.5-mini-Instruct-4bit \
+  --enable-figure-aware-fallback \
   --table-model mlx-community/Qwen2.5-3B-Instruct-4bit
 ```
 
 query/pipelineでも同様に`--orchestrator-model`などを指定できます。
+`--enable-figure-aware-fallback` は ingest / pipeline で利用できます。
 
 ## 4. 出力先設定
 
@@ -113,6 +115,12 @@ python app.py pipeline --help
 
 - `settings.json`のJSON構文エラー時はデフォルト値へフォールバックします。
 - `--validate` はデフォルトで有効です（`--no-validate` で無効化）。
+- `--no-validate` の作用範囲:
+  - ingest: チャンク検証（CHECKPOINT A/B）
+  - query: 最終回答検証
+- `--enable-figure-aware-fallback` の作用範囲:
+  - ingest / pipeline: parserのfigure-aware fallback条件を有効化
+  - query単体: 未使用
 - `--use-langgraph` の適用範囲:
   - ingest: LangGraphIngestPipeline
   - query: LangGraphQueryPipeline
