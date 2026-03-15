@@ -101,6 +101,8 @@ Last updated: 2026-03-15
 - 対応: ingest/query/pipeline（`--use-crewai`）
 - 実装方針:
   - 外部API依存を避けるため、ローカルMLX処理を優先
+  - 抽出フェーズは`AgentRouter`経由のローカル抽出を使用（Extraction crew task実行はスキップ）
+  - `--no-validate`指定時はingest validationフェーズをスキップ
   - 一部Crewは段階的実装/簡略実装
 
 ## 4. データフロー
@@ -129,8 +131,9 @@ Last updated: 2026-03-15
 
 - 標準候補優先:
   - `pdfplumber.find_tables()`の標準候補を優先
-- fallback候補の限定適用:
-  - text strategy fallbackは、標準候補が0件のページのみ実行
+- fallback候補の適用条件:
+  - 標準候補が0件のページでは常にtext strategy fallbackを実行
+  - `enable_figure_aware_fallback=True`かつページにfigureがある場合もfallbackを実行
 - 誤検出抑制:
   - figure重なり
   - caption cue（table/figure）

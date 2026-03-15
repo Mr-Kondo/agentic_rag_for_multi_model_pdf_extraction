@@ -110,6 +110,11 @@ python app.py query "図表間の関係は？" --use-crewai
 ### 主要オプション
 
 - `--validate` / `--no-validate`
+  - ingest: CHECKPOINT A（chunk validation）の有効/無効
+  - query: CHECKPOINT B（answer validation）の有効/無効
+- `--enable-figure-aware-fallback`
+  - ingest/pipelineで有効
+  - parserのtable fallback適用条件を拡張（下記ポリシー参照）
 - `--use-langgraph`
   - `ingest`: LangGraphIngestPipelineを使用
   - `query`: LangGraphQueryPipelineを使用
@@ -134,7 +139,8 @@ python app.py query "図表間の関係は？" --use-crewai
   - pipelineコマンドではqueryフェーズのみ`--use-langgraph`が適用される
 - CrewAI:
   - `src/core/crewai_pipeline.py` + `src/integrations/crew_mlx_tools.py`
-  - `--use-crewai`経路では、外部API依存を避けるために一部Crewをスキップし、ローカルMLX処理を優先する設計
+  - `--use-crewai` ingest経路では、抽出フェーズのCrewタスク実行をスキップし、`AgentRouter`経由のローカルMLX抽出を使用
+  - `--no-validate`指定時はCrewAI ingestのvalidationフェーズをスキップ
 
 ## 出力ファイル
 
@@ -158,8 +164,11 @@ python app.py query "図表間の関係は？" --use-crewai
 
 ## テーブル検出ポリシー（現状）
 
-- parserはprecision-first方針です。
-- `pdfplumber.find_tables()`の標準候補を優先し、fallbackのtext strategyは「標準候補が0件のページのみ」実行します。
+- parserはprecision-first方針です（デフォルト）。
+- `pdfplumber.find_tables()`の標準候補を優先します。
+- fallback（text strategy）の実行条件:
+  - 標準候補が0件のページでは常に実行
+  - `--enable-figure-aware-fallback`が有効で、かつページ内にfigureがある場合も実行
 - 本文誤検出（proseをtableと判定）を抑えるため、数値セル率・長文セル率・キャプション手掛かりで追加フィルタリングします。
 - そのため、borderless tableの一部は未検出になる可能性があります。図中表はVision/Table extraction経路で補完される設計です。
 
@@ -199,5 +208,6 @@ pytest tests/test_dspy_validator.py -v
 ## 関連ドキュメント
 
 - `docs/ARCHITECTURE.md`: 現行アーキテクチャ詳細
+- `docs/FLOW.md`: CLI処理フロー（Mermaid）
 - `docs/CONFIG_SETUP.md`: 設定周り
 - `tests/README.md`: テストガイド
