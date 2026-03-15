@@ -90,6 +90,7 @@ def cmd_ingest(args: argparse.Namespace) -> int:
             vision_model=args.vision_model,
             chunk_validator_model=args.chunk_validator_model,
             persist_dir=args.storage_dir,
+            enable_figure_aware_fallback=args.enable_figure_aware_fallback,
         )
         chunks = lg_pipeline.ingest(
             pdf_path,
@@ -108,6 +109,7 @@ def cmd_ingest(args: argparse.Namespace) -> int:
             persist_dir=args.storage_dir,
             lazy_agents=args.lazy_agents,
             use_crewai=True,
+            enable_figure_aware_fallback=args.enable_figure_aware_fallback,
         )
         chunks = pipeline.ingest_with_crewai(
             pdf_path,
@@ -125,6 +127,7 @@ def cmd_ingest(args: argparse.Namespace) -> int:
             answer_validator_model=args.answer_validator_model,
             persist_dir=args.storage_dir,
             lazy_agents=args.lazy_agents,
+            enable_figure_aware_fallback=args.enable_figure_aware_fallback,
         )
         chunks = pipeline.ingest(
             pdf_path,
@@ -284,6 +287,7 @@ def cmd_pipeline(args: argparse.Namespace) -> int:
         persist_dir=args.storage_dir,
         lazy_agents=args.lazy_agents,
         use_crewai=args.use_crewai,
+        enable_figure_aware_fallback=args.enable_figure_aware_fallback,
     )
 
     # ── PHASE 1: INGEST ──
@@ -452,6 +456,12 @@ For more information, see: https://github.com/yourusername/agentic-rag
         default=False,
         help="Use LangGraph-based pipeline (improved workflow visibility)",
     )
+    ingest_parser.add_argument(
+        "--enable-figure-aware-fallback",
+        action="store_true",
+        default=False,
+        help="Enable parser figure-aware table fallback for ingestion experiments",
+    )
     ingest_parser.set_defaults(func=cmd_ingest)
 
     # ── QUERY SUBCOMMAND ──
@@ -542,6 +552,12 @@ For more information, see: https://github.com/yourusername/agentic-rag
         action="store_true",
         default=False,
         help="Use LangGraph-based pipeline for query phase (improved workflow)",
+    )
+    pipeline_parser.add_argument(
+        "--enable-figure-aware-fallback",
+        action="store_true",
+        default=False,
+        help="Enable parser figure-aware table fallback for ingestion phase",
     )
     pipeline_parser.set_defaults(func=cmd_pipeline)
 

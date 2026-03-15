@@ -17,6 +17,7 @@ from unittest.mock import MagicMock, patch
 from src.core.graph_state import QueryState, init_ingest_state, init_query_state
 from src.core.langgraph_pipeline import (
     LangGraphQueryPipeline,
+    LangGraphIngestPipeline,
     retrieve_node,
     check_retrieval_quality_node,
     route_after_quality_check,
@@ -360,3 +361,37 @@ class TestIngestStateSafety:
 
         assert pairs == []
         assert any("_extracted_pairs" in warning for warning in state["warnings"])
+
+
+class TestLangGraphIngestBuild:
+    """Tests for LangGraph ingest build-time parser configuration."""
+
+    def test_build_passes_figure_fallback_flag_to_parser(self):
+        """LangGraph ingest build should pass explicit flag to PDFParser."""
+        with (
+            patch("src.core.langgraph_pipeline.TextAgent"),
+            patch("src.core.langgraph_pipeline.TableAgent"),
+            patch("src.core.langgraph_pipeline.VisionAgent"),
+            patch("src.core.langgraph_pipeline.ChunkValidatorAgent"),
+            patch("src.core.langgraph_pipeline.ChunkStore"),
+            patch("src.core.langgraph_pipeline.LangfuseTracer"),
+            patch("src.core.langgraph_pipeline.PDFParser") as mock_parser,
+            patch.object(LangGraphIngestPipeline, "_build_graph", return_value=MagicMock()),
+        ):
+            LangGraphIngestPipeline.build(enable_figure_aware_fallback=True)
+            mock_parser.assert_called_once_with(enable_figure_aware_fallback=True)
+
+    def test_build_defaults_figure_fallback_flag_off(self):
+        """LangGraph ingest build should default flag to False."""
+        with (
+            patch("src.core.langgraph_pipeline.TextAgent"),
+            patch("src.core.langgraph_pipeline.TableAgent"),
+            patch("src.core.langgraph_pipeline.VisionAgent"),
+            patch("src.core.langgraph_pipeline.ChunkValidatorAgent"),
+            patch("src.core.langgraph_pipeline.ChunkStore"),
+            patch("src.core.langgraph_pipeline.LangfuseTracer"),
+            patch("src.core.langgraph_pipeline.PDFParser") as mock_parser,
+            patch.object(LangGraphIngestPipeline, "_build_graph", return_value=MagicMock()),
+        ):
+            LangGraphIngestPipeline.build()
+            mock_parser.assert_called_once_with(enable_figure_aware_fallback=False)
