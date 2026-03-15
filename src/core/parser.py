@@ -49,6 +49,14 @@ class PDFParser:
         "vertical_strategy": "text",
         "horizontal_strategy": "text",
     }
+    ENABLE_FIGURE_AWARE_FALLBACK = False
+
+    def __init__(self, enable_figure_aware_fallback: bool | None = None):
+        """Initialize parser with optional feature flag overrides."""
+        if enable_figure_aware_fallback is None:
+            self.enable_figure_aware_fallback = self.ENABLE_FIGURE_AWARE_FALLBACK
+        else:
+            self.enable_figure_aware_fallback = enable_figure_aware_fallback
 
     def parse(self, pdf_path: str | Path) -> list[RawChunk]:
         """
@@ -108,10 +116,12 @@ class PDFParser:
                         continue
 
                 # Extract tables with bounding boxes.
-                table_candidates = self._find_table_candidates(plumb_page)
+                table_candidates = self._find_table_candidates(
+                    plumb_page,
+                    has_figures=bool(figure_bboxes),
+                )
                 accepted_tables = 0
                 rejected_reasons: dict[str, int] = {}
-                log.info("Page %d: discovered %d table candidates", page_idx + 1, len(table_candidates))
                 for table, is_fallback in table_candidates:
                     rows = table.extract()
                     bbox = self._normalize_bbox(table.bbox)
@@ -140,9 +150,18 @@ class PDFParser:
                         )
                     elif reject_reason is not None:
                         rejected_reasons[reject_reason] = rejected_reasons.get(reject_reason, 0) + 1
-                log.info("Page %d: accepted %d/%d table candidates", page_idx + 1, accepted_tables, len(table_candidates))
-                if rejected_reasons:
-                    log.debug("Page %d: table rejection reasons=%s", page_idx + 1, rejected_reasons)
+                metrics = self._build_table_metrics(table_candidates, accepted_tables, rejected_reasons)
+                log.info(
+                    "Page %d: table metrics total=%d default=%d fallback=%d accepted=%d rejected=%d",
+                    page_idx + 1,
+                    metrics["total_candidates"],
+                    metrics["default_candidates"],
+                    metrics["fallback_candidates"],
+                    metrics["accepted_candidates"],
+                    metrics["rejected_candidates"],
+                )
+                if metrics["rejected_reasons"]:
+                    log.debug("Page %d: table rejection reasons=%s", page_idx + 1, metrics["rejected_reasons"])
 
                 chunks.extend(figure_chunks)
 
@@ -204,7 +223,11 @@ class PDFParser:
 
         return text_chunks
 
-    def _find_table_candidates(self, plumb_page: pdfplumber.page.Page) -> list[tuple[Any, bool]]:
+    def _find_table_candidates(
+        self,
+        plumb_page: pdfplumber.page.Page,
+        has_figures: bool = False,
+    ) -> list[tuple[Any, bool]]:
         """Find table candidates and mark whether they came from fallback strategy."""
         default_candidates: list[Any] = []
         fallback_candidates: list[Any] = []
@@ -214,9 +237,11 @@ class PDFParser:
         except Exception as e:
             log.warning("find_tables() failed with default strategy: %s", e)
 
-        # Precision-first policy: fallback text strategy is used only when
-        # default table discovery found no candidates on the page.
-        if not default_candidates:
+        # Precision-first policy by default: fallback text strategy is used only
+        # when default candidates are absent. Phase 2 trial allows fallback on
+        # figure-heavy pages when explicitly enabled by feature flag.
+        should_try_fallback = (not default_candidates) or (self.enable_figure_aware_fallback and has_figures)
+        if should_try_fallback:
             try:
                 fallback_candidates = plumb_page.find_tables(table_settings=self.FALLBACK_TABLE_SETTINGS)
             except Exception as e:
@@ -243,6 +268,25 @@ class PDFParser:
             deduped.append((candidate, is_fallback))
 
         return deduped
+
+    def _build_table_metrics(
+        self,
+        table_candidates: list[tuple[Any, bool]],
+        accepted_tables: int,
+        rejected_reasons: dict[str, int],
+    ) -> dict[str, Any]:
+        """Build page-level table detection metrics for diagnostics and baselines."""
+        fallback_candidates = sum(1 for _, is_fallback in table_candidates if is_fallback)
+        total_candidates = len(table_candidates)
+        rejected_candidates = max(total_candidates - accepted_tables, 0)
+        return {
+            "total_candidates": total_candidates,
+            "default_candidates": total_candidates - fallback_candidates,
+            "fallback_candidates": fallback_candidates,
+            "accepted_candidates": accepted_tables,
+            "rejected_candidates": rejected_candidates,
+            "rejected_reasons": dict(sorted(rejected_reasons.items())),
+        }
 
     def _is_probable_table(
         self,

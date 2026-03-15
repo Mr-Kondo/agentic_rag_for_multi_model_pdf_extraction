@@ -390,7 +390,7 @@ class AgenticRAGPipeline:
             log.info("🤖 Processing chunks with CrewAI crews...")
             with trace.span("crewai_processing"):
                 try:
-                    stored = self.crew_ingestion.process_chunks(raw_chunks)
+                    stored = self.crew_ingestion.process_chunks(raw_chunks, validates=validates)
                     log.info("✓ CrewAI processing complete: %d chunks stored", len(stored))
                 except Exception as e:
                     log.error("CrewAI processing failed: %s — falling back to standard ingest", e, exc_info=True)

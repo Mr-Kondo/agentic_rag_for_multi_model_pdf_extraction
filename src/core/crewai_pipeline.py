@@ -22,6 +22,7 @@ from src.agents.crewai_agents import (
     AnswerVerificationAgent,
     CrewAgentFactory,
 )
+from src.agents.router import AgentRouter
 from src.core.models import ProcessedChunk, CrossLinkMetadata, ChunkType, RawChunk
 from src.integrations.crew_mlx_tools import CrewMLXToolkit
 from src.core.store import ChunkStore
@@ -67,6 +68,11 @@ class ExtractionCrew:
     def __init__(self, toolkit: CrewMLXToolkit):
         """Initialize extraction crew."""
         self.toolkit = toolkit
+        self.router = AgentRouter(
+            self.toolkit.text_agent,
+            self.toolkit.table_agent,
+            self.toolkit.vision_agent,
+        )
 
         # Create extraction tools
         text_tool = toolkit.get_extraction_tools()[0]
@@ -98,70 +104,14 @@ class ExtractionCrew:
         Returns:
             List of processed chunks with extraction results
         """
-        processed = []
+        # Crew tasks are intentionally skipped to avoid external API dependencies.
+        # Use local MLX agents via AgentRouter so behavior matches standard ingest,
+        # including figure-to-table rescue logic in VisionAgent.
+        log.info("Extraction crew skipped (using direct local agents via router).")
 
-        # Group chunks by type for efficient processing
-        text_chunks = [c for c in chunks if c.chunk_type == ChunkType.TEXT]
-        table_chunks = [c for c in chunks if c.chunk_type == ChunkType.TABLE]
-        vision_chunks = [c for c in chunks if c.chunk_type == ChunkType.FIGURE]
-
-        # Create dynamic tasks for this batch
-        tasks = []
-
-        if text_chunks:
-            text_task = Task(
-                description=f"Extract structured data from {len(text_chunks)} text passages. "
-                "Clean formatting, identify key concepts, provide confidence scores.",
-                expected_output="Structured text chunks with metadata",
-                agent=self.text_agent,
-                output_file=None,
-                llm=None,
-            )
-            tasks.append(text_task)
-
-        if table_chunks:
-            table_task = Task(
-                description=f"Extract and enhance {len(table_chunks)} tables. "
-                "Normalize structure, infer schema, identify relationships.",
-                expected_output="Structured tables with schema metadata",
-                agent=self.table_agent,
-                output_file=None,
-                llm=None,
-            )
-            tasks.append(table_task)
-
-        if vision_chunks:
-            vision_task = Task(
-                description=f"Analyze and describe {len(vision_chunks)} figures. "
-                "Classify type, extract axis labels, describe visual content.",
-                expected_output="Figure descriptions with classifications",
-                agent=self.vision_agent,
-                output_file=None,
-                llm=None,
-            )
-            tasks.append(vision_task)
-
-        # Skip extraction crew to avoid OpenAI API dependency
-        # Use direct agent-based extraction instead of crew orchestration
-        log.info("Extraction crew skipped (using direct agent processing). No external API calls.")
-
-        # Fallback to basic processing without crew
+        processed: list[ProcessedChunk] = []
         for chunk in chunks:
-            processed.append(
-                ProcessedChunk(
-                    chunk_type=chunk.chunk_type,
-                    page_num=chunk.page_num,
-                    source_file=chunk.source_file,
-                    bbox=chunk.bbox,
-                    page_width=chunk.page_width,
-                    page_height=chunk.page_height,
-                    artifact_path=chunk.artifact_path,
-                    source_preview=chunk.source_preview,
-                    structured_text=str(chunk.raw_content)[:2000],  # Placeholder
-                    confidence=0.8,
-                    agent_notes="Extracted via direct MLX agents (no crew orchestration)",
-                )
-            )
+            processed.append(self.router.route(chunk, trace=None))
 
         return processed
 
@@ -303,15 +253,16 @@ class CrewAIIngestionPipeline:
         self.validation_crew = ValidationCrew(self.toolkit)
         self.linking_crew = LinkingCrew(self.toolkit)
 
-    def process_chunks(self, chunks: list[RawChunk]) -> int:
+    def process_chunks(self, chunks: list[RawChunk], validates: bool = True) -> list[ProcessedChunk]:
         """
         Process raw chunks through extraction, validation, and linking.
 
         Args:
             chunks: Raw chunks from PDF parser
+            validates: If True, run chunk validation phase
 
         Returns:
-            Number of chunks successfully stored
+            List of stored processed chunks
         """
         log.info("Processing %d raw chunks with CrewAI", len(chunks))
 
@@ -321,9 +272,14 @@ class CrewAIIngestionPipeline:
         log.info("✓ Extraction complete: %d chunks", len(extracted_chunks))
 
         # Phase 2: Validate
-        log.info("Phase 2: Validating chunks...")
-        valid_chunks, invalid_ids = self.validation_crew.validate_chunks(extracted_chunks)
-        log.info("✓ Validation complete: %d valid, %d invalid", len(valid_chunks), len(invalid_ids))
+        if validates:
+            log.info("Phase 2: Validating chunks...")
+            valid_chunks, invalid_ids = self.validation_crew.validate_chunks(extracted_chunks)
+            log.info("✓ Validation complete: %d valid, %d invalid", len(valid_chunks), len(invalid_ids))
+        else:
+            log.info("Phase 2: Validation skipped (--no-validate)")
+            valid_chunks = extracted_chunks
+            invalid_ids = []
 
         # Phase 3: Detect cross-references
         log.info("Phase 3: Detecting cross-references...")
