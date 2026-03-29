@@ -16,6 +16,7 @@ from mlx_vlm.prompt_utils import apply_chat_template
 from src.agents.base import BaseAgent
 from src.agents.table_extraction import TableFromImageExtractor
 from src.core.cache import _model_cache
+from src.core.config import config
 from src.core.models import ChunkType, ProcessedChunk
 
 if TYPE_CHECKING:
@@ -68,7 +69,12 @@ Given a text passage from a PDF, return ONLY valid JSON:
   "key_concepts": ["<concept>"],
   "confidence": <0.0-1.0>,
   "agent_notes": "<issues>"
-}"""
+}
+Preserve the original language exactly as written.
+Do not translate Japanese text into English.
+Keep Japanese characters unchanged when cleaning the passage."""
+
+_OCR_LANG = str(config.get("ocr.default_lang", "jpn+eng"))
 
 _TABLE_SYSTEM = """You are a structured-data extraction specialist.
 Given a Markdown table, return ONLY valid JSON:
@@ -388,7 +394,7 @@ class VisionAgent(BaseAgent):
         try:
             import pytesseract
 
-            text = pytesseract.image_to_string(chunk.raw_content)
+            text = pytesseract.image_to_string(chunk.raw_content, lang=_OCR_LANG)
         except Exception:
             text = "[OCR unavailable]"
         return ProcessedChunk(

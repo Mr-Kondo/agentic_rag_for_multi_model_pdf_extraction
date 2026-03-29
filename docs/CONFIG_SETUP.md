@@ -54,7 +54,7 @@ cp settings.example.json settings.json
 
 ```bash
 python app.py ingest input/sample.pdf \
-  --text-model mlx-community/Phi-3.5-mini-Instruct-4bit \
+  --text-model mlx-community/Qwen3-8B-4bit \
   --enable-figure-aware-fallback \
   --table-model mlx-community/Qwen2.5-3B-Instruct-4bit
 ```

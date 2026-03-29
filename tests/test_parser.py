@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import sys
+from types import SimpleNamespace
+
 from src.core.parser import PDFParser
 
 
@@ -207,3 +210,130 @@ def test_find_table_candidates_uses_fallback_when_no_default_candidates() -> Non
     assert page.calls == ["default", "fallback"]
     assert len(result) == 1
     assert result[0][1] is True
+
+
+def test_select_text_words_prefers_source_with_fewer_cid_tokens() -> None:
+    parser = PDFParser()
+    plumb_words = [
+        _word("(cid:12345)", 10.0, 10.0, 40.0, 20.0),
+        _word("(cid:67890)", 42.0, 10.0, 70.0, 20.0),
+    ]
+    fitz_words = [
+        _word("日本語", 10.0, 10.0, 30.0, 20.0),
+        _word("テキスト", 32.0, 10.0, 62.0, 20.0),
+    ]
+
+    selected = parser._select_text_words(plumb_words, fitz_words)
+
+    assert selected == fitz_words
+
+
+def test_select_text_words_falls_back_when_fitz_empty() -> None:
+    parser = PDFParser()
+    plumb_words = [_word("valid", 10.0, 10.0, 30.0, 20.0)]
+
+    selected = parser._select_text_words(plumb_words, [])
+
+    assert selected == plumb_words
+
+
+def test_word_quality_score_penalizes_cid_artifacts() -> None:
+    parser = PDFParser()
+    cid_heavy = [_word("(cid:100)", 0.0, 0.0, 20.0, 10.0), _word("(cid:101)", 22.0, 0.0, 42.0, 10.0)]
+    readable = [_word("Revenue", 0.0, 0.0, 30.0, 10.0), _word("2025", 32.0, 0.0, 50.0, 10.0)]
+
+    assert parser._word_quality_score(readable) > parser._word_quality_score(cid_heavy)
+
+
+def test_should_try_ocr_for_low_readability_text() -> None:
+    parser = PDFParser()
+    garbled = "ᣑᙇ,62㧗ឤᗘ ࣓࢝ࣛࢆ ⏝ ࠸ࡓ 67,9⏬ീゎᯒ"
+
+    assert parser._should_try_ocr(garbled) is True
+
+
+def test_should_not_try_ocr_for_clean_text() -> None:
+    parser = PDFParser()
+    clean = "河川流量観測の手法を比較し、STIVとDIEXの特徴を評価した。"
+
+    assert parser._should_try_ocr(clean) is False
+
+
+def test_choose_better_text_prefers_ocr_candidate() -> None:
+    parser = PDFParser()
+    original = "ᣑᙇ,62㧗ឤᗘ ࣓࢝ࣛࢆ ⏝ ࠸ࡓ"
+    ocr = "拡張ISO高感度カメラを用いた"
+
+    assert parser._choose_better_text(original, ocr) == ocr
+
+
+def test_choose_better_text_keeps_original_when_ocr_worse() -> None:
+    parser = PDFParser()
+    original = "RIVER DISCHARGE OBSERVATION BY STIV IMAGE ANALYSIS"
+    ocr = "R1VER D1SCHARGE 0BSERVAT10N"
+
+    assert parser._choose_better_text(original, ocr) == original
+
+
+def test_ocr_language_sequence_removes_duplicates() -> None:
+    parser = PDFParser()
+    parser.OCR_DEFAULT_LANG = "jpn+eng"
+    parser.OCR_JAPANESE_LANG = "jpn"
+    parser.OCR_FALLBACK_LANG = "jpn+eng"
+
+    assert parser._ocr_language_sequence() == ("jpn+eng", "jpn")
+
+
+def test_ocr_language_sequence_filters_unavailable_languages() -> None:
+    parser = PDFParser()
+    parser.OCR_DEFAULT_LANG = "jpn+eng"
+    parser.OCR_JAPANESE_LANG = "jpn"
+    parser.OCR_FALLBACK_LANG = "eng"
+
+    parser._get_available_tesseract_languages = lambda: {"eng", "osd"}  # type: ignore[assignment]
+
+    assert parser._ocr_language_sequence() == ("eng",)
+
+
+def test_clean_extracted_text_removes_cid_and_normalizes_whitespace() -> None:
+    parser = PDFParser()
+    raw_text = "  (cid:120)流量\u3000観測   \n  (cid:33)  DIEX\t法  "
+
+    cleaned = parser._clean_extracted_text(raw_text)
+
+    assert cleaned == "流量 観測\nDIEX 法"
+
+
+def test_ocr_text_from_bbox_tries_japanese_before_english(monkeypatch) -> None:
+    parser = PDFParser()
+    parser.OCR_DEFAULT_LANG = "jpn+eng"
+    parser.OCR_JAPANESE_LANG = "jpn"
+    parser.OCR_FALLBACK_LANG = "eng"
+
+    class _DummyPix:
+        width = 2
+        height = 2
+        samples = bytes([255, 255, 255] * 4)
+
+    class _DummyPage:
+        def get_pixmap(self, matrix, clip, alpha):
+            return _DummyPix()
+
+    calls: list[str] = []
+
+    def _fake_ocr(_image, lang, config):
+        calls.append(lang)
+        if lang in {"jpn+eng", "jpn"}:
+            raise RuntimeError("ocr failed")
+        return "fallback text"
+
+    monkeypatch.setitem(
+        sys.modules,
+        "pytesseract",
+        SimpleNamespace(image_to_string=_fake_ocr),
+    )
+
+    text = parser._ocr_text_from_bbox(_DummyPage(), (0.0, 0.0, 10.0, 10.0))
+
+    assert text == "fallback text"
+    assert calls == ["jpn+eng", "jpn", "eng"]

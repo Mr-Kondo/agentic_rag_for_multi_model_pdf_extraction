@@ -99,3 +99,47 @@ def test_save_chunk_audit_generates_json_and_html(tmp_path: Path) -> None:
     assert processed.chunk_id in html
     assert 'split("\\n")' in html
     assert 'join("\\n- ")' in html
+
+
+def test_save_chunk_audit_preserves_japanese_text_in_html(tmp_path: Path) -> None:
+    """HTML report should keep Japanese text without ASCII escaping."""
+    pdf_path = tmp_path / "jp_sample.pdf"
+    document = pymupdf.open()
+    page = document.new_page(width=200, height=300)
+    page.insert_text((24, 48), "dummy")
+    document.save(pdf_path)
+    document.close()
+
+    raw = RawChunk(
+        chunk_type=ChunkType.TEXT,
+        page_num=1,
+        source_file=pdf_path.name,
+        raw_content="日本語の本文です",
+        bbox=(20.0, 30.0, 160.0, 90.0),
+        page_width=200.0,
+        page_height=300.0,
+        source_preview="日本語のプレビュー",
+    )
+    processed = ProcessedChunk(
+        chunk_type=ChunkType.TEXT,
+        page_num=1,
+        source_file=pdf_path.name,
+        bbox=raw.bbox,
+        page_width=raw.page_width,
+        page_height=raw.page_height,
+        source_preview=raw.source_preview,
+        structured_text="これは日本語テキストです",
+        intuition_summary="概要: 日本語テスト",
+        confidence=0.95,
+    )
+
+    paths = save_chunk_audit(
+        pdf_path=pdf_path,
+        extracted=[(raw, processed)],
+        accepted=[processed],
+        output_dir=tmp_path / "output",
+    )
+
+    html = paths["html"].read_text(encoding="utf-8")
+    assert "日本語" in html
+    assert "\\u65e5\\u672c\\u8a9e" not in html
