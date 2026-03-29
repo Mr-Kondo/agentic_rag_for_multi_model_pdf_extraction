@@ -309,6 +309,8 @@ def test_ocr_text_from_bbox_tries_japanese_before_english(monkeypatch) -> None:
     parser.OCR_DEFAULT_LANG = "jpn+eng"
     parser.OCR_JAPANESE_LANG = "jpn"
     parser.OCR_FALLBACK_LANG = "eng"
+    # Force the Tesseract path so the test is independent of OCR_ENGINE default.
+    parser.OCR_ENGINE = "tesseract"
 
     class _DummyPix:
         width = 2
@@ -337,3 +339,91 @@ def test_ocr_text_from_bbox_tries_japanese_before_english(monkeypatch) -> None:
 
     assert text == "fallback text"
     assert calls == ["jpn+eng", "jpn", "eng"]
+
+
+def test_ocr_text_from_bbox_easyocr_primary(monkeypatch) -> None:
+    """EasyOCR is called and its result returned when engine is 'easyocr'."""
+    parser = PDFParser()
+    parser.OCR_ENGINE = "easyocr"
+
+    class _DummyPix:
+        width = 4
+        height = 4
+        samples = bytes([200, 200, 200] * 16)
+
+    class _DummyPage:
+        def get_pixmap(self, matrix, clip, alpha):
+            return _DummyPix()
+
+    # Simulate a single EasyOCR result: (quad, text, confidence)
+    _easyocr_result = [([[0, 0], [40, 0], [40, 10], [0, 10]], "拡張ISO高感度カメラ", 0.95)]
+
+    class _DummyReader:
+        def readtext(self, image, detail, paragraph):
+            return _easyocr_result
+
+    parser._easyocr_reader = _DummyReader()
+
+    import numpy as np
+
+    monkeypatch.setitem(sys.modules, "numpy", np)
+
+    text = parser._ocr_text_from_bbox(_DummyPage(), (0.0, 0.0, 20.0, 20.0))
+
+    assert text == "拡張ISO高感度カメラ"
+
+
+def test_ocr_text_from_bbox_falls_back_to_tesseract_when_easyocr_empty(monkeypatch) -> None:
+    """Dispatcher falls through to Tesseract when EasyOCR returns no results."""
+    parser = PDFParser()
+    parser.OCR_ENGINE = "easyocr"
+    parser.OCR_DEFAULT_LANG = "jpn+eng"
+    parser.OCR_JAPANESE_LANG = "jpn"
+    parser.OCR_FALLBACK_LANG = "eng"
+
+    class _DummyPix:
+        width = 4
+        height = 4
+        samples = bytes([200, 200, 200] * 16)
+
+    class _DummyPage:
+        def get_pixmap(self, matrix, clip, alpha):
+            return _DummyPix()
+
+    class _EmptyReader:
+        def readtext(self, image, detail, paragraph):
+            return []
+
+    parser._easyocr_reader = _EmptyReader()
+
+    import numpy as np
+
+    monkeypatch.setitem(sys.modules, "numpy", np)
+
+    tesseract_calls: list[str] = []
+
+    def _fake_ocr(_image, lang, config):
+        tesseract_calls.append(lang)
+        return "tesseract result"
+
+    monkeypatch.setitem(
+        sys.modules,
+        "pytesseract",
+        SimpleNamespace(image_to_string=_fake_ocr),
+    )
+
+    text = parser._ocr_text_from_bbox(_DummyPage(), (0.0, 0.0, 20.0, 20.0))
+
+    assert text == "tesseract result"
+    assert tesseract_calls[0] == "jpn+eng"
+
+
+def test_text_readability_score_counts_japanese_punctuation_as_cjk() -> None:
+    """Japanese punctuation characters must not be penalised as suspicious_chars."""
+    parser = PDFParser()
+    # These characters are CJK symbols (U+3000-303F) and must score positively.
+    punctuation_text = "河川流量観測の結果。研究の目的は、STIV解析「手法」【評価】を行うことである。"
+
+    score = parser._text_readability_score(punctuation_text)
+
+    assert score > 0

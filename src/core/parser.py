@@ -49,6 +49,7 @@ class PDFParser:
     FALLBACK_MAX_LONG_CELL_RATIO = 0.45
     FALLBACK_LONG_CELL_CHAR_THRESHOLD = 40
     CID_PATTERN = re.compile(r"\(cid:\d+\)")
+    OCR_ENGINE = str(config.get("ocr.engine", "easyocr"))
     OCR_CONFIG = str(config.get("ocr.config", "--oem 3 --psm 6"))
     OCR_DEFAULT_LANG = str(config.get("ocr.default_lang", "jpn+eng"))
     OCR_JAPANESE_LANG = str(config.get("ocr.japanese_lang", "jpn"))
@@ -68,6 +69,7 @@ class PDFParser:
         else:
             self.enable_figure_aware_fallback = enable_figure_aware_fallback
         self._ocr_lang_warning_emitted = False
+        self._easyocr_reader: Any | None = None
 
     def parse(self, pdf_path: str | Path) -> list[RawChunk]:
         """
@@ -343,7 +345,152 @@ class PDFParser:
         return best_text
 
     def _ocr_text_from_bbox(self, fitz_page: pymupdf.Page, bbox: BBox) -> str | None:
-        """Extract text via OCR from a clipped page region."""
+        """
+        Extract text via OCR from a clipped page region.
+
+        Dispatches to EasyOCR (primary) or Tesseract (fallback / explicit setting)
+        based on the configured ``ocr.engine`` value.
+        """
+        if self.OCR_ENGINE == "easyocr":
+            result = self._ocr_text_from_bbox_easyocr(fitz_page=fitz_page, bbox=bbox)
+            if result:
+                return result
+            log.debug("EasyOCR returned no text; falling back to Tesseract")
+        return self._ocr_text_from_bbox_tesseract(fitz_page=fitz_page, bbox=bbox)
+
+    def _ocr_text_from_bbox_easyocr(self, fitz_page: pymupdf.Page, bbox: BBox) -> str | None:
+        """
+        Extract text via EasyOCR from a clipped page region.
+
+        Renders a 3x-scale pixmap of the bounding box and feeds it to the
+        cached EasyOCR Reader.  Results are sorted top-to-bottom,
+        left-to-right and joined with newlines.
+
+        Args:
+            fitz_page: PyMuPDF page object for pixel rendering.
+            bbox: Region of interest as (x0, y0, x1, y1).
+
+        Returns:
+            Extracted text string, or None when EasyOCR is unavailable or
+            returns no results.
+        """
+        reader = self._get_easyocr_reader()
+        if reader is None:
+            return None
+
+        try:
+            import numpy as np
+
+            rect = pymupdf.Rect(bbox[0], bbox[1], bbox[2], bbox[3])
+            pix = fitz_page.get_pixmap(matrix=pymupdf.Matrix(3.0, 3.0), clip=rect, alpha=False)
+            img_array = np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.height, pix.width, 3)
+        except Exception as e:
+            log.debug("EasyOCR: failed to render clip: %s", e)
+            return None
+
+        try:
+            results = reader.readtext(img_array, detail=1, paragraph=False)
+        except Exception as e:
+            log.debug("EasyOCR: readtext failed: %s", e)
+            return None
+
+        if not results:
+            return None
+
+        text = "\n".join(self._easyocr_results_to_lines(results))
+        return text if text.strip() else None
+
+    @staticmethod
+    def _easyocr_results_to_lines(results: list[Any]) -> list[str]:
+        """
+        Convert EasyOCR readtext results into ordered text lines.
+
+        Each result is a tuple of (bbox_quad, text, confidence).  Items are
+        sorted by the vertical centre of their bounding quadrilateral, then
+        grouped into lines when successive items share a similar y-centre
+        (within one character height).  Within each line items are sorted
+        left-to-right by x-centre.
+
+        Args:
+            results: Raw output from ``reader.readtext(detail=1)``.
+
+        Returns:
+            List of text strings, one per detected line.
+        """
+        if not results:
+            return []
+
+        annotated: list[tuple[float, float, str]] = []
+        for item in results:
+            quad, text, _conf = item[0], item[1], item[2]
+            ys = [pt[1] for pt in quad]
+            xs = [pt[0] for pt in quad]
+            y_centre = (min(ys) + max(ys)) / 2.0
+            x_centre = (min(xs) + max(xs)) / 2.0
+            char_height = max(ys) - min(ys)
+            annotated.append((y_centre, x_centre, text, char_height))  # type: ignore[arg-type]
+
+        annotated.sort(key=lambda t: t[0])
+
+        lines: list[list[tuple[float, float, str]]] = []
+        for y_centre, x_centre, text, char_height in annotated:  # type: ignore[misc]
+            tolerance = max(float(char_height) * 0.6, 8.0)
+            if lines and abs(y_centre - lines[-1][0][0]) <= tolerance:
+                lines[-1].append((y_centre, x_centre, text))  # type: ignore[arg-type]
+            else:
+                lines.append([(y_centre, x_centre, text)])  # type: ignore[list-item]
+
+        output: list[str] = []
+        for line_items in lines:
+            sorted_items = sorted(line_items, key=lambda t: t[1])
+            output.append(" ".join(item[2] for item in sorted_items))
+        return output
+
+    def _get_easyocr_reader(self) -> Any | None:
+        """
+        Return the cached EasyOCR Reader, initialising it on first call.
+
+        Uses Metal Performance Shaders (MPS) on Apple Silicon when available,
+        otherwise CUDA, otherwise CPU.  Import errors are caught so that
+        environments without EasyOCR installed degrade gracefully.
+
+        Returns:
+            Initialised ``easyocr.Reader`` instance, or None on failure.
+        """
+        if self._easyocr_reader is not None:
+            return self._easyocr_reader
+
+        try:
+            import easyocr
+            import torch
+        except ImportError as exc:
+            log.warning("EasyOCR is not installed; OCR will fall back to Tesseract. (%s)", exc)
+            return None
+
+        gpu = torch.backends.mps.is_available() or torch.cuda.is_available()
+        try:
+            self._easyocr_reader = easyocr.Reader(["ja", "en"], gpu=gpu)
+            log.info("EasyOCR Reader initialised (gpu=%s)", gpu)
+        except Exception as exc:
+            log.warning("EasyOCR Reader initialisation failed: %s", exc)
+            return None
+
+        return self._easyocr_reader
+
+    def _ocr_text_from_bbox_tesseract(self, fitz_page: pymupdf.Page, bbox: BBox) -> str | None:
+        """
+        Extract text via Tesseract from a clipped page region.
+
+        Renders a 2x-scale pixmap and tries each configured language in order.
+
+        Args:
+            fitz_page: PyMuPDF page object for pixel rendering.
+            bbox: Region of interest as (x0, y0, x1, y1).
+
+        Returns:
+            Extracted text string, or None when Tesseract is unavailable or
+            returns no results.
+        """
         try:
             import pytesseract
         except Exception as e:
@@ -467,9 +614,13 @@ class PDFParser:
                 continue
             code = ord(ch)
             is_cjk = (
-                0x3040 <= code <= 0x30FF  # Hiragana/Katakana
-                or 0x4E00 <= code <= 0x9FFF  # CJK Unified Ideographs
-                or 0x3400 <= code <= 0x4DBF
+                0x3000 <= code <= 0x303F  # CJK symbols and punctuation: 。、「」【】
+                or 0x3040 <= code <= 0x30FF  # Hiragana / Katakana
+                or 0x31F0 <= code <= 0x31FF  # Katakana phonetic extensions
+                or 0x3400 <= code <= 0x4DBF  # CJK unified ideographs extension A
+                or 0x4E00 <= code <= 0x9FFF  # CJK unified ideographs
+                or 0xF900 <= code <= 0xFAFF  # CJK compatibility ideographs
+                or 0xFF00 <= code <= 0xFFEF  # Fullwidth and halfwidth forms
             )
             if is_cjk:
                 cjk_chars += 1
