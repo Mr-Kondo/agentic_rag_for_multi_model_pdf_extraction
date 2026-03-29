@@ -65,6 +65,23 @@ HF_HOME=./models
 
 Langfuseキーが未設定でも処理自体は継続します。
 
+### 4. 日本語OCR前提（推奨）
+
+日本語PDFの文字化け抑止には、Tesseractの日本語言語データが必要です。
+
+```bash
+# tesseract本体
+brew install tesseract
+
+# 追加言語データ（環境に応じてパッケージ名が異なる場合あり）
+brew install tesseract-lang
+
+# 利用可能言語の確認
+tesseract --list-langs
+```
+
+`tesseract --list-langs`に`jpn`が含まれていない場合、`settings.json`で`ocr.default_lang`を`jpn+eng`にしていても日本語OCRは劣化します。
+
 ## CLI
 
 エントリポイントは`app.py`です。`agentic-rag`スクリプトでも実行できます。
@@ -177,6 +194,7 @@ python app.py query "図表間の関係は？" --use-crewai
 `app.py`の`DEFAULT_MODELS`:
 
 - text: `mlx-community/Phi-3.5-mini-Instruct-4bit`
+- text: `mlx-community/Qwen3-8B-4bit`
 - table: `mlx-community/Qwen2.5-3B-Instruct-4bit`
 - vision: `mlx-community/SmolVLM-256M-Instruct-4bit`
 - orchestrator: `mlx-community/DeepSeek-R1-Distill-Llama-8B-4bit`
@@ -201,7 +219,7 @@ pytest tests/test_dspy_validator.py -v
 ## 制約と既知事項
 
 - MLX依存のため、Apple Silicon前提の設計です。
-- OCRは自動起動しません。スキャンPDFでは前処理が必要です。
+- OCR言語データ（特に`jpn`）が未導入の環境では、日本語抽出品質が低下します。
 - テーブル検出はPDF構造の品質に依存します（precision-first設定のため、本文誤検出抑制を優先）。
 - `pipeline --use-langgraph`は現状queryフェーズに適用されます（ingestフェーズはSequentialまたはCrewAI）。
 

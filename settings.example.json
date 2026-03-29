@@ -1,7 +1,7 @@
 {
   "_comment": "Copy this file to settings.json and customize model IDs as needed",
   "models": {
-    "text_extraction": "mlx-community/Phi-3.5-mini-Instruct-4bit",
+    "text_extraction": "mlx-community/Qwen3-8B-4bit",
     "table_extraction": "mlx-community/Qwen2.5-3B-Instruct-4bit",
     "vision_extraction": "mlx-community/SmolVLM-256M-Instruct-4bit",
     "chunk_validator": "mlx-community/Qwen2-VL-7B-Instruct-4bit",
@@ -18,6 +18,12 @@
   "cache": {
     "enable_hf_cache": true,
     "cache_dir": "./models"
+  },
+  "ocr": {
+    "default_lang": "jpn+eng",
+    "japanese_lang": "jpn",
+    "fallback_lang": "eng",
+    "config": "--oem 3 --psm 6"
   },
   "validation": {
     "confidence_threshold": 0.5,

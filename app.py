@@ -19,7 +19,7 @@ Example usage:
 
     # Custom models
     python app.py ingest paper.pdf \\
-        --text-model mlx-community/Qwen2.5-7B-Instruct-4bit \\
+        --text-model mlx-community/Qwen3-8B-4bit \
         --orchestrator mlx-community/DeepSeek-R1-Distill-Llama-8B-4bit
 """
 
@@ -49,7 +49,7 @@ log = logging.getLogger(__name__)
 # ═══════════════════════════════════════════════════════════
 
 DEFAULT_MODELS = {
-    "text": "mlx-community/Phi-3.5-mini-Instruct-4bit",
+    "text": "mlx-community/Qwen3-8B-4bit",
     "table": "mlx-community/Qwen2.5-3B-Instruct-4bit",
     "vision": "mlx-community/SmolVLM-256M-Instruct-4bit",
     "orchestrator": "mlx-community/DeepSeek-R1-Distill-Llama-8B-4bit",

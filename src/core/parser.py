@@ -6,6 +6,8 @@ Extracts text, tables, and figures using pdfplumber and PyMuPDF.
 
 import logging
 import math
+import re
+import unicodedata
 from pathlib import Path
 from typing import Any
 
@@ -13,6 +15,7 @@ import pdfplumber
 import pymupdf
 from PIL import Image
 
+from src.core.config import config
 from src.core.models import BBox, ChunkType, RawChunk
 
 log = logging.getLogger(__name__)
@@ -31,9 +34,9 @@ class PDFParser:
     """
 
     MIN_TABLE_ROWS = 2
-    MIN_TEXT_LEN = 40
-    LINE_MERGE_TOLERANCE = 3.0
-    BLOCK_GAP_FACTOR = 1.6
+    MIN_TEXT_LEN = 24
+    LINE_MERGE_TOLERANCE = 2.5
+    BLOCK_GAP_FACTOR = 1.45
     INDENT_TOLERANCE = 24.0
     COL_GAP_THRESHOLD = 72.0  # horizontal gap in pts that signals a column boundary
     BLOCK_INDENT_TOLERANCE = 80.0  # indent shift in pts that triggers a new block
@@ -45,6 +48,13 @@ class PDFParser:
     FALLBACK_MIN_NUMERIC_RATIO = 0.35
     FALLBACK_MAX_LONG_CELL_RATIO = 0.45
     FALLBACK_LONG_CELL_CHAR_THRESHOLD = 40
+    CID_PATTERN = re.compile(r"\(cid:\d+\)")
+    OCR_CONFIG = str(config.get("ocr.config", "--oem 3 --psm 6"))
+    OCR_DEFAULT_LANG = str(config.get("ocr.default_lang", "jpn+eng"))
+    OCR_JAPANESE_LANG = str(config.get("ocr.japanese_lang", "jpn"))
+    OCR_FALLBACK_LANG = str(config.get("ocr.fallback_lang", "eng"))
+    OCR_READABILITY_THRESHOLD = 5
+    OCR_MIN_CHARS = 24
     FALLBACK_TABLE_SETTINGS = {
         "vertical_strategy": "text",
         "horizontal_strategy": "text",
@@ -57,6 +67,7 @@ class PDFParser:
             self.enable_figure_aware_fallback = self.ENABLE_FIGURE_AWARE_FALLBACK
         else:
             self.enable_figure_aware_fallback = enable_figure_aware_fallback
+        self._ocr_lang_warning_emitted = False
 
     def parse(self, pdf_path: str | Path) -> list[RawChunk]:
         """
@@ -80,6 +91,8 @@ class PDFParser:
                 page_width = float(plumb_page.width)
                 page_height = float(plumb_page.height)
                 page_words = plumb_page.extract_words(use_text_flow=True, keep_blank_chars=False) or []
+                fitz_words = self._extract_fitz_words(fitz_page)
+                text_words = self._select_text_words(page_words, fitz_words)
 
                 table_bboxes: list[BBox] = []
                 figure_chunks: list[RawChunk] = []
@@ -128,7 +141,7 @@ class PDFParser:
                     reject_reason = self._table_rejection_reason(
                         rows=rows,
                         bbox=bbox,
-                        page_words=page_words,
+                        page_words=text_words,
                         figure_bboxes=figure_bboxes,
                         is_fallback=is_fallback,
                     )
@@ -167,12 +180,13 @@ class PDFParser:
 
                 # Extract text blocks with bounding boxes.
                 for text_chunk in self._extract_text_blocks(
-                    words=page_words,
+                    words=text_words,
                     page_num=page_idx + 1,
                     page_width=page_width,
                     page_height=page_height,
                     source_file=pdf_path.name,
                     excluded_bboxes=table_bboxes,
+                    fitz_page=fitz_page,
                 ):
                     chunks.append(text_chunk)
         finally:
@@ -182,6 +196,81 @@ class PDFParser:
         log.info("Parsed %d raw chunks from %s", len(chunks), pdf_path.name)
         return chunks
 
+    def _extract_fitz_words(self, fitz_page: pymupdf.Page) -> list[dict[str, Any]]:
+        """Extract word boxes from PyMuPDF and convert to a pdfplumber-like shape."""
+        try:
+            raw_words = fitz_page.get_text("words")
+        except Exception as e:
+            log.debug("PyMuPDF word extraction failed: %s", e)
+            return []
+
+        converted: list[dict[str, Any]] = []
+        for item in raw_words:
+            if len(item) < 5:
+                continue
+            text = str(item[4]).strip()
+            if not text:
+                continue
+            converted.append(
+                {
+                    "x0": float(item[0]),
+                    "top": float(item[1]),
+                    "x1": float(item[2]),
+                    "bottom": float(item[3]),
+                    "text": text,
+                }
+            )
+        return converted
+
+    def _select_text_words(
+        self,
+        plumb_words: list[dict[str, Any]],
+        fitz_words: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        """Choose the word source with better readability and fewer CID artifacts."""
+        if not fitz_words:
+            return plumb_words
+        if not plumb_words:
+            return fitz_words
+
+        plumb_score = self._word_quality_score(plumb_words)
+        fitz_score = self._word_quality_score(fitz_words)
+
+        if fitz_score > plumb_score:
+            log.info(
+                "Selected PyMuPDF words over pdfplumber words (fitz=%d, plumb=%d)",
+                fitz_score,
+                plumb_score,
+            )
+            return fitz_words
+        return plumb_words
+
+    def _word_quality_score(self, words: list[dict[str, Any]]) -> int:
+        """Return a deterministic score where higher means more readable text."""
+        if not words:
+            return -10_000
+
+        total_words = len(words)
+        cid_words = 0
+        cid_tokens = 0
+        readable_words = 0
+        total_chars = 0
+
+        for word in words:
+            text = str(word.get("text", ""))
+            found_cid_tokens = self.CID_PATTERN.findall(text)
+            if found_cid_tokens:
+                cid_words += 1
+                cid_tokens += len(found_cid_tokens)
+            text_without_cid = self.CID_PATTERN.sub("", text)
+            alpha_numeric_chars = sum(ch.isalnum() for ch in text_without_cid)
+            total_chars += len(text)
+            if alpha_numeric_chars > 0:
+                readable_words += 1
+
+        # Weighting prioritizes removing CID artifacts first, then readability.
+        return (readable_words * 8) + total_chars + total_words - (cid_words * 15) - (cid_tokens * 40)
+
     def _extract_text_blocks(
         self,
         words: list[dict[str, Any]],
@@ -190,6 +279,7 @@ class PDFParser:
         page_height: float,
         source_file: str,
         excluded_bboxes: list[BBox],
+        fitz_page: pymupdf.Page | None = None,
     ) -> list[RawChunk]:
         """Extract text as block-level chunks with approximate layout boxes."""
         if not words:
@@ -203,11 +293,20 @@ class PDFParser:
 
         text_chunks: list[RawChunk] = []
         for block in blocks:
-            block_text = "\n".join(line["text"] for line in block).strip()
+            block_text = "\n".join(line["text"] for line in block)
+            block_text = self._clean_extracted_text(block_text)
             if len(block_text) < self.MIN_TEXT_LEN:
                 continue
 
             bbox = self._merge_bboxes([line["bbox"] for line in block])
+            block_text = self._rescue_text_with_ocr(
+                original_text=block_text,
+                bbox=bbox,
+                fitz_page=fitz_page,
+            )
+            block_text = self._clean_extracted_text(block_text)
+            if len(block_text) < self.MIN_TEXT_LEN:
+                continue
             text_chunks.append(
                 RawChunk(
                     chunk_type=ChunkType.TEXT,
@@ -222,6 +321,165 @@ class PDFParser:
             )
 
         return text_chunks
+
+    def _rescue_text_with_ocr(self, original_text: str, bbox: BBox, fitz_page: pymupdf.Page | None) -> str:
+        """Try OCR rescue for low-readability text and keep the better candidate."""
+        original_text = self._normalize_text(original_text)
+        if fitz_page is None:
+            return original_text
+
+        if not self._should_try_ocr(original_text):
+            return original_text
+
+        ocr_text = self._ocr_text_from_bbox(fitz_page=fitz_page, bbox=bbox)
+        if not ocr_text:
+            return original_text
+
+        ocr_text = self._normalize_text(ocr_text)
+
+        best_text = self._choose_better_text(original_text, ocr_text)
+        if best_text is ocr_text:
+            log.info("Applied OCR rescue for low-readability text block")
+        return best_text
+
+    def _ocr_text_from_bbox(self, fitz_page: pymupdf.Page, bbox: BBox) -> str | None:
+        """Extract text via OCR from a clipped page region."""
+        try:
+            import pytesseract
+        except Exception as e:
+            log.debug("OCR dependency unavailable: %s", e)
+            return None
+
+        try:
+            rect = pymupdf.Rect(bbox[0], bbox[1], bbox[2], bbox[3])
+            pix = fitz_page.get_pixmap(matrix=pymupdf.Matrix(2.0, 2.0), clip=rect, alpha=False)
+            image = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
+        except Exception as e:
+            log.debug("Failed to render OCR clip: %s", e)
+            return None
+
+        trial_langs = self._ocr_language_sequence()
+        for lang in trial_langs:
+            try:
+                ocr_text = pytesseract.image_to_string(
+                    image,
+                    lang=lang,
+                    config=self.OCR_CONFIG,
+                ).strip()
+                if ocr_text:
+                    return ocr_text
+                log.debug("OCR returned empty text with lang=%s", lang)
+            except Exception as e:
+                log.debug("OCR with lang=%s failed: %s", lang, e)
+
+        log.debug("OCR failed for all configured languages: %s", trial_langs)
+
+        return None
+
+    def _ocr_language_sequence(self) -> tuple[str, ...]:
+        """Return OCR language trial order with duplicates removed."""
+        ordered = [
+            self.OCR_DEFAULT_LANG.strip(),
+            self.OCR_JAPANESE_LANG.strip(),
+            self.OCR_FALLBACK_LANG.strip(),
+        ]
+        unique_langs: list[str] = []
+        for lang in ordered:
+            if lang and lang not in unique_langs:
+                unique_langs.append(lang)
+
+        available_langs = self._get_available_tesseract_languages()
+        if available_langs:
+            unavailable = [lang for lang in unique_langs if not self._is_ocr_lang_available(lang, available_langs)]
+            if unavailable and not self._ocr_lang_warning_emitted:
+                log.warning(
+                    "Configured OCR languages unavailable in local tesseract data: %s. "
+                    "Install language data (e.g., jpn) or update settings.",
+                    unavailable,
+                )
+                self._ocr_lang_warning_emitted = True
+
+            filtered_langs = [lang for lang in unique_langs if self._is_ocr_lang_available(lang, available_langs)]
+            if filtered_langs:
+                return tuple(filtered_langs)
+
+        return tuple(unique_langs)
+
+    @staticmethod
+    def _is_ocr_lang_available(lang: str, available_langs: set[str]) -> bool:
+        """Return True when all language tokens in a tesseract lang expression are available."""
+        return all(token in available_langs for token in lang.split("+") if token)
+
+    def _get_available_tesseract_languages(self) -> set[str] | None:
+        """Return installed tesseract language codes, or None when detection is unavailable."""
+        try:
+            import pytesseract
+        except Exception as e:
+            log.debug("Cannot validate OCR languages because pytesseract is unavailable: %s", e)
+            return None
+
+        try:
+            langs = pytesseract.get_languages(config="")
+            return {str(lang).strip() for lang in langs if str(lang).strip()}
+        except Exception as e:
+            log.debug("Cannot list tesseract languages: %s", e)
+            return None
+
+    def _clean_extracted_text(self, text: str) -> str:
+        """Normalize and sanitize extracted text to reduce CID-driven mojibake."""
+        normalized = self._normalize_text(text)
+        without_cid = self.CID_PATTERN.sub("", normalized)
+        without_cid = without_cid.replace("\u3000", " ")
+        # Collapse repeated spaces while preserving intentional line breaks.
+        return "\n".join(re.sub(r"[ \t]+", " ", line).strip() for line in without_cid.splitlines()).strip()
+
+    @staticmethod
+    def _normalize_text(text: str) -> str:
+        """Apply Unicode normalization to stabilize text comparison and scoring."""
+        return unicodedata.normalize("NFC", text or "")
+
+    def _should_try_ocr(self, text: str) -> bool:
+        """Return True when text likely suffers from extraction corruption."""
+        stripped = text.strip()
+        if len(stripped) < self.OCR_MIN_CHARS:
+            return False
+        return self._text_readability_score(stripped) < self.OCR_READABILITY_THRESHOLD
+
+    def _choose_better_text(self, original_text: str, ocr_text: str) -> str:
+        """Choose the more readable text candidate using deterministic scoring."""
+        original_score = self._text_readability_score(original_text)
+        ocr_score = self._text_readability_score(ocr_text)
+        return ocr_text if ocr_score > original_score else original_text
+
+    def _text_readability_score(self, text: str) -> int:
+        """Score text readability for OCR fallback decisions."""
+        if not text:
+            return -10_000
+
+        cid_tokens = len(self.CID_PATTERN.findall(text))
+        ascii_alnum = 0
+        cjk_chars = 0
+        suspicious_chars = 0
+
+        for ch in text:
+            if ch.isascii() and ch.isalnum():
+                ascii_alnum += 1
+                continue
+            code = ord(ch)
+            is_cjk = (
+                0x3040 <= code <= 0x30FF  # Hiragana/Katakana
+                or 0x4E00 <= code <= 0x9FFF  # CJK Unified Ideographs
+                or 0x3400 <= code <= 0x4DBF
+            )
+            if is_cjk:
+                cjk_chars += 1
+                continue
+            if ch.isspace() or ch.isdigit() or ch in ".,;:!?()[]{}'\"+-*/=_#%&@~|":
+                continue
+            suspicious_chars += 1
+
+        # Prefer ASCII/CJK readable text and penalize CID/suspicious glyph noise.
+        return (ascii_alnum * 2) + (cjk_chars * 3) - (cid_tokens * 20) - (suspicious_chars * 4)
 
     def _find_table_candidates(
         self,

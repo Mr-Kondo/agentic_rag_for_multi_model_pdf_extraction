@@ -12,6 +12,8 @@ import numpy as np
 import pytesseract
 from PIL import Image
 
+from src.core.config import config
+
 log = logging.getLogger(__name__)
 
 
@@ -36,7 +38,8 @@ class TableFromImageExtractor:
     MIN_CELL_HEIGHT = 15
     MIN_CELL_WIDTH = 20
     MIN_GRID_LINE_DENSITY = 0.003
-    TESSERACT_CONFIG = r"--oem 3 --psm 6"
+    TESSERACT_CONFIG = str(config.get("ocr.config", "--oem 3 --psm 6"))
+    OCR_LANG = str(config.get("ocr.default_lang", "jpn+eng"))
 
     def __init__(self):
         """Initialize extractor and verify pytesseract is available."""
@@ -320,7 +323,11 @@ class TableFromImageExtractor:
 
                 # OCR on cell
                 try:
-                    text = pytesseract.image_to_string(cell_region, config=self.TESSERACT_CONFIG).strip()
+                    text = pytesseract.image_to_string(
+                        cell_region,
+                        lang=self.OCR_LANG,
+                        config=self.TESSERACT_CONFIG,
+                    ).strip()
                 except Exception as e:
                     log.debug("TableFromImageExtractor: OCR failed for cell at (%d, %d): %s", x, y, e)
                     text = ""

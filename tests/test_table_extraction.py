@@ -4,6 +4,8 @@ Tests TableFromImageExtractor core functionality.
 """
 
 import pytest
+import cv2
+import numpy as np
 from PIL import Image, ImageDraw
 
 from src.agents.extraction import _is_structured_table_markdown
@@ -153,6 +155,25 @@ class TestTableFromImageExtractor:
 
         # Blank image should return None (no grid detected)
         assert result is None, "Blank image should not extract table"
+
+    def test_extract_cell_text_passes_configured_ocr_language(self, extractor, monkeypatch):
+        """Cell OCR should always run with configured multilingual language."""
+        img = self._create_simple_table_image(rows=2, cols=2)
+        img_cv = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
+        cells = [[(0, 0, 20, 20)]]
+
+        observed: dict[str, str] = {}
+
+        def _fake_ocr(_cell_region, lang, config):
+            observed["lang"] = lang
+            observed["config"] = config
+            return "ok"
+
+        monkeypatch.setattr("src.agents.table_extraction.pytesseract.image_to_string", _fake_ocr)
+        extractor._extract_cell_text(img_cv, cells)
+
+        assert observed["lang"] == extractor.OCR_LANG
+        assert observed["config"] == extractor.TESSERACT_CONFIG
 
 
 class TestVisionAgentTableIntegration:
