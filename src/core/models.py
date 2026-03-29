@@ -51,6 +51,7 @@ class RawChunk:
     artifact_path: str = ""
     source_preview: str = ""
     source_file: str = ""
+    ocr_metadata: dict[str, Any] = field(default_factory=dict)
 
 
 # ═══════════════════════════════════════════════════════════

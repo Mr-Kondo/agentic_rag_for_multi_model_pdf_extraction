@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import json
 import sys
 from types import SimpleNamespace
 
 from src.core.parser import PDFParser
+from src.utils.text_correction import DictionaryCorrector
 
 
 def _word(text: str, x0: float, top: float, x1: float, bottom: float) -> dict[str, float | str]:
@@ -427,3 +429,94 @@ def test_text_readability_score_counts_japanese_punctuation_as_cjk() -> None:
     score = parser._text_readability_score(punctuation_text)
 
     assert score > 0
+
+
+def test_ocr_text_from_bbox_reocrs_low_confidence_lines(monkeypatch) -> None:
+    """Low-confidence EasyOCR lines are selectively retried with Tesseract."""
+    parser = PDFParser()
+    parser.OCR_ENGINE = "easyocr"
+    parser.OCR_ENABLE_LINE_REOCR = True
+    parser.OCR_LINE_CONFIDENCE_THRESHOLD = 0.8
+    parser.OCR_MAX_LINE_REOCR_ATTEMPTS = 2
+
+    class _DummyPix:
+        width = 4
+        height = 4
+        samples = bytes([200, 200, 200] * 16)
+
+    class _DummyPage:
+        def get_pixmap(self, matrix, clip, alpha):
+            return _DummyPix()
+
+    _easyocr_result = [
+        ([[0, 0], [60, 0], [60, 12], [0, 12]], "ᣑᙇ,62㧗", 0.2),
+        ([[0, 30], [80, 30], [80, 42], [0, 42]], "RIVER DISCHARGE", 0.95),
+    ]
+
+    class _DummyReader:
+        def readtext(self, image, detail, paragraph):
+            return _easyocr_result
+
+    parser._easyocr_reader = _DummyReader()
+
+    import numpy as np
+
+    monkeypatch.setitem(sys.modules, "numpy", np)
+    monkeypatch.setattr(
+        parser,
+        "_ocr_text_from_bbox_tesseract",
+        lambda fitz_page, bbox: "拡張ISO高感度",
+    )
+
+    text = parser._ocr_text_from_bbox(_DummyPage(), (0.0, 0.0, 40.0, 40.0))
+
+    assert text is not None
+    assert "拡張ISO高感度" in text
+    assert "RIVER DISCHARGE" in text
+    assert parser._last_ocr_metadata is not None
+    assert parser._last_ocr_metadata["reocr_attempts"] == 1
+    assert parser._last_ocr_metadata["reocr_replaced_lines"] == 1
+
+
+def test_rescue_text_with_ocr_applies_dictionary_post_correction() -> None:
+    """Dictionary post-correction is applied to rescued OCR text."""
+    parser = PDFParser()
+    parser.OCR_POST_CORRECTION_ENABLED = True
+    parser.OCR_POST_CORRECTION_APPLY_TO_OCR_ONLY = True
+    parser._dictionary_corrector = DictionaryCorrector(exact_rules={"流沢": "流況"})
+    parser._should_try_ocr = lambda _text: True  # type: ignore[assignment]
+    parser._ocr_text_from_bbox = lambda fitz_page, bbox: "河川流沢の変化"  # type: ignore[assignment]
+
+    class _DummyPage:
+        pass
+
+    rescued, metadata = parser._rescue_text_with_ocr(
+        original_text="ᣑᙇ,62㧗ឤᗘ",
+        bbox=(0.0, 0.0, 20.0, 20.0),
+        fitz_page=_DummyPage(),
+    )
+
+    assert rescued == "河川流況の変化"
+    assert metadata is not None
+    assert metadata["dictionary_replacements"] == 1
+
+
+def test_dictionary_corrector_loads_exact_and_regex_rules(tmp_path) -> None:
+    """DictionaryCorrector loads supported rule types from JSON files."""
+    rule_file = tmp_path / "rules.json"
+    rule_file.write_text(
+        json.dumps(
+            {
+                "exact": {"流沢": "流況"},
+                "regex": [{"pattern": "高水(?!時)", "repl": "高水時"}],
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    corrector = DictionaryCorrector.from_paths([str(rule_file)])
+    corrected, count = corrector.correct("高水では流沢が変化する")
+
+    assert corrected == "高水時では流況が変化する"
+    assert count == 2

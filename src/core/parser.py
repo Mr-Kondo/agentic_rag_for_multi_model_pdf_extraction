@@ -17,6 +17,7 @@ from PIL import Image
 
 from src.core.config import config
 from src.core.models import BBox, ChunkType, RawChunk
+from src.utils.text_correction import DictionaryCorrector
 
 log = logging.getLogger(__name__)
 
@@ -54,8 +55,15 @@ class PDFParser:
     OCR_DEFAULT_LANG = str(config.get("ocr.default_lang", "jpn+eng"))
     OCR_JAPANESE_LANG = str(config.get("ocr.japanese_lang", "jpn"))
     OCR_FALLBACK_LANG = str(config.get("ocr.fallback_lang", "eng"))
+    OCR_LINE_CONFIDENCE_THRESHOLD = float(config.get("ocr.line_confidence_threshold", 0.55))
+    OCR_ENABLE_LINE_REOCR = bool(config.get("ocr.enable_line_reocr", True))
+    OCR_MAX_LINE_REOCR_ATTEMPTS = int(config.get("ocr.max_line_reocr_attempts", 2))
+    OCR_POST_CORRECTION_ENABLED = bool(config.get("ocr.post_correction.enabled", False))
+    OCR_POST_CORRECTION_PATHS = list(config.get("ocr.post_correction.dictionary_paths", []))
+    OCR_POST_CORRECTION_APPLY_TO_OCR_ONLY = bool(config.get("ocr.post_correction.apply_to_ocr_only", True))
     OCR_READABILITY_THRESHOLD = 5
     OCR_MIN_CHARS = 24
+    OCR_RENDER_SCALE = 3.0
     FALLBACK_TABLE_SETTINGS = {
         "vertical_strategy": "text",
         "horizontal_strategy": "text",
@@ -70,6 +78,8 @@ class PDFParser:
             self.enable_figure_aware_fallback = enable_figure_aware_fallback
         self._ocr_lang_warning_emitted = False
         self._easyocr_reader: Any | None = None
+        self._last_ocr_metadata: dict[str, Any] | None = None
+        self._dictionary_corrector = DictionaryCorrector.from_paths(self.OCR_POST_CORRECTION_PATHS)
 
     def parse(self, pdf_path: str | Path) -> list[RawChunk]:
         """
@@ -301,7 +311,7 @@ class PDFParser:
                 continue
 
             bbox = self._merge_bboxes([line["bbox"] for line in block])
-            block_text = self._rescue_text_with_ocr(
+            block_text, ocr_metadata = self._rescue_text_with_ocr(
                 original_text=block_text,
                 bbox=bbox,
                 fitz_page=fitz_page,
@@ -319,30 +329,50 @@ class PDFParser:
                     page_height=page_height,
                     source_preview=block_text[:280],
                     source_file=source_file,
+                    ocr_metadata=ocr_metadata or {},
                 )
             )
 
         return text_chunks
 
-    def _rescue_text_with_ocr(self, original_text: str, bbox: BBox, fitz_page: pymupdf.Page | None) -> str:
+    def _rescue_text_with_ocr(
+        self,
+        original_text: str,
+        bbox: BBox,
+        fitz_page: pymupdf.Page | None,
+    ) -> tuple[str, dict[str, Any] | None]:
         """Try OCR rescue for low-readability text and keep the better candidate."""
         original_text = self._normalize_text(original_text)
         if fitz_page is None:
-            return original_text
+            return original_text, None
 
         if not self._should_try_ocr(original_text):
-            return original_text
+            return original_text, None
 
+        self._last_ocr_metadata = None
         ocr_text = self._ocr_text_from_bbox(fitz_page=fitz_page, bbox=bbox)
         if not ocr_text:
-            return original_text
+            return original_text, None
 
         ocr_text = self._normalize_text(ocr_text)
 
         best_text = self._choose_better_text(original_text, ocr_text)
+        metadata = self._last_ocr_metadata.copy() if self._last_ocr_metadata else None
         if best_text is ocr_text:
             log.info("Applied OCR rescue for low-readability text block")
-        return best_text
+
+        should_apply_post_correction = self.OCR_POST_CORRECTION_ENABLED and (
+            not self.OCR_POST_CORRECTION_APPLY_TO_OCR_ONLY or best_text is ocr_text
+        )
+        if should_apply_post_correction:
+            corrected_text, replacement_count = self._dictionary_corrector.correct(best_text)
+            if replacement_count > 0:
+                best_text = corrected_text
+                if metadata is None:
+                    metadata = {}
+                metadata["dictionary_replacements"] = replacement_count
+
+        return best_text, metadata
 
     def _ocr_text_from_bbox(self, fitz_page: pymupdf.Page, bbox: BBox) -> str | None:
         """
@@ -351,6 +381,7 @@ class PDFParser:
         Dispatches to EasyOCR (primary) or Tesseract (fallback / explicit setting)
         based on the configured ``ocr.engine`` value.
         """
+        self._last_ocr_metadata = None
         if self.OCR_ENGINE == "easyocr":
             result = self._ocr_text_from_bbox_easyocr(fitz_page=fitz_page, bbox=bbox)
             if result:
@@ -382,7 +413,9 @@ class PDFParser:
             import numpy as np
 
             rect = pymupdf.Rect(bbox[0], bbox[1], bbox[2], bbox[3])
-            pix = fitz_page.get_pixmap(matrix=pymupdf.Matrix(3.0, 3.0), clip=rect, alpha=False)
+            pix = fitz_page.get_pixmap(
+                matrix=pymupdf.Matrix(self.OCR_RENDER_SCALE, self.OCR_RENDER_SCALE), clip=rect, alpha=False
+            )
             img_array = np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.height, pix.width, 3)
         except Exception as e:
             log.debug("EasyOCR: failed to render clip: %s", e)
@@ -397,11 +430,30 @@ class PDFParser:
         if not results:
             return None
 
-        text = "\n".join(self._easyocr_results_to_lines(results))
+        line_entries = self._easyocr_results_to_line_entries(results)
+        if self.OCR_ENABLE_LINE_REOCR:
+            line_entries, metadata = self._reocr_low_confidence_lines(
+                fitz_page=fitz_page,
+                parent_bbox=bbox,
+                line_entries=line_entries,
+            )
+        else:
+            metadata = {
+                "engine": "easyocr",
+                "line_count": len(line_entries),
+                "low_confidence_line_count": sum(
+                    1 for line in line_entries if line["confidence"] < self.OCR_LINE_CONFIDENCE_THRESHOLD
+                ),
+                "reocr_attempts": 0,
+                "reocr_replaced_lines": 0,
+            }
+
+        self._last_ocr_metadata = metadata
+        text = "\n".join(line["text"] for line in line_entries if line["text"].strip())
         return text if text.strip() else None
 
     @staticmethod
-    def _easyocr_results_to_lines(results: list[Any]) -> list[str]:
+    def _easyocr_results_to_line_entries(results: list[Any]) -> list[dict[str, Any]]:
         """
         Convert EasyOCR readtext results into ordered text lines.
 
@@ -415,36 +467,115 @@ class PDFParser:
             results: Raw output from ``reader.readtext(detail=1)``.
 
         Returns:
-            List of text strings, one per detected line.
+            List of dicts containing ``text``, ``confidence`` and ``bbox_local``.
         """
         if not results:
             return []
 
-        annotated: list[tuple[float, float, str]] = []
+        annotated: list[tuple[float, float, str, float, tuple[float, float, float, float], float]] = []
         for item in results:
-            quad, text, _conf = item[0], item[1], item[2]
+            quad, text, conf = item[0], item[1], item[2]
             ys = [pt[1] for pt in quad]
             xs = [pt[0] for pt in quad]
+            min_x = float(min(xs))
+            min_y = float(min(ys))
+            max_x = float(max(xs))
+            max_y = float(max(ys))
             y_centre = (min(ys) + max(ys)) / 2.0
             x_centre = (min(xs) + max(xs)) / 2.0
             char_height = max(ys) - min(ys)
-            annotated.append((y_centre, x_centre, text, char_height))  # type: ignore[arg-type]
+            confidence = float(conf) if conf is not None else 0.0
+            annotated.append((y_centre, x_centre, text, char_height, (min_x, min_y, max_x, max_y), confidence))
 
         annotated.sort(key=lambda t: t[0])
 
-        lines: list[list[tuple[float, float, str]]] = []
-        for y_centre, x_centre, text, char_height in annotated:  # type: ignore[misc]
+        lines: list[list[tuple[float, float, str, tuple[float, float, float, float], float]]] = []
+        for y_centre, x_centre, text, char_height, local_bbox, confidence in annotated:
             tolerance = max(float(char_height) * 0.6, 8.0)
             if lines and abs(y_centre - lines[-1][0][0]) <= tolerance:
-                lines[-1].append((y_centre, x_centre, text))  # type: ignore[arg-type]
+                lines[-1].append((y_centre, x_centre, text, local_bbox, confidence))
             else:
-                lines.append([(y_centre, x_centre, text)])  # type: ignore[list-item]
+                lines.append([(y_centre, x_centre, text, local_bbox, confidence)])
 
-        output: list[str] = []
+        output: list[dict[str, Any]] = []
         for line_items in lines:
             sorted_items = sorted(line_items, key=lambda t: t[1])
-            output.append(" ".join(item[2] for item in sorted_items))
+            line_text = " ".join(item[2] for item in sorted_items).strip()
+            weighted_chars = sum(max(len(item[2].strip()), 1) for item in sorted_items)
+            weighted_confidence = sum(item[4] * max(len(item[2].strip()), 1) for item in sorted_items) / weighted_chars
+            min_x = min(item[3][0] for item in sorted_items)
+            min_y = min(item[3][1] for item in sorted_items)
+            max_x = max(item[3][2] for item in sorted_items)
+            max_y = max(item[3][3] for item in sorted_items)
+            output.append(
+                {
+                    "text": line_text,
+                    "confidence": weighted_confidence,
+                    "bbox_local": (min_x, min_y, max_x, max_y),
+                }
+            )
         return output
+
+    def _reocr_low_confidence_lines(
+        self,
+        fitz_page: pymupdf.Page,
+        parent_bbox: BBox,
+        line_entries: list[dict[str, Any]],
+    ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+        """Retry OCR only for low-confidence lines using Tesseract."""
+        attempts = 0
+        replaced_lines = 0
+        low_confidence_lines = 0
+
+        for entry in line_entries:
+            confidence = float(entry.get("confidence", 0.0))
+            if confidence >= self.OCR_LINE_CONFIDENCE_THRESHOLD:
+                continue
+            low_confidence_lines += 1
+            if attempts >= self.OCR_MAX_LINE_REOCR_ATTEMPTS:
+                continue
+
+            local_bbox = entry.get("bbox_local")
+            if not isinstance(local_bbox, tuple) or len(local_bbox) != 4:
+                continue
+
+            attempts += 1
+            page_bbox = self._local_bbox_to_page_bbox(local_bbox, parent_bbox)
+            tesseract_candidate = self._ocr_text_from_bbox_tesseract(fitz_page=fitz_page, bbox=page_bbox)
+            if not tesseract_candidate:
+                continue
+
+            current_text = str(entry.get("text", "")).strip()
+            candidate_text = self._normalize_text(tesseract_candidate).strip()
+            if not candidate_text:
+                continue
+
+            better_text = self._choose_better_text(current_text, candidate_text)
+            if better_text == candidate_text:
+                entry["text"] = candidate_text
+                entry["reocr_applied"] = True
+                replaced_lines += 1
+
+        metadata = {
+            "engine": "easyocr",
+            "line_count": len(line_entries),
+            "low_confidence_line_count": low_confidence_lines,
+            "reocr_attempts": attempts,
+            "reocr_replaced_lines": replaced_lines,
+        }
+        return line_entries, metadata
+
+    def _local_bbox_to_page_bbox(
+        self,
+        local_bbox: tuple[float, float, float, float],
+        parent_bbox: BBox,
+    ) -> BBox:
+        """Convert local OCR image coordinates back into page coordinates."""
+        x0 = parent_bbox[0] + (local_bbox[0] / self.OCR_RENDER_SCALE)
+        y0 = parent_bbox[1] + (local_bbox[1] / self.OCR_RENDER_SCALE)
+        x1 = parent_bbox[0] + (local_bbox[2] / self.OCR_RENDER_SCALE)
+        y1 = parent_bbox[1] + (local_bbox[3] / self.OCR_RENDER_SCALE)
+        return (x0, y0, x1, y1)
 
     def _get_easyocr_reader(self) -> Any | None:
         """

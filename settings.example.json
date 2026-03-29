@@ -24,7 +24,15 @@
     "default_lang": "jpn+eng",
     "japanese_lang": "jpn",
     "fallback_lang": "eng",
-    "config": "--oem 3 --psm 6"
+    "config": "--oem 3 --psm 6",
+    "line_confidence_threshold": 0.55,
+    "enable_line_reocr": true,
+    "max_line_reocr_attempts": 2,
+    "post_correction": {
+      "enabled": false,
+      "dictionary_paths": [],
+      "apply_to_ocr_only": true
+    }
   },
   "validation": {
     "confidence_threshold": 0.5,

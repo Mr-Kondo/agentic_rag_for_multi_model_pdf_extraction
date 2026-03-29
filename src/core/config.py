@@ -49,6 +49,14 @@ class ConfigLoader:
             "japanese_lang": "jpn",
             "fallback_lang": "eng",
             "config": "--oem 3 --psm 6",
+            "line_confidence_threshold": 0.55,
+            "enable_line_reocr": True,
+            "max_line_reocr_attempts": 2,
+            "post_correction": {
+                "enabled": False,
+                "dictionary_paths": [],
+                "apply_to_ocr_only": True,
+            },
         },
         "validation": {
             "confidence_threshold": 0.5,
