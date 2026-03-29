@@ -1,8 +1,8 @@
 # Processing Flow (Mermaid)
 
-Last updated: 2026-03-15
+Last updated: 2026-03-29
 
-このドキュメントは、CLI実行時の処理フローと分岐条件を可視化します。
+このドキュメントは、CLI 実行時の主要な分岐と処理フローを可視化したものです。実装の責務や制約は [docs/ARCHITECTURE.md](/Volumes/SSD/Programming/agentic_rag_for_multi_model_pdf_extraction/docs/ARCHITECTURE.md)、設定の注意点は [docs/CONFIG_SETUP.md](/Volumes/SSD/Programming/agentic_rag_for_multi_model_pdf_extraction/docs/CONFIG_SETUP.md) を参照してください。
 
 ## 1. CLIディスパッチ全体
 
@@ -41,6 +41,11 @@ flowchart TD
 実装参照:
 - app.py: cmd_ingest, cmd_query, cmd_pipeline
 
+注記:
+
+- `pipeline` で `--use-crewai` と `--use-langgraph` を同時指定した場合、query フェーズも CrewAI が優先されます。
+- `pipeline --use-langgraph` は ingest を LangGraph 化しません。
+
 ## 2. ingest 詳細フロー
 
 ```mermaid
@@ -60,7 +65,7 @@ flowchart TD
   B -->|no| C{use_crewai?}
   C -->|yes| CR0[Build AgenticRAGPipeline use_crewai]
   CR0 --> CR1[PDFParser.parse]
-  CR1 --> CR2[CrewAI extraction via AgentRouter]
+  CR1 --> CR2[CrewAI ingest wrapper then local AgentRouter extraction]
   CR2 --> CR3[Cross link relationships]
   CR3 --> CR4{validate?}
   CR4 -->|yes| CR5[Checkpoint A chunk validation]
@@ -90,6 +95,11 @@ flowchart TD
 - src/core/crewai_pipeline.py: CrewAIIngestionPipeline.process_chunks
 - src/core/langgraph_pipeline.py: LangGraphIngestPipeline.build, ingest
 - src/core/parser.py: PDFParser
+
+注記:
+
+- CrewAI ingest の extraction は、現状では Crew task による全面抽出ではなく、`ExtractionCrew.extract_chunks()` 内で local `AgentRouter` を直接呼びます。
+- CrewAI ingest の validation / linking は簡略実装を含みます。
 
 ## 3. query 詳細フロー
 
@@ -131,6 +141,10 @@ flowchart TD
 - src/core/pipeline.py: query, query_with_crewai
 - src/core/langgraph_pipeline.py: LangGraphQueryPipeline.query
 
+注記:
+
+- CrewAI query は失敗時に標準 query へフォールバックします。
+
 ## 4. pipeline 詳細フロー
 
 ```mermaid
@@ -156,6 +170,10 @@ flowchart TD
 - app.py: cmd_pipeline
 - src/core/pipeline.py: ingest, ingest_with_crewai, query, query_with_crewai
 - src/core/langgraph_pipeline.py: LangGraphQueryPipeline.build, query
+
+注記:
+
+- `pipeline` は ingest 側に LangGraph 経路を持たず、ingest は Sequential か CrewAI のどちらかです。
 
 ## 5. LangGraph query ノード遷移
 

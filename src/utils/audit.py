@@ -143,6 +143,8 @@ def _serialize_raw_chunk(raw: RawChunk, artifact_path: str | None) -> dict[str, 
 def _build_html(audit_data: dict[str, Any]) -> str:
     """Generate a standalone HTML viewer for the audit JSON."""
     payload = json.dumps(audit_data, ensure_ascii=False)
+    # Escape closing script tags and other HTML-sensitive sequences within JavaScript.
+    payload = payload.replace("</", "<\\/")
     title = escape(f"Chunk Audit - {audit_data['pdf_file']}")
     template = """<!DOCTYPE html>
 <html lang=\"ja\">
@@ -211,8 +213,11 @@ def _build_html(audit_data: dict[str, Any]) -> str:
       <section id=\"pages\"></section>
     </main>
   </div>
+  <script type="application/json" id="audit-data">
+__PAYLOAD__
+  </script>
   <script>
-    const audit = __PAYLOAD__;
+    const audit = JSON.parse(document.getElementById('audit-data').textContent);
     const filters = ["all", "text", "table", "figure", "corrected", "discarded"];
     let currentFilter = "all";
 
