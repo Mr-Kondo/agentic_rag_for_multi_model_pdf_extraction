@@ -1,37 +1,27 @@
 # Agentic RAG for Multi-Model PDF Extraction
 
-Apple Silicon（MLX）向けに最適化した、PDF解析とRAG質問応答のローカル実行パイプラインです。
+Apple Silicon上で動かすことを前提にした、ローカルPDF解析とRAG質問応答のパイプラインです。
 
-このプロジェクトは、PDFから抽出したテキスト・テーブル・図表チャンクをベクトル化し、質問に対して根拠付き回答を生成します。抽出時と回答時に2段階の検証を実行でき、LangGraph/CrewAIのモード切り替えにも対応しています。
+PDFから抽出したテキスト、テーブル、図版をチャンク化してChromaDBに保存し、質問に対して根拠付き回答を返します。抽出時と回答時には任意で2段階のバリデーションを実行でき、Sequential、LangGraph、CrewAIの経路を切り替えられます。
 
-## 現在の実装ステータス
+## 概要
 
-- 実装言語: Python
-- Python要件: 3.13以上
-- 実行環境想定: macOS（Apple Silicon）
-- 主要モード:
-  - Sequential pipeline（標準）
-  - LangGraph pipeline（ingest/queryで利用可能）
-  - CrewAI integration（`--use-crewai`）
-
-## 主な機能
-
-- マルチモーダル抽出:
-  - TextAgent、TableAgent、VisionAgentによるチャンク処理
-- 2段階バリデーション:
-  - CHECKPOINT A: チャンク品質検証
-  - CHECKPOINT B: 回答の根拠性検証
-- 3つの実行モード:
+- 対象環境: macOS / Apple Silicon
+- Python: 3.13以上
+- 主な処理:
+  - PDF parse
+  - テキスト、表、図版の抽出
+  - チャンク品質検証
+  - ベクトル検索
+  - 根拠性付き回答生成
+- 実行モード:
   - Sequential
-  - LangGraph（ingest/query対応）
+  - LangGraph
   - CrewAI
-- ChromaDBベースのセマンティック検索
-- Langfuseトレーシング（環境変数設定時のみ有効）
-- DSPy統合（AnswerValidator側）
 
 ## セットアップ
 
-### 1. インストール
+### 1. 依存関係のインストール
 
 ```bash
 uv sync
@@ -43,55 +33,47 @@ uv sync
 pip install -e .
 ```
 
-### 2. 設定ファイル
-
-`settings.example.json`を複製して`settings.json`を作成し、必要に応じてモデルIDを調整します。
+### 2. 設定ファイルの用意
 
 ```bash
 cp settings.example.json settings.json
 ```
 
-### 3. 環境変数（任意）
+`settings.json`はOCR設定、validation閾値、pipeline設定などの既定値に使われます。詳細は [docs/CONFIG_SETUP.md](/Volumes/SSD/Programming/agentic_rag_for_multi_model_pdf_extraction/docs/CONFIG_SETUP.md) を参照してください。
 
-`.env`の例:
+### 3. 任意の環境変数
 
 ```bash
 HF_TOKEN=your_huggingface_token
 LANGFUSE_PUBLIC_KEY=pk-lf-...
 LANGFUSE_SECRET_KEY=sk-lf-...
 LANGFUSE_HOST=https://cloud.langfuse.com
-HF_HOME=./models
 ```
 
-Langfuseキーが未設定でも処理自体は継続します。
+Langfuseのキーが未設定でも処理は継続します。
 
-### 4. 日本語OCR前提（推奨）
+### 4. OCR 前提
 
-日本語PDFの文字化け抑止には、Tesseractの日本語言語データが必要です。
+現在の`settings.example.json`ではOCRエンジン既定値は`easyocr`です。日本語PDFを扱う場合はEasyOCRを前提にしつつ、Tesseractを補助的に入れておくと切り分けしやすくなります。
 
 ```bash
-# tesseract本体
 brew install tesseract
-
-# 追加言語データ（環境に応じてパッケージ名が異なる場合あり）
 brew install tesseract-lang
-
-# 利用可能言語の確認
 tesseract --list-langs
 ```
 
-`tesseract --list-langs`に`jpn`が含まれていない場合、`settings.json`で`ocr.default_lang`を`jpn+eng`にしていても日本語OCRは劣化します。
+`jpn`が表示されない環境では、Tesseract側にフォールバックしたときの日本語品質が落ちます。
 
 ## CLI
 
-エントリポイントは`app.py`です。`agentic-rag`スクリプトでも実行できます。
+エントリポイントは `app.py` です。インストール後は `agentic-rag` でも実行できます。
 
 ```bash
 python app.py --help
 agentic-rag --help
 ```
 
-### コマンド一覧
+### サブコマンド
 
 - `ingest <pdf_path>`
 - `query "<question>"`
@@ -100,132 +82,116 @@ agentic-rag --help
 ### 基本例
 
 ```bash
-# PDF取り込み
-python app.py ingest ./input/sample.pdf --validate
-
-# 質問応答
-python app.py query "図2は何を示していますか？" --validate
-
-# ingest + queryを連続実行
+python app.py ingest ./input/sample.pdf
+python app.py query "図2は何を示していますか？"
 python app.py pipeline ./input/sample.pdf "要点を3つで要約して"
 ```
 
-### モード切り替え
+### 実行モード
 
 ```bash
-# LangGraph ingest
 python app.py ingest ./input/sample.pdf --use-langgraph
-
-# LangGraph query
 python app.py query "結論は？" --use-langgraph
-
-# CrewAI（ingest/query/pipelineで使用可能）
 python app.py ingest ./input/sample.pdf --use-crewai
 python app.py query "図表間の関係は？" --use-crewai
 ```
 
+現行実装での適用範囲は次の通りです。
+
+- Sequential:
+  - 標準経路です。
+  - ingestとqueryの両方を`src/core/pipeline.py`で処理します。
+- LangGraph:
+  - `ingest --use-langgraph` では `LangGraphIngestPipeline` を使います。
+  - `query --use-langgraph` では `LangGraphQueryPipeline` を使います。
+  - `pipeline --use-langgraph`ではqueryフェーズにのみ適用されます。
+- CrewAI:
+  - `--use-crewai`はingest、query、pipelineで使えます。
+  - ingest側ではCrewAI経路に入っても、抽出そのものはExtraction crewを全面実行せず、ローカル`AgentRouter`によるMLX抽出を使います。
+  - query側ではCrewAIのretrieval / reasoning / verificationラッパーを使います。
+- `pipeline` で `--use-crewai` と `--use-langgraph` を同時に指定した場合:
+  - ingestはCrewAI優先
+  - queryもCrewAI優先
+
 ### 主要オプション
 
 - `--validate` / `--no-validate`
-  - ingest: CHECKPOINT A（chunk validation）の有効/無効
-  - query: CHECKPOINT B（answer validation）の有効/無効
-- `--enable-figure-aware-fallback`
-  - ingest/pipelineで有効
-  - parserのtable fallback適用条件を拡張（下記ポリシー参照）
+  - ingest: CHECKPOINT A
+  - query: CHECKPOINT B
+  - pipeline: 両方
 - `--use-langgraph`
-  - `ingest`: LangGraphIngestPipelineを使用
-  - `query`: LangGraphQueryPipelineを使用
-  - `pipeline`: queryフェーズにのみ適用（ingestはSequential/CrewAI）
+  - ingestとqueryで有効
+  - pipelineではqueryフェーズのみ有効
 - `--use-crewai`
-- `--session-id <id>`
-- `--storage-dir <dir>`
-- `--output <dir>`
+  - ingest、query、pipelineで有効
+- `--enable-figure-aware-fallback`
+  - ingest / pipelineのparserにだけ効きます
+- `--session-id`
+  - Langfuseのtrace groupingに使います
+- `--storage-dir`
+  - ChromaDB保存先
+- `--output`
+  - 監査レポートの出力先として使われます
 - `--lazy-agents`
+  - CLIにはありますが、現状はpipelineインスタンスに保持されるだけで、明確な追加分岐にはまだ使われていません
 - `--text-model`, `--table-model`, `--vision-model`
 - `--orchestrator-model`, `--chunk-validator-model`, `--answer-validator-model`
 
-## モードの実装実態
+## 出力
 
-- Sequential:
-  - `src/core/pipeline.py`の標準経路
-  - ingest/queryの両方を担当
-- LangGraph:
-  - `src/core/langgraph_pipeline.py`
-  - ingest: `LangGraphIngestPipeline`を`ingest --use-langgraph`で使用
-  - query: `LangGraphQueryPipeline`を`query --use-langgraph`で使用
-  - pipelineコマンドではqueryフェーズのみ`--use-langgraph`が適用される
-- CrewAI:
-  - `src/core/crewai_pipeline.py` + `src/integrations/crew_mlx_tools.py`
-  - `--use-crewai` ingest経路では、抽出フェーズのCrewタスク実行をスキップし、`AgentRouter`経由のローカルMLX抽出を使用
-  - `--no-validate`指定時はCrewAI ingestのvalidationフェーズをスキップ
+代表的な出力物は次の通りです。
 
-## 出力ファイル
+- `./output/<pdf_stem>_chunks.json`
+- `./output/<pdf_stem>_answer.json`
+- `./output/query_answer.json`相当のquery出力
+- `<output_dir>/<pdf_stem>_audit.json`
+- `<output_dir>/<pdf_stem>_audit.html`
+- `<output_dir>/<pdf_stem>_audit/pages/*.png`
+- `<output_dir>/<pdf_stem>_audit/figures/*.png`
 
-標準出力ディレクトリは`./output`です。
+現行実装では少し癖があります。
 
-代表的な出力:
+- JSON保存は`src/utils/serialization.py`の`OUTPUT_DIR`に固定されており、実体は`./output`です。
+- `--output`は主に監査レポートの出力先です。
+- CLIのログは`--output`配下に保存されたように見える文言を出しますが、chunks / answer JSONの保存先そのものは切り替わりません。
+- `app.py`の既定値では`--output`に`./output`が入るため、通常実行でもJSON保存処理は走ります。
 
-- `<pdf_stem>_chunks.json`
-- `<pdf_stem>_answer.json`
-- `query_answer.json`（`query`コマンド実行時）
-- `<pdf_stem>_audit.json`（監査出力有効時）
-- `<pdf_stem>_audit.html`（監査出力有効時）
-- `<pdf_stem>_audit/pages/*.png`（監査出力有効時）
-- `<pdf_stem>_audit/figures/*.png`（監査出力有効時）
+## 設定に関する注意
 
-注意点:
+`settings.json`は万能の設定入口ではありません。現行のCLI実装では、モデル選択まわりに次の制約があります。
 
-- `save_chunks()`/`save_answer()`は`src/utils/serialization.py`の`OUTPUT_DIR`（`./output`）に保存します。
-- `--output`は主に監査レポート（`save_chunk_audit`）の出力先として使われます。
-- 現状のCLIログには`--output`へ保存されたように見える文言がありますが、chunks/answer JSONの実保存先は`./output`です。
+- `src/core/config.py`には`settings.json`のモデル既定値があります。
+- ただし`app.py`のCLI引数にもモデル既定値がハードコードされており、CLI経由で実行すると、未指定時でも`app.py`側の既定値が優先されます。
+- そのため、`settings.json`の`models.*`を変えても、現状の`python app.py ...`では自動反映されない項目があります。
+- 一方でOCR設定、validation設定、parser設定などは`settings.json`側の値が参照されます。
 
-## テーブル検出ポリシー（現状）
+## パーサの現状
 
-- parserはprecision-first方針です（デフォルト）。
-- `pdfplumber.find_tables()`の標準候補を優先します。
-- fallback（text strategy）の実行条件:
-  - 標準候補が0件のページでは常に実行
-  - `--enable-figure-aware-fallback`が有効で、かつページ内にfigureがある場合も実行
-- 本文誤検出（proseをtableと判定）を抑えるため、数値セル率・長文セル率・キャプション手掛かりで追加フィルタリングします。
-- そのため、borderless tableの一部は未検出になる可能性があります。図中表はVision/Table extraction経路で補完される設計です。
+- table検出はprecision-firstです。
+- `pdfplumber.find_tables()` の標準候補を優先します。
+- fallbackのtext strategyは次の条件で走ります。
+  - 標準候補が0件
+  - `--enable-figure-aware-fallback`が有効で、かつページにfigureがある
+- 本文の誤検出を避けるため、数値セル率、長文セル率、caption cue、figure重なりで追加フィルターをかけます。
 
-## モデル既定値（CLIデフォルト）
+## 制約と既知事項
 
-`app.py`の`DEFAULT_MODELS`:
-
-- text: `mlx-community/Phi-3.5-mini-Instruct-4bit`
-- text: `mlx-community/Qwen3-8B-4bit`
-- table: `mlx-community/Qwen2.5-3B-Instruct-4bit`
-- vision: `mlx-community/SmolVLM-256M-Instruct-4bit`
-- orchestrator: `mlx-community/DeepSeek-R1-Distill-Llama-8B-4bit`
-- chunk_validator: `mlx-community/Qwen2-VL-7B-Instruct-4bit`
-- answer_validator: `mlx-community/Qwen3-8B-4bit`
-
-`settings.example.json`は`app.py`の`DEFAULT_MODELS`と整合する値に揃えています。必要があればCLIオプションで一時的に上書きできます。
+- MLX前提のため、macOS / Apple Siliconを主対象にしています。
+- `src/core/cache.py` は実行時に `HF_HOME` を `~/.models` へ固定します。
+- `settings.json` の `cache.cache_dir` は現状の実装では保存先を切り替えていません。
+- OCRの既定値はEasyOCRですが、OCR品質はPDFの状態とレイアウトに左右されます。
+- `pipeline --use-langgraph`はingestには効きません。
 
 ## テスト
 
 ```bash
 pytest tests/ -v
+pytest tests/test_parser.py -v
 ```
-
-個別実行例:
-
-```bash
-pytest tests/test_langgraph_pipeline.py -v
-pytest tests/test_dspy_validator.py -v
-```
-
-## 制約と既知事項
-
-- MLX依存のため、Apple Silicon前提の設計です。
-- OCR言語データ（特に`jpn`）が未導入の環境では、日本語抽出品質が低下します。
-- テーブル検出はPDF構造の品質に依存します（precision-first設定のため、本文誤検出抑制を優先）。
-- `pipeline --use-langgraph`は現状queryフェーズに適用されます（ingestフェーズはSequentialまたはCrewAI）。
 
 ## 関連ドキュメント
 
-- `docs/ARCHITECTURE.md`: 現行アーキテクチャ詳細
-- `docs/FLOW.md`: CLI処理フロー（Mermaid）
-- `docs/CONFIG_SETUP.md`: 設定周り
-- `tests/README.md`: テストガイド
+- [docs/ARCHITECTURE.md](/Volumes/SSD/Programming/agentic_rag_for_multi_model_pdf_extraction/docs/ARCHITECTURE.md)
+- [docs/CONFIG_SETUP.md](/Volumes/SSD/Programming/agentic_rag_for_multi_model_pdf_extraction/docs/CONFIG_SETUP.md)
+- [docs/FLOW.md](/Volumes/SSD/Programming/agentic_rag_for_multi_model_pdf_extraction/docs/FLOW.md)
+- [tests/README.md](/Volumes/SSD/Programming/agentic_rag_for_multi_model_pdf_extraction/tests/README.md)

@@ -44,6 +44,7 @@ class ConfigLoader:
             "cache_dir": "./models",
         },
         "ocr": {
+            "engine": "easyocr",
             "default_lang": "jpn+eng",
             "japanese_lang": "jpn",
             "fallback_lang": "eng",
