@@ -6,6 +6,7 @@ import json
 import sys
 from types import SimpleNamespace
 
+from src.core.models import ChunkType, RegionOCRPolicy
 from src.core.parser import PDFParser
 from src.utils.text_correction import DictionaryCorrector
 
@@ -485,7 +486,7 @@ def test_rescue_text_with_ocr_applies_dictionary_post_correction() -> None:
     parser.OCR_POST_CORRECTION_APPLY_TO_OCR_ONLY = True
     parser._dictionary_corrector = DictionaryCorrector(exact_rules={"流沢": "流況"})
     parser._should_try_ocr = lambda _text: True  # type: ignore[assignment]
-    parser._ocr_text_from_bbox = lambda fitz_page, bbox: "河川流沢の変化"  # type: ignore[assignment]
+    parser._ocr_text_from_bbox = lambda fitz_page, bbox, policy=None: "河川流沢の変化"  # type: ignore[assignment]
 
     class _DummyPage:
         pass
@@ -520,3 +521,125 @@ def test_dictionary_corrector_loads_exact_and_regex_rules(tmp_path) -> None:
 
     assert corrected == "高水時では流況が変化する"
     assert count == 2
+
+
+def test_get_region_policy_uses_region_specific_defaults() -> None:
+    """Parser returns region-specific OCR policy values from config defaults."""
+    parser = PDFParser()
+
+    text_policy = parser._get_region_policy(ChunkType.TEXT)
+    table_policy = parser._get_region_policy(ChunkType.TABLE)
+    figure_policy = parser._get_region_policy(ChunkType.FIGURE)
+
+    assert text_policy.engine == "easyocr"
+    assert text_policy.line_confidence_threshold == 0.55
+    assert table_policy.line_confidence_threshold == 0.65
+    assert table_policy.max_reocr_attempts == 1
+    assert figure_policy.engine == "tesseract"
+    assert figure_policy.enable_reocr is False
+
+
+def test_reocr_low_confidence_lines_respects_policy_threshold_and_attempts(monkeypatch) -> None:
+    """Line re-OCR must follow the policy threshold and max attempts."""
+    parser = PDFParser()
+
+    class _DummyPage:
+        pass
+
+    line_entries = [
+        {"text": "bad line 1", "confidence": 0.2, "bbox_local": (0.0, 0.0, 10.0, 10.0)},
+        {"text": "bad line 2", "confidence": 0.3, "bbox_local": (0.0, 12.0, 10.0, 22.0)},
+    ]
+    policy = RegionOCRPolicy(
+        engine="easyocr",
+        line_confidence_threshold=0.5,
+        enable_reocr=True,
+        max_reocr_attempts=1,
+        apply_post_correction=False,
+    )
+
+    monkeypatch.setattr(
+        parser,
+        "_ocr_text_from_bbox_tesseract",
+        lambda fitz_page, bbox: "good replacement",
+    )
+
+    updated, metadata = parser._reocr_low_confidence_lines(
+        fitz_page=_DummyPage(),
+        parent_bbox=(0.0, 0.0, 40.0, 40.0),
+        line_entries=line_entries,
+        policy=policy,
+    )
+
+    assert metadata["low_confidence_line_count"] == 2
+    assert metadata["reocr_attempts"] == 1
+    assert metadata["reocr_replaced_lines"] == 1
+    assert updated[0]["text"] == "good replacement"
+    assert updated[1]["text"] == "bad line 2"
+
+
+def test_reocr_low_confidence_lines_skips_short_text(monkeypatch) -> None:
+    """Low-confidence lines shorter than configured minimum are not re-OCRed."""
+    parser = PDFParser()
+    parser.OCR_MIN_REOCR_TEXT_LENGTH = 10
+
+    class _DummyPage:
+        pass
+
+    line_entries = [
+        {"text": "short", "confidence": 0.1, "bbox_local": (0.0, 0.0, 10.0, 10.0)},
+    ]
+    policy = RegionOCRPolicy(
+        engine="easyocr",
+        line_confidence_threshold=0.5,
+        enable_reocr=True,
+        max_reocr_attempts=2,
+        apply_post_correction=False,
+    )
+
+    tesseract_calls: list[tuple[float, float, float, float]] = []
+
+    def _fake_tesseract(_fitz_page, bbox):
+        tesseract_calls.append(bbox)
+        return "replacement"
+
+    monkeypatch.setattr(parser, "_ocr_text_from_bbox_tesseract", _fake_tesseract)
+
+    updated, metadata = parser._reocr_low_confidence_lines(
+        fitz_page=_DummyPage(),
+        parent_bbox=(0.0, 0.0, 40.0, 40.0),
+        line_entries=line_entries,
+        policy=policy,
+    )
+
+    assert updated[0]["text"] == "short"
+    assert metadata["low_confidence_line_count"] == 1
+    assert metadata["reocr_attempts"] == 0
+    assert metadata["reocr_replaced_lines"] == 0
+    assert tesseract_calls == []
+
+
+def test_get_available_tesseract_languages_uses_cache(monkeypatch) -> None:
+    """Installed language listing is cached when cache_tesseract_languages is enabled."""
+    parser = PDFParser()
+    parser.OCR_CACHE_TESSERACT_LANGUAGES = True
+
+    call_count = 0
+
+    def _fake_get_languages(config=""):
+        nonlocal call_count
+        call_count += 1
+        return ["eng", "jpn"]
+
+    monkeypatch.setitem(
+        sys.modules,
+        "pytesseract",
+        SimpleNamespace(get_languages=_fake_get_languages),
+    )
+
+    langs_first = parser._get_available_tesseract_languages()
+    langs_second = parser._get_available_tesseract_languages()
+
+    assert langs_first == {"eng", "jpn"}
+    assert langs_second == {"eng", "jpn"}
+    assert call_count == 1

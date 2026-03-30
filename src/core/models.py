@@ -30,6 +30,17 @@ class ChunkType(str, Enum):
 
 
 @dataclass
+class RegionOCRPolicy:
+    """Region-specific OCR policy applied per chunk type."""
+
+    engine: str
+    line_confidence_threshold: float
+    enable_reocr: bool
+    max_reocr_attempts: int
+    apply_post_correction: bool
+
+
+@dataclass
 class RawChunk:
     """
     Raw content extracted from PDF before LLM processing.

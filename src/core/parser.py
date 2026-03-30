@@ -16,7 +16,7 @@ import pymupdf
 from PIL import Image
 
 from src.core.config import config
-from src.core.models import BBox, ChunkType, RawChunk
+from src.core.models import BBox, ChunkType, RawChunk, RegionOCRPolicy
 from src.utils.text_correction import DictionaryCorrector
 
 log = logging.getLogger(__name__)
@@ -55,15 +55,21 @@ class PDFParser:
     OCR_DEFAULT_LANG = str(config.get("ocr.default_lang", "jpn+eng"))
     OCR_JAPANESE_LANG = str(config.get("ocr.japanese_lang", "jpn"))
     OCR_FALLBACK_LANG = str(config.get("ocr.fallback_lang", "eng"))
+    OCR_RENDER_SCALE = float(config.get("ocr.render_scale", 1.5))
+    OCR_TESSERACT_RENDER_SCALE = float(config.get("ocr.tesseract_render_scale", 1.0))
+    OCR_PREWARM_EASYOCR = bool(config.get("ocr.prewarm_easyocr", True))
+    OCR_MAX_RESCUE_BLOCKS_PER_PAGE = int(config.get("ocr.max_rescue_blocks_per_page", 6))
+    OCR_MIN_REOCR_TEXT_LENGTH = int(config.get("ocr.min_reocr_text_length", 6))
+    OCR_CACHE_TESSERACT_LANGUAGES = bool(config.get("ocr.cache_tesseract_languages", True))
     OCR_LINE_CONFIDENCE_THRESHOLD = float(config.get("ocr.line_confidence_threshold", 0.55))
     OCR_ENABLE_LINE_REOCR = bool(config.get("ocr.enable_line_reocr", True))
     OCR_MAX_LINE_REOCR_ATTEMPTS = int(config.get("ocr.max_line_reocr_attempts", 2))
+    OCR_REGION_POLICIES = dict(config.get("ocr.region_policies", {}))
     OCR_POST_CORRECTION_ENABLED = bool(config.get("ocr.post_correction.enabled", False))
     OCR_POST_CORRECTION_PATHS = list(config.get("ocr.post_correction.dictionary_paths", []))
     OCR_POST_CORRECTION_APPLY_TO_OCR_ONLY = bool(config.get("ocr.post_correction.apply_to_ocr_only", True))
     OCR_READABILITY_THRESHOLD = 5
     OCR_MIN_CHARS = 24
-    OCR_RENDER_SCALE = 3.0
     FALLBACK_TABLE_SETTINGS = {
         "vertical_strategy": "text",
         "horizontal_strategy": "text",
@@ -77,9 +83,13 @@ class PDFParser:
         else:
             self.enable_figure_aware_fallback = enable_figure_aware_fallback
         self._ocr_lang_warning_emitted = False
+        self._available_tesseract_languages: set[str] | None = None
+        self._available_tesseract_languages_loaded = False
         self._easyocr_reader: Any | None = None
         self._last_ocr_metadata: dict[str, Any] | None = None
         self._dictionary_corrector = DictionaryCorrector.from_paths(self.OCR_POST_CORRECTION_PATHS)
+        if self.OCR_PREWARM_EASYOCR and self.OCR_ENGINE == "easyocr":
+            self._get_easyocr_reader()
 
     def parse(self, pdf_path: str | Path) -> list[RawChunk]:
         """
@@ -199,6 +209,7 @@ class PDFParser:
                     source_file=pdf_path.name,
                     excluded_bboxes=table_bboxes,
                     fitz_page=fitz_page,
+                    max_ocr_rescues_per_page=self.OCR_MAX_RESCUE_BLOCKS_PER_PAGE,
                 ):
                     chunks.append(text_chunk)
         finally:
@@ -244,6 +255,11 @@ class PDFParser:
             return plumb_words
         if not plumb_words:
             return fitz_words
+        if len(plumb_words) == len(fitz_words):
+            plumb_has_cid = any(self.CID_PATTERN.search(str(word.get("text", ""))) for word in plumb_words)
+            fitz_has_cid = any(self.CID_PATTERN.search(str(word.get("text", ""))) for word in fitz_words)
+            if not plumb_has_cid or fitz_has_cid:
+                return plumb_words
 
         plumb_score = self._word_quality_score(plumb_words)
         fitz_score = self._word_quality_score(fitz_words)
@@ -256,6 +272,19 @@ class PDFParser:
             )
             return fitz_words
         return plumb_words
+
+    def _get_region_policy(self, chunk_type: ChunkType) -> RegionOCRPolicy:
+        """Resolve OCR policy for a specific chunk type with safe fallbacks."""
+        key = chunk_type.value
+        policy_map = self.OCR_REGION_POLICIES if isinstance(self.OCR_REGION_POLICIES, dict) else {}
+        policy = policy_map.get(key, {}) if isinstance(policy_map.get(key, {}), dict) else {}
+        return RegionOCRPolicy(
+            engine=str(policy.get("engine", self.OCR_ENGINE)),
+            line_confidence_threshold=float(policy.get("line_confidence_threshold", self.OCR_LINE_CONFIDENCE_THRESHOLD)),
+            enable_reocr=bool(policy.get("enable_reocr", self.OCR_ENABLE_LINE_REOCR)),
+            max_reocr_attempts=int(policy.get("max_reocr_attempts", self.OCR_MAX_LINE_REOCR_ATTEMPTS)),
+            apply_post_correction=bool(policy.get("apply_post_correction", self.OCR_POST_CORRECTION_ENABLED)),
+        )
 
     def _word_quality_score(self, words: list[dict[str, Any]]) -> int:
         """Return a deterministic score where higher means more readable text."""
@@ -292,6 +321,7 @@ class PDFParser:
         source_file: str,
         excluded_bboxes: list[BBox],
         fitz_page: pymupdf.Page | None = None,
+        max_ocr_rescues_per_page: int | None = None,
     ) -> list[RawChunk]:
         """Extract text as block-level chunks with approximate layout boxes."""
         if not words:
@@ -304,6 +334,9 @@ class PDFParser:
         blocks = self._group_lines_into_blocks(lines)
 
         text_chunks: list[RawChunk] = []
+        text_policy = self._get_region_policy(ChunkType.TEXT)
+        ocr_rescues_used = 0
+        rescue_budget = max_ocr_rescues_per_page if max_ocr_rescues_per_page is None else max(0, max_ocr_rescues_per_page)
         for block in blocks:
             block_text = "\n".join(line["text"] for line in block)
             block_text = self._clean_extracted_text(block_text)
@@ -311,11 +344,16 @@ class PDFParser:
                 continue
 
             bbox = self._merge_bboxes([line["bbox"] for line in block])
-            block_text, ocr_metadata = self._rescue_text_with_ocr(
-                original_text=block_text,
-                bbox=bbox,
-                fitz_page=fitz_page,
-            )
+            ocr_metadata: dict[str, Any] | None = None
+            should_attempt_rescue = self._should_try_ocr(block_text)
+            if should_attempt_rescue and (rescue_budget is None or ocr_rescues_used < rescue_budget):
+                block_text, ocr_metadata = self._rescue_text_with_ocr(
+                    original_text=block_text,
+                    bbox=bbox,
+                    fitz_page=fitz_page,
+                    policy=text_policy,
+                )
+                ocr_rescues_used += 1
             block_text = self._clean_extracted_text(block_text)
             if len(block_text) < self.MIN_TEXT_LEN:
                 continue
@@ -340,6 +378,7 @@ class PDFParser:
         original_text: str,
         bbox: BBox,
         fitz_page: pymupdf.Page | None,
+        policy: RegionOCRPolicy | None = None,
     ) -> tuple[str, dict[str, Any] | None]:
         """Try OCR rescue for low-readability text and keep the better candidate."""
         original_text = self._normalize_text(original_text)
@@ -350,7 +389,9 @@ class PDFParser:
             return original_text, None
 
         self._last_ocr_metadata = None
-        ocr_text = self._ocr_text_from_bbox(fitz_page=fitz_page, bbox=bbox)
+        active_policy = policy or self._get_region_policy(ChunkType.TEXT)
+
+        ocr_text = self._ocr_text_from_bbox(fitz_page=fitz_page, bbox=bbox, policy=active_policy)
         if not ocr_text:
             return original_text, None
 
@@ -361,8 +402,10 @@ class PDFParser:
         if best_text is ocr_text:
             log.info("Applied OCR rescue for low-readability text block")
 
-        should_apply_post_correction = self.OCR_POST_CORRECTION_ENABLED and (
-            not self.OCR_POST_CORRECTION_APPLY_TO_OCR_ONLY or best_text is ocr_text
+        should_apply_post_correction = (
+            active_policy.apply_post_correction
+            and self.OCR_POST_CORRECTION_ENABLED
+            and (not self.OCR_POST_CORRECTION_APPLY_TO_OCR_ONLY or best_text is ocr_text)
         )
         if should_apply_post_correction:
             corrected_text, replacement_count = self._dictionary_corrector.correct(best_text)
@@ -374,7 +417,12 @@ class PDFParser:
 
         return best_text, metadata
 
-    def _ocr_text_from_bbox(self, fitz_page: pymupdf.Page, bbox: BBox) -> str | None:
+    def _ocr_text_from_bbox(
+        self,
+        fitz_page: pymupdf.Page,
+        bbox: BBox,
+        policy: RegionOCRPolicy | None = None,
+    ) -> str | None:
         """
         Extract text via OCR from a clipped page region.
 
@@ -382,14 +430,20 @@ class PDFParser:
         based on the configured ``ocr.engine`` value.
         """
         self._last_ocr_metadata = None
-        if self.OCR_ENGINE == "easyocr":
-            result = self._ocr_text_from_bbox_easyocr(fitz_page=fitz_page, bbox=bbox)
+        active_policy = policy or self._get_region_policy(ChunkType.TEXT)
+        if active_policy.engine == "easyocr":
+            result = self._ocr_text_from_bbox_easyocr(fitz_page=fitz_page, bbox=bbox, policy=active_policy)
             if result:
                 return result
             log.debug("EasyOCR returned no text; falling back to Tesseract")
         return self._ocr_text_from_bbox_tesseract(fitz_page=fitz_page, bbox=bbox)
 
-    def _ocr_text_from_bbox_easyocr(self, fitz_page: pymupdf.Page, bbox: BBox) -> str | None:
+    def _ocr_text_from_bbox_easyocr(
+        self,
+        fitz_page: pymupdf.Page,
+        bbox: BBox,
+        policy: RegionOCRPolicy | None = None,
+    ) -> str | None:
         """
         Extract text via EasyOCR from a clipped page region.
 
@@ -430,19 +484,21 @@ class PDFParser:
         if not results:
             return None
 
+        active_policy = policy or self._get_region_policy(ChunkType.TEXT)
         line_entries = self._easyocr_results_to_line_entries(results)
-        if self.OCR_ENABLE_LINE_REOCR:
+        if active_policy.enable_reocr:
             line_entries, metadata = self._reocr_low_confidence_lines(
                 fitz_page=fitz_page,
                 parent_bbox=bbox,
                 line_entries=line_entries,
+                policy=active_policy,
             )
         else:
             metadata = {
                 "engine": "easyocr",
                 "line_count": len(line_entries),
                 "low_confidence_line_count": sum(
-                    1 for line in line_entries if line["confidence"] < self.OCR_LINE_CONFIDENCE_THRESHOLD
+                    1 for line in line_entries if line["confidence"] < active_policy.line_confidence_threshold
                 ),
                 "reocr_attempts": 0,
                 "reocr_replaced_lines": 0,
@@ -521,18 +577,26 @@ class PDFParser:
         fitz_page: pymupdf.Page,
         parent_bbox: BBox,
         line_entries: list[dict[str, Any]],
+        policy: RegionOCRPolicy | None = None,
     ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
         """Retry OCR only for low-confidence lines using Tesseract."""
+        active_policy = policy or self._get_region_policy(ChunkType.TEXT)
+        threshold = active_policy.line_confidence_threshold
+        max_attempts = active_policy.max_reocr_attempts
         attempts = 0
         replaced_lines = 0
         low_confidence_lines = 0
 
         for entry in line_entries:
             confidence = float(entry.get("confidence", 0.0))
-            if confidence >= self.OCR_LINE_CONFIDENCE_THRESHOLD:
+            if confidence >= threshold:
                 continue
             low_confidence_lines += 1
-            if attempts >= self.OCR_MAX_LINE_REOCR_ATTEMPTS:
+            if attempts >= max_attempts:
+                continue
+
+            current_text = str(entry.get("text", "")).strip()
+            if len(current_text) < self.OCR_MIN_REOCR_TEXT_LENGTH:
                 continue
 
             local_bbox = entry.get("bbox_local")
@@ -540,12 +604,11 @@ class PDFParser:
                 continue
 
             attempts += 1
-            page_bbox = self._local_bbox_to_page_bbox(local_bbox, parent_bbox)
+            page_bbox = self._local_bbox_to_page_bbox(local_bbox, parent_bbox, self.OCR_RENDER_SCALE)
             tesseract_candidate = self._ocr_text_from_bbox_tesseract(fitz_page=fitz_page, bbox=page_bbox)
             if not tesseract_candidate:
                 continue
 
-            current_text = str(entry.get("text", "")).strip()
             candidate_text = self._normalize_text(tesseract_candidate).strip()
             if not candidate_text:
                 continue
@@ -569,12 +632,13 @@ class PDFParser:
         self,
         local_bbox: tuple[float, float, float, float],
         parent_bbox: BBox,
+        render_scale: float,
     ) -> BBox:
         """Convert local OCR image coordinates back into page coordinates."""
-        x0 = parent_bbox[0] + (local_bbox[0] / self.OCR_RENDER_SCALE)
-        y0 = parent_bbox[1] + (local_bbox[1] / self.OCR_RENDER_SCALE)
-        x1 = parent_bbox[0] + (local_bbox[2] / self.OCR_RENDER_SCALE)
-        y1 = parent_bbox[1] + (local_bbox[3] / self.OCR_RENDER_SCALE)
+        x0 = parent_bbox[0] + (local_bbox[0] / render_scale)
+        y0 = parent_bbox[1] + (local_bbox[1] / render_scale)
+        x1 = parent_bbox[0] + (local_bbox[2] / render_scale)
+        y1 = parent_bbox[1] + (local_bbox[3] / render_scale)
         return (x0, y0, x1, y1)
 
     def _get_easyocr_reader(self) -> Any | None:
@@ -630,7 +694,11 @@ class PDFParser:
 
         try:
             rect = pymupdf.Rect(bbox[0], bbox[1], bbox[2], bbox[3])
-            pix = fitz_page.get_pixmap(matrix=pymupdf.Matrix(2.0, 2.0), clip=rect, alpha=False)
+            pix = fitz_page.get_pixmap(
+                matrix=pymupdf.Matrix(self.OCR_TESSERACT_RENDER_SCALE, self.OCR_TESSERACT_RENDER_SCALE),
+                clip=rect,
+                alpha=False,
+            )
             image = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
         except Exception as e:
             log.debug("Failed to render OCR clip: %s", e)
@@ -690,17 +758,30 @@ class PDFParser:
 
     def _get_available_tesseract_languages(self) -> set[str] | None:
         """Return installed tesseract language codes, or None when detection is unavailable."""
+        if self.OCR_CACHE_TESSERACT_LANGUAGES and self._available_tesseract_languages_loaded:
+            return self._available_tesseract_languages
+
         try:
             import pytesseract
         except Exception as e:
             log.debug("Cannot validate OCR languages because pytesseract is unavailable: %s", e)
+            if self.OCR_CACHE_TESSERACT_LANGUAGES:
+                self._available_tesseract_languages = None
+                self._available_tesseract_languages_loaded = True
             return None
 
         try:
             langs = pytesseract.get_languages(config="")
-            return {str(lang).strip() for lang in langs if str(lang).strip()}
+            available = {str(lang).strip() for lang in langs if str(lang).strip()}
+            if self.OCR_CACHE_TESSERACT_LANGUAGES:
+                self._available_tesseract_languages = available
+                self._available_tesseract_languages_loaded = True
+            return available
         except Exception as e:
             log.debug("Cannot list tesseract languages: %s", e)
+            if self.OCR_CACHE_TESSERACT_LANGUAGES:
+                self._available_tesseract_languages = None
+                self._available_tesseract_languages_loaded = True
             return None
 
     def _clean_extracted_text(self, text: str) -> str:

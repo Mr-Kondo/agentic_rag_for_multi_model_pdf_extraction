@@ -22,6 +22,7 @@ def save_chunk_audit(
     extracted: list[tuple[RawChunk, ProcessedChunk]],
     accepted: list[ProcessedChunk],
     output_dir: str | Path,
+    render_page_previews: bool = True,
 ) -> dict[str, Path]:
     """Persist audit artifacts for visual review of extracted chunks."""
     pdf_path = Path(pdf_path)
@@ -34,7 +35,7 @@ def save_chunk_audit(
     pages_dir.mkdir(parents=True, exist_ok=True)
     figures_dir.mkdir(parents=True, exist_ok=True)
 
-    page_images = _render_page_previews(pdf_path, pages_dir)
+    page_images = _render_page_previews(pdf_path, pages_dir) if render_page_previews else {}
     accepted_ids = {chunk.chunk_id for chunk in accepted}
 
     audit_entries: list[dict[str, Any]] = []

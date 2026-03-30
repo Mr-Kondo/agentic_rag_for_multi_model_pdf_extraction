@@ -23,7 +23,8 @@ from src.agents.crewai_agents import (
     CrewAgentFactory,
 )
 from src.agents.router import AgentRouter
-from src.core.models import ProcessedChunk, CrossLinkMetadata, ChunkType, RawChunk
+from src.core.config import config
+from src.core.models import ProcessedChunk, CrossLinkMetadata, ChunkType, RawChunk, RegionOCRPolicy
 from src.integrations.crew_mlx_tools import CrewMLXToolkit
 from src.core.store import ChunkStore
 
@@ -73,6 +74,7 @@ class ExtractionCrew:
             self.toolkit.table_agent,
             self.toolkit.vision_agent,
         )
+        self._region_policy_map = config.get("ocr.region_policies", {})
 
         # Create extraction tools
         text_tool = toolkit.get_extraction_tools()[0]
@@ -111,9 +113,22 @@ class ExtractionCrew:
 
         processed: list[ProcessedChunk] = []
         for chunk in chunks:
-            processed.append(self.router.route(chunk, trace=None))
+            processed.append(self.router.route_with_policy(chunk, self._resolve_policy(chunk.chunk_type), trace=None))
 
         return processed
+
+    def _resolve_policy(self, chunk_type: ChunkType) -> RegionOCRPolicy:
+        """Resolve region OCR policy for CrewAI extraction path."""
+        region_key = chunk_type.value
+        region_map = self._region_policy_map if isinstance(self._region_policy_map, dict) else {}
+        item = region_map.get(region_key, {}) if isinstance(region_map.get(region_key, {}), dict) else {}
+        return RegionOCRPolicy(
+            engine=str(item.get("engine", "easyocr")),
+            line_confidence_threshold=float(item.get("line_confidence_threshold", 0.55)),
+            enable_reocr=bool(item.get("enable_reocr", True)),
+            max_reocr_attempts=int(item.get("max_reocr_attempts", 2)),
+            apply_post_correction=bool(item.get("apply_post_correction", False)),
+        )
 
 
 class ValidationCrew:
