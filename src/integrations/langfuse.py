@@ -39,7 +39,6 @@ from typing import Any, Callable, Generator
 
 from dotenv import load_dotenv
 from langfuse import Langfuse
-from langfuse.model import ModelUsage
 
 log = logging.getLogger(__name__)
 
@@ -340,9 +339,7 @@ class TraceHandle:
             yield _GenerationHandle(None)  # No-op generation
             return
 
-        # ✅ Use standard 'with' statement for proper OTel context management
-        # Manual __enter__/__exit__() calls skip context.attach(), which breaks
-        # OpenTelemetry's context propagation to parent spans
+        # Use the Langfuse v3 generation API shipped in this repository.
         with self.raw.start_as_current_generation(
             name=name,
             model=model,
@@ -358,17 +355,25 @@ class TraceHandle:
                 raise
             finally:
                 # Update with output/tokens if set
-                if handle.output or handle.input_tokens:
+                if (
+                    handle.output is not None
+                    or handle.input_tokens is not None
+                    or handle.output_tokens is not None
+                ):
                     update_kwargs = {}
-                    if handle.output:
+                    if handle.output is not None:
                         update_kwargs["output"] = handle.output
-                    if handle.input_tokens and handle.output_tokens:
+                    if handle.input_tokens is not None and handle.output_tokens is not None:
                         update_kwargs["usage_details"] = {
-                            "input": handle.input_tokens,
-                            "output": handle.output_tokens,
+                            "prompt_tokens": handle.input_tokens,
+                            "completion_tokens": handle.output_tokens,
+                            "total_tokens": handle.input_tokens + handle.output_tokens,
                         }
                     if update_kwargs:
-                        g.update(**update_kwargs)
+                        try:
+                            g.update(**update_kwargs)
+                        except Exception as e:
+                            log.warning("Failed to update generation with usage: %s", e)
 
 
 class _SpanHandle:
@@ -392,7 +397,6 @@ class _GenerationHandle:
     def set_output(self, text: str, input_tokens: int = None, output_tokens: int = None):
         self.output = text
         self.input_tokens = input_tokens
-        self.output_tokens = output_tokens
         self.output_tokens = output_tokens
 
 

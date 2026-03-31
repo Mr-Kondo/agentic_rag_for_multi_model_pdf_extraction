@@ -18,6 +18,7 @@ from src.agents.table_extraction import TableFromImageExtractor
 from src.core.cache import _model_cache
 from src.core.config import config
 from src.core.models import ChunkType, ProcessedChunk
+from src.utils.token_counter import count_tokens, count_tokens_with_tokenizer
 
 if TYPE_CHECKING:
     from src.core.models import RawChunk, RegionOCRPolicy
@@ -71,8 +72,10 @@ Given a text passage from a PDF, return ONLY valid JSON:
   "agent_notes": "<issues>"
 }
 Preserve the original language exactly as written.
-Do not translate Japanese text into English.
-Keep Japanese characters unchanged when cleaning the passage."""
+Do not translate or convert Japanese text into any other language.
+Do not convert Japanese kanji (漢字) into Simplified or Traditional Chinese characters.
+Keep all Japanese characters (hiragana, katakana, kanji) unchanged.
+日本語のテキストは必ずそのまま保持し、中国語（簡体字・繁体字）に変換しないでください。"""
 
 _OCR_LANG = str(config.get("ocr.default_lang", "jpn+eng"))
 
@@ -85,7 +88,10 @@ Given a Markdown table, return ONLY valid JSON:
   "schema": {"columns": [], "row_count": 0, "units": {}},
   "confidence": <0.0-1.0>,
   "agent_notes": "<issues>"
-}"""
+}
+Preserve the original language of all cell values exactly as written.
+Do not convert Japanese kanji into Simplified or Traditional Chinese characters.
+日本語テキストはそのまま保持し、中国語に変換しないでください。"""
 
 _VISION_SYSTEM = """You are a scientific figure analyst.
 Carefully identify the type of visual content. If you detect a structured table in the image, classify it as 'table_image' with HIGH confidence (0.8+).
@@ -97,7 +103,9 @@ Return ONLY valid JSON:
   "key_concepts": ["<labels>"],
   "confidence": <0.0-1.0>,
   "agent_notes": "<issues>"
-}"""
+}
+Preserve any Japanese text exactly as written. Do not convert to Chinese.
+日本語テキストはそのまま保持し、中国語に変換しないでください。"""
 
 
 # ═══════════════════════════════════════════════════════════
@@ -154,7 +162,7 @@ class TextAgent(BaseAgent):
                 model_params={"max_tokens": 512},
             ) as g:
                 raw = generate(self._model, self._tokenizer, prompt=prompt, max_tokens=512, verbose=False)
-                output_tokens = len(raw.split())
+                output_tokens = count_tokens_with_tokenizer(raw, self._tokenizer)
                 g.set_output(raw, input_tokens=input_tokens, output_tokens=output_tokens)
         else:
             raw = generate(self._model, self._tokenizer, prompt=prompt, max_tokens=512, verbose=False)
@@ -225,7 +233,7 @@ class TableAgent(BaseAgent):
                 model_params={"max_tokens": 768},
             ) as g:
                 raw = generate(self._model, self._tokenizer, prompt=prompt, max_tokens=768, verbose=False)
-                output_tokens = len(raw.split())
+                output_tokens = count_tokens_with_tokenizer(raw, self._tokenizer)
                 g.set_output(raw, input_tokens=input_tokens, output_tokens=output_tokens)
         else:
             raw = generate(self._model, self._tokenizer, prompt=prompt, max_tokens=768, verbose=False)
@@ -322,13 +330,10 @@ class VisionAgent(BaseAgent):
             output = result if isinstance(result, str) else str(result)
 
             if trace:
-                # Estimate token counts for VLM:
-                # 1. Prompt tokens: text part (word count ~= 1 token) + image tokens (fixed ~256)
-                # 2. Output tokens: word count ~= 1 token
-                prompt_text_tokens = len(full_prompt.split())
+                prompt_text_tokens = count_tokens(full_prompt)
                 image_tokens = 256  # Typical patch embedding for vision models
                 input_tokens = prompt_text_tokens + image_tokens
-                output_tokens = len(output.split())
+                output_tokens = count_tokens(output)
 
                 with trace.generation(
                     name="vision_extraction",
