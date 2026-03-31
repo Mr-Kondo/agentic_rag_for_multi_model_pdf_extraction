@@ -30,6 +30,17 @@ class ChunkType(str, Enum):
 
 
 @dataclass
+class RegionOCRPolicy:
+    """Region-specific OCR policy applied per chunk type."""
+
+    engine: str
+    line_confidence_threshold: float
+    enable_reocr: bool
+    max_reocr_attempts: int
+    apply_post_correction: bool
+
+
+@dataclass
 class RawChunk:
     """
     Raw content extracted from PDF before LLM processing.
@@ -51,6 +62,7 @@ class RawChunk:
     artifact_path: str = ""
     source_preview: str = ""
     source_file: str = ""
+    ocr_metadata: dict[str, Any] = field(default_factory=dict)
 
 
 # ═══════════════════════════════════════════════════════════

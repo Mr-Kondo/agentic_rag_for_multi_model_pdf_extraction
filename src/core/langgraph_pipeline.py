@@ -837,6 +837,7 @@ class LangGraphIngestPipeline:
         self.chunk_validator = chunk_validator
         self.store = store
         self.tracer = tracer
+        self.audit_render_page_previews = bool(config.get("audit.render_page_previews", True))
         self.graph = self._build_graph()
         log.info("LangGraphIngestPipeline initialized")
 
@@ -905,6 +906,7 @@ class LangGraphIngestPipeline:
         log.info("Building LangGraph ingest workflow...")
 
         router = self.router
+        parser = self.parser
         chunk_validator = self.chunk_validator
         store = self.store
         tracer = self.tracer
@@ -939,7 +941,8 @@ class LangGraphIngestPipeline:
 
             pairs: List[Tuple[RawChunk, ProcessedChunk]] = []
             for raw in raw_chunks:
-                processed = router.route(raw, trace=trace)
+                region_policy = parser._get_region_policy(raw.chunk_type)
+                processed = router.route_with_policy(raw, region_policy, trace=trace)
                 pairs.append((raw, processed))
 
             all_processed = [processed for _, processed in pairs]
@@ -1040,6 +1043,7 @@ class LangGraphIngestPipeline:
                     extracted=pairs,
                     accepted=accepted,
                     output_dir=audit_dir,
+                    render_page_previews=self.audit_render_page_previews,
                 )
                 log.info("[store] Audit written to %s", audit_dir)
 

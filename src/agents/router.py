@@ -11,6 +11,7 @@ from src.core.models import ChunkType
 
 if TYPE_CHECKING:
     from src.agents.extraction import TableAgent, TextAgent, VisionAgent
+    from src.core.models import RegionOCRPolicy
     from src.core.models import ProcessedChunk, RawChunk
     from src.integrations.langfuse import TraceHandle
 
@@ -51,3 +52,18 @@ class AgentRouter:
             Processed chunk from appropriate agent
         """
         return self._map[chunk.chunk_type].process(chunk, trace=trace)
+
+    def route_with_policy(
+        self,
+        chunk: "RawChunk",
+        policy: "RegionOCRPolicy",
+        trace: "TraceHandle | None" = None,
+    ) -> "ProcessedChunk":
+        """Route chunk with OCR policy context preserved in agent notes."""
+        processed = self._map[chunk.chunk_type].process(chunk, trace=trace, policy=policy)
+        processed.agent_notes = (
+            f"{processed.agent_notes}\n[ocr_policy] engine={policy.engine}, "
+            f"threshold={policy.line_confidence_threshold:.2f}, "
+            f"reocr={policy.enable_reocr}, max_attempts={policy.max_reocr_attempts}"
+        ).strip()
+        return processed

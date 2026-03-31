@@ -14,7 +14,7 @@ import re
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from src.core.models import ProcessedChunk, RawChunk
+    from src.core.models import ProcessedChunk, RawChunk, RegionOCRPolicy
     from src.integrations.langfuse import TraceHandle
 
 log = logging.getLogger(__name__)
@@ -56,7 +56,12 @@ class BaseAgent:
         """Load model into memory. Must be implemented by subclass."""
         raise NotImplementedError
 
-    def process(self, chunk: "RawChunk", trace: "TraceHandle | None" = None) -> "ProcessedChunk":
+    def process(
+        self,
+        chunk: "RawChunk",
+        trace: "TraceHandle | None" = None,
+        policy: "RegionOCRPolicy | None" = None,
+    ) -> "ProcessedChunk":
         """
         Process a raw chunk with retry logic.
 
@@ -72,13 +77,18 @@ class BaseAgent:
                 f"agent_{chunk.chunk_type.value}",
                 input={"page": chunk.page_num},
             ) as s:
-                result = self._run_with_retry(chunk, trace)
+                result = self._run_with_retry(chunk, trace, policy)
                 s.update(output={"confidence": result.confidence})
         else:
-            result = self._run_with_retry(chunk, None)
+            result = self._run_with_retry(chunk, None, policy)
         return result
 
-    def _run_with_retry(self, chunk: "RawChunk", trace: "TraceHandle | None") -> "ProcessedChunk":
+    def _run_with_retry(
+        self,
+        chunk: "RawChunk",
+        trace: "TraceHandle | None",
+        policy: "RegionOCRPolicy | None",
+    ) -> "ProcessedChunk":
         """
         Run extraction with automatic retry if confidence is low.
 
@@ -89,13 +99,19 @@ class BaseAgent:
         Returns:
             Processed chunk (may be retry result if initial confidence low)
         """
-        result = self._run(chunk, retry=False, trace=trace)
+        result = self._run(chunk, retry=False, trace=trace, policy=policy)
         if result.confidence < self.CONFIDENCE_THRESHOLD:
             log.warning("%s: retrying p.%d (conf=%.2f)", self.__class__.__name__, chunk.page_num, result.confidence)
-            result = self._run(chunk, retry=True, trace=trace)
+            result = self._run(chunk, retry=True, trace=trace, policy=policy)
         return result
 
-    def _run(self, chunk: "RawChunk", retry: bool = False, trace: "TraceHandle | None" = None) -> "ProcessedChunk":
+    def _run(
+        self,
+        chunk: "RawChunk",
+        retry: bool = False,
+        trace: "TraceHandle | None" = None,
+        policy: "RegionOCRPolicy | None" = None,
+    ) -> "ProcessedChunk":
         """
         Execute model inference. Must be implemented by subclass.
 

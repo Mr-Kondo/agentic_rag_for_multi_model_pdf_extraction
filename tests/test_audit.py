@@ -94,9 +94,11 @@ def test_save_chunk_audit_generates_json_and_html(tmp_path: Path) -> None:
     html = paths["html"].read_text(encoding="utf-8")
 
     assert audit_data["pdf_file"] == "sample.pdf"
+    assert audit_data["pdf_path"] == "../sample.pdf"
     assert audit_data["chunks"][0]["status"] == "accepted"
     assert audit_data["chunks"][0]["raw"]["bbox"]["x0"] == 20.0
     assert processed.chunk_id in html
+    assert "Open source PDF" in html
     assert 'split("\\n")' in html
     assert 'join("\\n- ")' in html
 
@@ -143,3 +145,55 @@ def test_save_chunk_audit_preserves_japanese_text_in_html(tmp_path: Path) -> Non
     html = paths["html"].read_text(encoding="utf-8")
     assert "日本語" in html
     assert "\\u65e5\\u672c\\u8a9e" not in html
+
+
+def test_save_chunk_audit_skips_page_preview_rendering_when_disabled(tmp_path: Path) -> None:
+    """Audit generation should skip page preview rendering work when disabled."""
+    pdf_path = tmp_path / "sample.pdf"
+    document = pymupdf.open()
+    page = document.new_page(width=200, height=300)
+    page.insert_text((24, 48), "Audit me")
+    document.save(pdf_path)
+    document.close()
+
+    raw = RawChunk(
+        chunk_type=ChunkType.TEXT,
+        page_num=1,
+        source_file=pdf_path.name,
+        raw_content="Audit me",
+        bbox=(20.0, 30.0, 120.0, 70.0),
+        page_width=200.0,
+        page_height=300.0,
+        source_preview="Audit me",
+    )
+    processed = ProcessedChunk(
+        chunk_type=ChunkType.TEXT,
+        page_num=1,
+        source_file=pdf_path.name,
+        bbox=raw.bbox,
+        page_width=raw.page_width,
+        page_height=raw.page_height,
+        source_preview=raw.source_preview,
+        structured_text="Audit me",
+        intuition_summary="Short text block",
+        confidence=0.95,
+    )
+
+    paths = save_chunk_audit(
+        pdf_path=pdf_path,
+        extracted=[(raw, processed)],
+        accepted=[processed],
+        output_dir=tmp_path / "output",
+        render_page_previews=False,
+    )
+
+    assert paths["json"].exists()
+    assert paths["html"].exists()
+    assert not (tmp_path / "output" / "sample_audit" / "pages").exists()
+
+    audit_data = json.loads(paths["json"].read_text(encoding="utf-8"))
+    html = paths["html"].read_text(encoding="utf-8")
+
+    assert audit_data["pages"] == []
+    assert audit_data["pdf_path"] == "../sample.pdf"
+    assert "ページプレビューは生成されていません。" in html

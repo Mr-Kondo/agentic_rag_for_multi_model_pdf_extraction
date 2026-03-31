@@ -10,7 +10,7 @@ from PIL import Image, ImageDraw
 
 from src.agents.extraction import _is_structured_table_markdown
 from src.agents.table_extraction import TableFromImageExtractor
-from src.core.models import ChunkType, RawChunk
+from src.core.models import ChunkType, RawChunk, RegionOCRPolicy
 
 
 class TestTableFromImageExtractor:
@@ -170,10 +170,50 @@ class TestTableFromImageExtractor:
             return "ok"
 
         monkeypatch.setattr("src.agents.table_extraction.pytesseract.image_to_string", _fake_ocr)
+        monkeypatch.setattr(
+            "src.agents.table_extraction.pytesseract.image_to_data",
+            lambda *args, **kwargs: {"conf": ["95"]},
+        )
         extractor._extract_cell_text(img_cv, cells)
 
         assert observed["lang"] == extractor.OCR_LANG
         assert observed["config"] == extractor.TESSERACT_CONFIG
+
+    def test_extract_cell_text_retries_low_confidence_when_policy_allows(self, extractor, monkeypatch):
+        """Table OCR retries low-confidence cells according to TABLE region policy."""
+        img = self._create_simple_table_image(rows=2, cols=2)
+        img_cv = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
+        cells = [[(0, 0, 20, 20)]]
+        policy = RegionOCRPolicy(
+            engine="easyocr",
+            line_confidence_threshold=0.75,
+            enable_reocr=True,
+            max_reocr_attempts=1,
+            apply_post_correction=False,
+        )
+
+        string_calls: list[str] = []
+        data_calls = iter(
+            [
+                {"conf": ["20"]},
+                {"conf": ["90"]},
+            ]
+        )
+
+        def _fake_ocr(_cell_region, lang, config):
+            string_calls.append(config)
+            return "cell value"
+
+        monkeypatch.setattr("src.agents.table_extraction.pytesseract.image_to_string", _fake_ocr)
+        monkeypatch.setattr(
+            "src.agents.table_extraction.pytesseract.image_to_data",
+            lambda *args, **kwargs: next(data_calls),
+        )
+
+        result = extractor._extract_cell_text(img_cv, cells, policy=policy)
+
+        assert result == [["cell value"]]
+        assert len(string_calls) == 2
 
 
 class TestVisionAgentTableIntegration:
