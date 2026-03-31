@@ -17,6 +17,8 @@ if TYPE_CHECKING:
     from src.core.models import ProcessedChunk, RawChunk, RegionOCRPolicy
     from src.integrations.langfuse import TraceHandle
 
+from src.utils.token_counter import count_tokens, count_tokens_with_tokenizer
+
 log = logging.getLogger(__name__)
 
 
@@ -312,25 +314,23 @@ class BaseLoadableModel:
         input_tokens = None
         output_tokens = None
 
-        if hasattr(self, "_tokenizer") and self._tokenizer is not None:
+        tokenizer = getattr(self, "_tokenizer", None)
+
+        if tokenizer is not None:
             try:
-                # Accurate token counting using tokenizer
-                prompt_tokens = self._tokenizer.apply_chat_template(messages, add_generation_prompt=True)
+                prompt_tokens = tokenizer.apply_chat_template(messages, add_generation_prompt=True)
                 input_tokens = (
-                    len(prompt_tokens) if isinstance(prompt_tokens, list) else len(self._tokenizer.encode(prompt_tokens))
+                    len(prompt_tokens) if isinstance(prompt_tokens, list) else len(tokenizer.encode(prompt_tokens))
                 )
-                # Rough estimate for output: ~1 token per word
-                output_tokens = len(output.split())
+                output_tokens = count_tokens_with_tokenizer(output, tokenizer)
             except Exception:
-                # Fallback to word count if tokenizer fails
                 prompt_flat = " ".join(m["content"] if isinstance(m["content"], str) else str(m["content"]) for m in messages)
-                input_tokens = len(prompt_flat.split())
-                output_tokens = len(output.split())
+                input_tokens = count_tokens(prompt_flat)
+                output_tokens = count_tokens(output)
         else:
-            # No tokenizer - use word count estimation
             prompt_flat = " ".join(m["content"] if isinstance(m["content"], str) else str(m["content"]) for m in messages)
-            input_tokens = len(prompt_flat.split())
-            output_tokens = len(output.split())
+            input_tokens = count_tokens(prompt_flat)
+            output_tokens = count_tokens(output)
 
         # Log to Langfuse
         with trace.generation(
