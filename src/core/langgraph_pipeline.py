@@ -837,7 +837,7 @@ class LangGraphIngestPipeline:
         self.chunk_validator = chunk_validator
         self.store = store
         self.tracer = tracer
-        self.audit_render_page_previews = bool(config.get("audit.render_page_previews", False))
+        self.audit_render_page_previews = bool(config.get("audit.render_page_previews", True))
         self.graph = self._build_graph()
         log.info("LangGraphIngestPipeline initialized")
 

@@ -135,7 +135,7 @@ class AgenticRAGPipeline:
         log.info("📂 Setting up vector store: %s", persist_dir)
         obj.parser = PDFParser(enable_figure_aware_fallback=enable_figure_aware_fallback)
         obj.store = ChunkStore(persist_dir)
-        obj.audit_render_page_previews = bool(config.get("audit.render_page_previews", False))
+        obj.audit_render_page_previews = bool(config.get("audit.render_page_previews", True))
         log.info("✓ Vector store initialized")
 
         log.info("📡 Setting up Langfuse tracer...")

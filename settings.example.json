@@ -19,6 +19,11 @@
     "enable_hf_cache": true,
     "cache_dir": "./models"
   },
+  "parser": {
+    "enable_native_pdf_heuristic": true,
+    "native_pdf_max_images": 2,
+    "native_pdf_min_words": 50
+  },
   "ocr": {
     "engine": "easyocr",
     "default_lang": "jpn+eng",
@@ -64,7 +69,7 @@
     }
   },
   "audit": {
-    "render_page_previews": false
+    "render_page_previews": true
   },
   "validation": {
     "confidence_threshold": 0.5,

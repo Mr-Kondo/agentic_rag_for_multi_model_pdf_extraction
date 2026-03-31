@@ -240,6 +240,35 @@ def test_select_text_words_falls_back_when_fitz_empty() -> None:
     assert selected == plumb_words
 
 
+def test_should_skip_fitz_word_extraction_for_native_pdf_like_page() -> None:
+    parser = PDFParser()
+    parser.PARSER_ENABLE_NATIVE_PDF_HEURISTIC = True
+    parser.PARSER_NATIVE_PDF_MAX_IMAGES = 2
+    parser.PARSER_NATIVE_PDF_MIN_WORDS = 3
+
+    plumb_words = [
+        _word("River", 10.0, 10.0, 30.0, 20.0),
+        _word("discharge", 32.0, 10.0, 72.0, 20.0),
+        _word("analysis", 74.0, 10.0, 112.0, 20.0),
+    ]
+
+    assert parser._should_skip_fitz_word_extraction(plumb_words, image_count=1) is True
+
+
+def test_should_not_skip_fitz_word_extraction_when_cid_artifacts_present() -> None:
+    parser = PDFParser()
+    parser.PARSER_ENABLE_NATIVE_PDF_HEURISTIC = True
+    parser.PARSER_NATIVE_PDF_MAX_IMAGES = 2
+    parser.PARSER_NATIVE_PDF_MIN_WORDS = 2
+
+    plumb_words = [
+        _word("(cid:12345)", 10.0, 10.0, 40.0, 20.0),
+        _word("text", 42.0, 10.0, 62.0, 20.0),
+    ]
+
+    assert parser._should_skip_fitz_word_extraction(plumb_words, image_count=0) is False
+
+
 def test_word_quality_score_penalizes_cid_artifacts() -> None:
     parser = PDFParser()
     cid_heavy = [_word("(cid:100)", 0.0, 0.0, 20.0, 10.0), _word("(cid:101)", 22.0, 0.0, 42.0, 10.0)]

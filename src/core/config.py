@@ -43,6 +43,11 @@ class ConfigLoader:
             "enable_hf_cache": True,
             "cache_dir": "./models",
         },
+        "parser": {
+            "enable_native_pdf_heuristic": True,
+            "native_pdf_max_images": 2,
+            "native_pdf_min_words": 50,
+        },
         "ocr": {
             "engine": "easyocr",
             "default_lang": "jpn+eng",
@@ -88,7 +93,7 @@ class ConfigLoader:
             },
         },
         "audit": {
-            "render_page_previews": False,
+            "render_page_previews": True,
         },
         "validation": {
             "confidence_threshold": 0.5,

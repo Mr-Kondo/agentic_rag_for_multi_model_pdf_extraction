@@ -50,6 +50,9 @@ class PDFParser:
     FALLBACK_MAX_LONG_CELL_RATIO = 0.45
     FALLBACK_LONG_CELL_CHAR_THRESHOLD = 40
     CID_PATTERN = re.compile(r"\(cid:\d+\)")
+    PARSER_ENABLE_NATIVE_PDF_HEURISTIC = bool(config.get("parser.enable_native_pdf_heuristic", True))
+    PARSER_NATIVE_PDF_MAX_IMAGES = int(config.get("parser.native_pdf_max_images", 2))
+    PARSER_NATIVE_PDF_MIN_WORDS = int(config.get("parser.native_pdf_min_words", 50))
     OCR_ENGINE = str(config.get("ocr.engine", "easyocr"))
     OCR_CONFIG = str(config.get("ocr.config", "--oem 3 --psm 6"))
     OCR_DEFAULT_LANG = str(config.get("ocr.default_lang", "jpn+eng"))
@@ -112,9 +115,14 @@ class PDFParser:
                 plumb_page = doc_plumb.pages[page_idx]
                 page_width = float(plumb_page.width)
                 page_height = float(plumb_page.height)
+                page_images = fitz_page.get_images(full=True)
                 page_words = plumb_page.extract_words(use_text_flow=True, keep_blank_chars=False) or []
-                fitz_words = self._extract_fitz_words(fitz_page)
-                text_words = self._select_text_words(page_words, fitz_words)
+                if self._should_skip_fitz_word_extraction(page_words, image_count=len(page_images)):
+                    fitz_words: list[dict[str, Any]] = []
+                    text_words = page_words
+                else:
+                    fitz_words = self._extract_fitz_words(fitz_page)
+                    text_words = self._select_text_words(page_words, fitz_words)
 
                 table_bboxes: list[BBox] = []
                 figure_chunks: list[RawChunk] = []
@@ -122,7 +130,7 @@ class PDFParser:
 
                 # Extract images and their placement rectangles first so table
                 # filtering can reject figure-like regions.
-                for img_info in fitz_page.get_images(full=True):
+                for img_info in page_images:
                     try:
                         xref = img_info[0]
                         rects = fitz_page.get_image_rects(xref) or [None]
@@ -218,6 +226,26 @@ class PDFParser:
 
         log.info("Parsed %d raw chunks from %s", len(chunks), pdf_path.name)
         return chunks
+
+    def _should_skip_fitz_word_extraction(self, plumb_words: list[dict[str, Any]], image_count: int) -> bool:
+        """Return True when a page is likely native PDF text and fitz word extraction is unnecessary."""
+        if not self.PARSER_ENABLE_NATIVE_PDF_HEURISTIC:
+            return False
+        if image_count > self.PARSER_NATIVE_PDF_MAX_IMAGES:
+            return False
+        if len(plumb_words) < self.PARSER_NATIVE_PDF_MIN_WORDS:
+            return False
+
+        has_cid_artifacts = any(self.CID_PATTERN.search(str(word.get("text", ""))) for word in plumb_words)
+        if has_cid_artifacts:
+            return False
+
+        log.debug(
+            "Skipping PyMuPDF word extraction for native-like page (words=%d, images=%d)",
+            len(plumb_words),
+            image_count,
+        )
+        return True
 
     def _extract_fitz_words(self, fitz_page: pymupdf.Page) -> list[dict[str, Any]]:
         """Extract word boxes from PyMuPDF and convert to a pdfplumber-like shape."""

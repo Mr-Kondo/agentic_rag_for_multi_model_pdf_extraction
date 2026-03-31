@@ -60,7 +60,7 @@ class AgentRouter:
         trace: "TraceHandle | None" = None,
     ) -> "ProcessedChunk":
         """Route chunk with OCR policy context preserved in agent notes."""
-        processed = self._map[chunk.chunk_type].process(chunk, trace=trace)
+        processed = self._map[chunk.chunk_type].process(chunk, trace=trace, policy=policy)
         processed.agent_notes = (
             f"{processed.agent_notes}\n[ocr_policy] engine={policy.engine}, "
             f"threshold={policy.line_confidence_threshold:.2f}, "

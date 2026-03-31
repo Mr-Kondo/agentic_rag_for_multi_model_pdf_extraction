@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from html import escape
 from pathlib import Path
 from typing import Any
@@ -30,12 +31,17 @@ def save_chunk_audit(
     output_dir.mkdir(parents=True, exist_ok=True)
 
     audit_root = output_dir / f"{pdf_path.stem}_audit"
+    audit_root.mkdir(parents=True, exist_ok=True)
     pages_dir = audit_root / "pages"
     figures_dir = audit_root / "figures"
-    pages_dir.mkdir(parents=True, exist_ok=True)
-    figures_dir.mkdir(parents=True, exist_ok=True)
 
-    page_images = _render_page_previews(pdf_path, pages_dir) if render_page_previews else {}
+    if render_page_previews:
+        pages_dir.mkdir(parents=True, exist_ok=True)
+        page_images = _render_page_previews(pdf_path, pages_dir)
+        log.info("Rendered %d audit page previews for %s", len(page_images), pdf_path.name)
+    else:
+        page_images = {}
+        log.info("Audit page previews disabled for %s", pdf_path.name)
     accepted_ids = {chunk.chunk_id for chunk in accepted}
 
     audit_entries: list[dict[str, Any]] = []
@@ -55,6 +61,7 @@ def save_chunk_audit(
 
     audit_data = {
         "pdf_file": pdf_path.name,
+        "pdf_path": os.path.relpath(pdf_path, start=output_dir).replace("\\", "/"),
         "pages": [
             {
                 "page_num": page_num,
@@ -102,6 +109,7 @@ def _export_figure_artifact(raw: RawChunk, processed: ProcessedChunk, figures_di
 
     image_path = figures_dir / f"{processed.chunk_id}.png"
     if not image_path.exists():
+        figures_dir.mkdir(parents=True, exist_ok=True)
         raw.raw_content.save(image_path, format="PNG")
     return image_path.relative_to(figures_dir.parent.parent).as_posix()
 
@@ -190,12 +198,16 @@ def _build_html(audit_data: dict[str, Any]) -> str:
     .bbox.figure {{ border-color: var(--figure); }}
     .bbox.discarded {{ border-style: dashed; border-color: var(--discarded); }}
     .detail {{ position: sticky; top: 24px; margin-bottom: 24px; border: 1px solid var(--border); border-radius: 20px; padding: 18px; background: var(--panel); }}
+    .detail-header {{ display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; }}
+    .source-link {{ color: #7c2d12; font-weight: 600; text-decoration: none; }}
+    .source-link:hover {{ text-decoration: underline; }}
     .detail pre {{ white-space: pre-wrap; word-break: break-word; background: #f8f5ef; padding: 12px; border-radius: 14px; overflow: auto; }}
     .detail img {{ max-width: 100%; border-radius: 14px; border: 1px solid var(--border); }}
     .diff {{ font-family: monospace; font-size:12px; background:#f0ede8; border-radius:14px; overflow:auto; padding:12px; line-height:1.55; white-space:pre-wrap; word-break:break-word; }}
     .diff-add {{ background:#d1fae5; color:#065f46; display:block; }}
     .diff-del {{ background:#fee2e2; color:#991b1b; text-decoration:line-through; display:block; }}
     .diff-ctx {{ color:#6b7280; display:block; }}
+    .empty-state {{ border: 1px dashed var(--border); border-radius: 20px; padding: 24px; background: rgba(255,255,255,0.6); color: var(--muted); }}
     @media (max-width: 980px) {{ .layout {{ grid-template-columns: 1fr; }} .detail {{ position: static; }} }}
   </style>
 </head>
@@ -313,6 +325,18 @@ __PAYLOAD__
     function renderPages() {
       const host = document.getElementById("pages");
       host.innerHTML = "";
+      if (!audit.pages.length) {
+        const sourceLink = audit.pdf_path
+          ? `元PDF: <a class="source-link" href="${encodeURI(audit.pdf_path)}">${escapeHtml(audit.pdf_file)}</a>`
+          : "";
+        host.innerHTML = `
+          <section class="empty-state">
+            <strong>ページプレビューは生成されていません。</strong>
+            <p>監査HTML自体は生成されています。${sourceLink}</p>
+          </section>
+        `;
+        return;
+      }
       audit.pages.forEach((page) => {
         const pageChunks = visibleChunks().filter((chunk) => chunk.page_num === page.page_num);
         const section = document.createElement("section");
@@ -358,12 +382,20 @@ __PAYLOAD__
       const figure = chunk.raw.artifact_path
         ? `<p><strong>Figure artifact</strong></p><img src=\"${chunk.raw.artifact_path}\" alt=\"figure\">`
         : "";
+      const sourceLink = audit.pdf_path
+        ? `<a class="source-link" href="${encodeURI(audit.pdf_path)}">Open source PDF</a>`
+        : "";
       const corrected = chunk.corrected
         ? `<p><strong>Corrected diff</strong></p><div class="diff">${renderDiff(diffLines(chunk.processed.structured_text, chunk.corrected.structured_text))}</div>`
         : "";
       detail.innerHTML = `
-        <small>p.${chunk.page_num} | ${chunk.type} | ${chunk.status}</small>
-        <h2>${escapeHtml(chunk.processed.intuition_summary || "Chunk detail")}</h2>
+        <div class="detail-header">
+          <div>
+            <small>p.${chunk.page_num} | ${chunk.type} | ${chunk.status}</small>
+            <h2>${escapeHtml(chunk.processed.intuition_summary || "Chunk detail")}</h2>
+          </div>
+          ${sourceLink}
+        </div>
         <p><strong>Raw preview</strong></p>
         <pre>${escapeHtml(chunk.raw.source_preview || "")}</pre>
         <p><strong>Structured text</strong></p>
