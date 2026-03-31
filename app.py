@@ -29,6 +29,7 @@ import sys
 from pathlib import Path
 
 from src.core.cache import _model_cache
+from src.core.config import config
 from src.core.models import ChunkType
 from src.core.pipeline import AgenticRAGPipeline
 from src.core.langgraph_pipeline import LangGraphQueryPipeline
@@ -49,12 +50,12 @@ log = logging.getLogger(__name__)
 # ═══════════════════════════════════════════════════════════
 
 DEFAULT_MODELS = {
-    "text": "mlx-community/Qwen3-8B-4bit",
-    "table": "mlx-community/Qwen2.5-3B-Instruct-4bit",
-    "vision": "mlx-community/SmolVLM-256M-Instruct-4bit",
-    "orchestrator": "mlx-community/DeepSeek-R1-Distill-Llama-8B-4bit",
-    "chunk_validator": "mlx-community/Qwen2-VL-7B-Instruct-4bit",
-    "answer_validator": "mlx-community/Qwen3-8B-4bit",
+    "text": config.get_model("text_extraction"),
+    "table": config.get_model("table_extraction"),
+    "vision": config.get_model("vision_extraction"),
+    "orchestrator": config.get_model("orchestrator"),
+    "chunk_validator": config.get_model("chunk_validator"),
+    "answer_validator": config.get_model("answer_validator"),
 }
 
 

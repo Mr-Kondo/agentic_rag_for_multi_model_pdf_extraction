@@ -135,6 +135,7 @@ class AgenticRAGPipeline:
         log.info("📂 Setting up vector store: %s", persist_dir)
         obj.parser = PDFParser(enable_figure_aware_fallback=enable_figure_aware_fallback)
         obj.store = ChunkStore(persist_dir)
+        obj.audit_render_page_previews = bool(config.get("audit.render_page_previews", True))
         log.info("✓ Vector store initialized")
 
         log.info("📡 Setting up Langfuse tracer...")
@@ -253,7 +254,8 @@ class AgenticRAGPipeline:
             log.info("🔄 Extracting chunks with agents...")
             extracted: list[tuple[RawChunk, ProcessedChunk]] = []
             for raw in raw_chunks:
-                processed = self.router.route(raw, trace=trace)
+                region_policy = self.parser._get_region_policy(raw.chunk_type)
+                processed = self.router.route_with_policy(raw, region_policy, trace=trace)
                 extracted.append((raw, processed))
 
             # ── Phase 3: Chunk Validation (load → run → unload) ─
@@ -336,6 +338,7 @@ class AgenticRAGPipeline:
                     extracted=extracted,
                     accepted=accepted,
                     output_dir=audit_output_dir,
+                    render_page_previews=self.audit_render_page_previews,
                 )
 
             log.info("=" * 70 + "\n")
@@ -404,6 +407,7 @@ class AgenticRAGPipeline:
                     extracted=list(zip(raw_chunks, stored)),
                     accepted=stored,
                     output_dir=audit_output_dir,
+                    render_page_previews=self.audit_render_page_previews,
                 )
 
             log.info("=" * 70 + "\n")

@@ -20,7 +20,7 @@ from src.core.config import config
 from src.core.models import ChunkType, ProcessedChunk
 
 if TYPE_CHECKING:
-    from src.core.models import RawChunk
+    from src.core.models import RawChunk, RegionOCRPolicy
     from src.integrations.langfuse import TraceHandle
 
 log = logging.getLogger(__name__)
@@ -117,7 +117,13 @@ class TextAgent(BaseAgent):
         """Load text model from cache."""
         self._model, self._tokenizer = _model_cache.load_text_model(self.model_id)
 
-    def _run(self, chunk: "RawChunk", retry: bool = False, trace: "TraceHandle | None" = None) -> ProcessedChunk:
+    def _run(
+        self,
+        chunk: "RawChunk",
+        retry: bool = False,
+        trace: "TraceHandle | None" = None,
+        policy: "RegionOCRPolicy | None" = None,
+    ) -> ProcessedChunk:
         """
         Extract structured data from text chunk.
 
@@ -182,7 +188,13 @@ class TableAgent(BaseAgent):
         """Load text model from cache."""
         self._model, self._tokenizer = _model_cache.load_text_model(self.model_id)
 
-    def _run(self, chunk: "RawChunk", retry: bool = False, trace: "TraceHandle | None" = None) -> ProcessedChunk:
+    def _run(
+        self,
+        chunk: "RawChunk",
+        retry: bool = False,
+        trace: "TraceHandle | None" = None,
+        policy: "RegionOCRPolicy | None" = None,
+    ) -> ProcessedChunk:
         """
         Extract structured data from table chunk.
 
@@ -254,7 +266,13 @@ class VisionAgent(BaseAgent):
             log.warning("VisionAgent: vision model failed (%s). OCR fallback.", e)
             self._use_vision = False
 
-    def _run(self, chunk: "RawChunk", retry: bool = False, trace: "TraceHandle | None" = None) -> ProcessedChunk:
+    def _run(
+        self,
+        chunk: "RawChunk",
+        retry: bool = False,
+        trace: "TraceHandle | None" = None,
+        policy: "RegionOCRPolicy | None" = None,
+    ) -> ProcessedChunk:
         """
         Extract structured data from figure chunk.
 
@@ -266,10 +284,10 @@ class VisionAgent(BaseAgent):
         Returns:
             ProcessedChunk with figure description and metadata
         """
-        table_extractor = TableFromImageExtractor()
+        table_extractor = TableFromImageExtractor(policy=policy)
         if table_extractor.is_probable_table_image(chunk.raw_content):
             log.info("VisionAgent: geometry heuristic detected table-like image on page %d", chunk.page_num)
-            table_markdown = table_extractor.extract_table_from_image(chunk.raw_content)
+            table_markdown = table_extractor.extract_table_from_image(chunk.raw_content, policy=policy)
             if _is_structured_table_markdown(table_markdown):
                 return ProcessedChunk(
                     chunk_type=ChunkType.TABLE,
@@ -337,7 +355,7 @@ class VisionAgent(BaseAgent):
         # Check if this is a table image - attempt to extract table structure
         if figure_type == "table_image" and confidence >= 0.4:
             try:
-                table_markdown = table_extractor.extract_table_from_image(chunk.raw_content)
+                table_markdown = table_extractor.extract_table_from_image(chunk.raw_content, policy=policy)
                 if _is_structured_table_markdown(table_markdown):
                     log.debug("VisionAgent: table image extraction successful (%s)", chunk.source_file)
                     return ProcessedChunk(
@@ -355,7 +373,7 @@ class VisionAgent(BaseAgent):
         # Last-chance rescue: for figure chunks only, try deterministic table extraction.
         # This improves table recall without changing parser text/table decisions.
         try:
-            rescued_markdown = table_extractor.extract_table_from_image(chunk.raw_content)
+            rescued_markdown = table_extractor.extract_table_from_image(chunk.raw_content, policy=policy)
             if _is_structured_table_markdown(rescued_markdown):
                 log.info("VisionAgent: rescued table extraction on page %d", chunk.page_num)
                 return ProcessedChunk(

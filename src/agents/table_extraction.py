@@ -5,6 +5,7 @@ structured markdown format using pytesseract (OCR) and OpenCV (structure detecti
 """
 
 import logging
+import re
 from typing import Optional
 
 import cv2
@@ -13,6 +14,7 @@ import pytesseract
 from PIL import Image
 
 from src.core.config import config
+from src.core.models import RegionOCRPolicy
 
 log = logging.getLogger(__name__)
 
@@ -40,9 +42,13 @@ class TableFromImageExtractor:
     MIN_GRID_LINE_DENSITY = 0.003
     TESSERACT_CONFIG = str(config.get("ocr.config", "--oem 3 --psm 6"))
     OCR_LANG = str(config.get("ocr.default_lang", "jpn+eng"))
+    OCR_LINE_CONFIDENCE_THRESHOLD = float(config.get("ocr.line_confidence_threshold", 0.55))
+    OCR_MAX_RETRIES = int(config.get("ocr.max_line_reocr_attempts", 2))
+    OCR_RETRY_PSM_MODES = (7, 6, 11)
 
-    def __init__(self):
+    def __init__(self, policy: RegionOCRPolicy | None = None):
         """Initialize extractor and verify pytesseract is available."""
+        self._policy = policy or self._default_table_policy()
         try:
             pytesseract.pytesseract.get_tesseract_version()
             log.debug("TableFromImageExtractor: tesseract-ocr available")
@@ -50,7 +56,26 @@ class TableFromImageExtractor:
             log.error("TableFromImageExtractor: tesseract-ocr not found. Install with: brew install tesseract")
             raise RuntimeError("System dependency 'tesseract-ocr' not found. Please install it first.") from e
 
-    def extract_table_from_image(self, image: Image.Image) -> Optional[str]:
+    @classmethod
+    def _default_table_policy(cls) -> RegionOCRPolicy:
+        """Build the default TABLE-region OCR policy from config with safe fallbacks."""
+        policy_map = config.get("ocr.region_policies", {})
+        table_policy = policy_map.get("table", {}) if isinstance(policy_map, dict) else {}
+        if not isinstance(table_policy, dict):
+            table_policy = {}
+        return RegionOCRPolicy(
+            engine=str(table_policy.get("engine", config.get("ocr.engine", "easyocr"))),
+            line_confidence_threshold=float(table_policy.get("line_confidence_threshold", cls.OCR_LINE_CONFIDENCE_THRESHOLD)),
+            enable_reocr=bool(table_policy.get("enable_reocr", config.get("ocr.enable_line_reocr", True))),
+            max_reocr_attempts=int(table_policy.get("max_reocr_attempts", cls.OCR_MAX_RETRIES)),
+            apply_post_correction=bool(table_policy.get("apply_post_correction", False)),
+        )
+
+    def _active_policy(self, policy: RegionOCRPolicy | None = None) -> RegionOCRPolicy:
+        """Resolve the policy used for table-image OCR."""
+        return policy or self._policy
+
+    def extract_table_from_image(self, image: Image.Image, policy: RegionOCRPolicy | None = None) -> Optional[str]:
         """
         Extract table from image as markdown-formatted string.
 
@@ -93,7 +118,7 @@ class TableFromImageExtractor:
                 return None
 
             # Extract text from detected cells
-            cells_with_text = self._extract_cell_text(img_cv, normalized_cells)
+            cells_with_text = self._extract_cell_text(img_cv, normalized_cells, policy=policy)
 
             # Check content sparsity
             non_empty_cells = sum(1 for row in cells_with_text for cell in row if cell.strip())
@@ -302,7 +327,12 @@ class TableFromImageExtractor:
         vertical_density = float(np.count_nonzero(vertical_lines)) / pixel_count
         return horizontal_density, vertical_density
 
-    def _extract_cell_text(self, img: np.ndarray, cells: list[list[tuple[int, int, int, int]]]) -> list[list[str]]:
+    def _extract_cell_text(
+        self,
+        img: np.ndarray,
+        cells: list[list[tuple[int, int, int, int]]],
+        policy: RegionOCRPolicy | None = None,
+    ) -> list[list[str]]:
         """
         Extract text from each detected cell using OCR.
 
@@ -315,27 +345,92 @@ class TableFromImageExtractor:
         """
         cells_with_text: list[list[str]] = []
 
+        active_policy = self._active_policy(policy)
+
         for row in cells:
             text_row: list[str] = []
             for x, y, w, h in row:
                 # Extract cell region
                 cell_region = img[y : y + h, x : x + w]
 
-                # OCR on cell
-                try:
-                    text = pytesseract.image_to_string(
-                        cell_region,
-                        lang=self.OCR_LANG,
-                        config=self.TESSERACT_CONFIG,
-                    ).strip()
-                except Exception as e:
-                    log.debug("TableFromImageExtractor: OCR failed for cell at (%d, %d): %s", x, y, e)
-                    text = ""
+                text = self._ocr_cell_text(cell_region, active_policy, x=x, y=y)
 
                 text_row.append(text)
             cells_with_text.append(text_row)
 
         return cells_with_text
+
+    def _ocr_cell_text(self, cell_region: np.ndarray, policy: RegionOCRPolicy, x: int, y: int) -> str:
+        """Run OCR for a single cell and retry low-confidence results when policy allows."""
+        best_text = ""
+        best_confidence = -1.0
+
+        base_text, base_confidence = self._ocr_cell_candidate(cell_region, self.TESSERACT_CONFIG)
+        best_text = base_text
+        best_confidence = base_confidence
+
+        threshold = float(policy.line_confidence_threshold)
+        if (not policy.enable_reocr) or best_confidence >= threshold or policy.max_reocr_attempts <= 0:
+            return best_text
+
+        for psm in self.OCR_RETRY_PSM_MODES[: policy.max_reocr_attempts]:
+            retry_config = self._config_with_psm(psm)
+            retry_text, retry_confidence = self._ocr_cell_candidate(cell_region, retry_config)
+            if retry_confidence > best_confidence or (
+                retry_confidence == best_confidence and len(retry_text) > len(best_text)
+            ):
+                best_text = retry_text
+                best_confidence = retry_confidence
+            if best_confidence >= threshold and best_text:
+                break
+
+        return best_text
+
+    def _ocr_cell_candidate(self, cell_region: np.ndarray, ocr_config: str) -> tuple[str, float]:
+        """Run a single OCR candidate extraction and estimate confidence."""
+        try:
+            text = pytesseract.image_to_string(
+                cell_region,
+                lang=self.OCR_LANG,
+                config=ocr_config,
+            ).strip()
+        except Exception as e:
+            log.debug("TableFromImageExtractor: OCR failed for candidate: %s", e)
+            return "", 0.0
+
+        confidence = self._estimate_cell_confidence(cell_region, ocr_config)
+        return text, confidence
+
+    def _estimate_cell_confidence(self, cell_region: np.ndarray, ocr_config: str) -> float:
+        """Estimate OCR confidence for a cell using pytesseract image_to_data when available."""
+        try:
+            data = pytesseract.image_to_data(
+                cell_region,
+                lang=self.OCR_LANG,
+                config=ocr_config,
+                output_type=pytesseract.Output.DICT,
+            )
+        except Exception:
+            return 0.0
+
+        conf_values: list[float] = []
+        for raw_conf in data.get("conf", []):
+            try:
+                confidence = float(raw_conf)
+            except (TypeError, ValueError):
+                continue
+            if confidence >= 0.0:
+                conf_values.append(confidence)
+
+        if not conf_values:
+            return 0.0
+        return sum(conf_values) / (len(conf_values) * 100.0)
+
+    def _config_with_psm(self, psm: int) -> str:
+        """Return Tesseract config with a specific PSM value applied."""
+        if "--psm" in self.TESSERACT_CONFIG:
+            return re.sub(r"--psm\s+\d+", f"--psm {psm}", self.TESSERACT_CONFIG)
+        return f"{self.TESSERACT_CONFIG} --psm {psm}".strip()
 
     def _cells_to_markdown(self, cells: list[list[str]]) -> str:
         """

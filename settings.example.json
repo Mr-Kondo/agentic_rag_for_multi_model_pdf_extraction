@@ -19,12 +19,57 @@
     "enable_hf_cache": true,
     "cache_dir": "./models"
   },
+  "parser": {
+    "enable_native_pdf_heuristic": true,
+    "native_pdf_max_images": 2,
+    "native_pdf_min_words": 50
+  },
   "ocr": {
     "engine": "easyocr",
     "default_lang": "jpn+eng",
     "japanese_lang": "jpn",
     "fallback_lang": "eng",
-    "config": "--oem 3 --psm 6"
+    "config": "--oem 3 --psm 6",
+    "render_scale": 1.5,
+    "tesseract_render_scale": 1.0,
+    "prewarm_easyocr": true,
+    "max_rescue_blocks_per_page": 6,
+    "min_reocr_text_length": 6,
+    "cache_tesseract_languages": true,
+    "line_confidence_threshold": 0.55,
+    "enable_line_reocr": true,
+    "max_line_reocr_attempts": 2,
+    "region_policies": {
+      "text": {
+        "engine": "easyocr",
+        "line_confidence_threshold": 0.55,
+        "enable_reocr": true,
+        "max_reocr_attempts": 2,
+        "apply_post_correction": true
+      },
+      "table": {
+        "engine": "easyocr",
+        "line_confidence_threshold": 0.65,
+        "enable_reocr": true,
+        "max_reocr_attempts": 1,
+        "apply_post_correction": false
+      },
+      "figure": {
+        "engine": "tesseract",
+        "line_confidence_threshold": 0.5,
+        "enable_reocr": false,
+        "max_reocr_attempts": 0,
+        "apply_post_correction": false
+      }
+    },
+    "post_correction": {
+      "enabled": false,
+      "dictionary_paths": [],
+      "apply_to_ocr_only": true
+    }
+  },
+  "audit": {
+    "render_page_previews": true
   },
   "validation": {
     "confidence_threshold": 0.5,
