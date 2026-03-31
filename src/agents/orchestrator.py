@@ -14,6 +14,7 @@ from mlx_lm import generate
 from src.agents.base import BaseLoadableModel
 from src.core.cache import _model_cache
 from src.core.models import ChunkType, RAGAnswer
+from src.utils.token_counter import count_tokens_with_tokenizer
 
 if TYPE_CHECKING:
     from src.core.store import ChunkStore
@@ -33,6 +34,9 @@ Your final answer must:
   - Cite source_file and page_num for every claim.
   - Note when information comes from a figure description.
   - State "Insufficient context" if context is insufficient.
+  - Preserve the original language of the source material. If the context is in Japanese, answer in Japanese.
+  - Do not convert Japanese text into Chinese (Simplified or Traditional).
+  - 日本語のコンテキストには日本語で回答し、中国語に変換しないでください。
 
 Retrieved context:
 {context}
@@ -180,7 +184,7 @@ class ReasoningOrchestratorAgent(BaseLoadableModel):
                 model_params={"max_tokens": 2048},
             ) as g:
                 output = generate(self._model, self._tokenizer, prompt=formatted_prompt, max_tokens=2048, verbose=False)
-                output_tokens = len(output.split())
+                output_tokens = count_tokens_with_tokenizer(output, self._tokenizer)
                 g.set_output(output, input_tokens=input_tokens, output_tokens=output_tokens)
         else:
             output = generate(self._model, self._tokenizer, prompt=formatted_prompt, max_tokens=2048, verbose=False)

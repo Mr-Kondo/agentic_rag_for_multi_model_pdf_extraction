@@ -8,6 +8,7 @@ import logging
 import math
 import re
 import unicodedata
+import warnings
 from pathlib import Path
 from typing import Any
 
@@ -504,7 +505,9 @@ class PDFParser:
             return None
 
         try:
-            results = reader.readtext(img_array, detail=1, paragraph=False)
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", message=".*pin_memory.*", category=UserWarning)
+                results = reader.readtext(img_array, detail=1, paragraph=False)
         except Exception as e:
             log.debug("EasyOCR: readtext failed: %s", e)
             return None
@@ -692,7 +695,15 @@ class PDFParser:
 
         gpu = torch.backends.mps.is_available() or torch.cuda.is_available()
         try:
-            self._easyocr_reader = easyocr.Reader(["ja", "en"], gpu=gpu)
+            # Suppress pin_memory warning on MPS: EasyOCR hardcodes
+            # DataLoader(pin_memory=True) which is unsupported on MPS devices.
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    message=".*pin_memory.*",
+                    category=UserWarning,
+                )
+                self._easyocr_reader = easyocr.Reader(["ja", "en"], gpu=gpu)
             log.info("EasyOCR Reader initialised (gpu=%s)", gpu)
         except Exception as exc:
             log.warning("EasyOCR Reader initialisation failed: %s", exc)
