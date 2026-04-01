@@ -42,12 +42,13 @@ def test_build_usage_details_returns_langfuse_v3_shape():
 
 
 def test_trace_generation_updates_usage_details_even_with_zero_tokens():
-    """Zero token counts should still be propagated instead of being dropped by truthiness checks."""
+    """Zero token counts should be propagated immediately via set_output(), not dropped."""
     generation = _FakeGeneration()
     raw_span = _FakeSpan(generation)
     trace = TraceHandle(raw_span, trace_id="trace-123")
 
     with trace.generation(name="test_generation", model="test-model", input={"messages": []}) as handle:
+        # set_output() must be called inside the context manager (span is alive here)
         handle.set_output("ok", input_tokens=0, output_tokens=5)
 
     assert raw_span.calls[0]["name"] == "test_generation"
@@ -73,4 +74,4 @@ def test_trace_generation_logs_update_failures(caplog):
         with trace.generation(name="test_generation", model="test-model") as handle:
             handle.set_output("oops", input_tokens=3, output_tokens=2)
 
-    assert "Failed to update generation with usage" in caplog.text
+    assert "Failed to update generation with output/usage" in caplog.text

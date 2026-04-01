@@ -363,6 +363,13 @@ class TraceHandle:
             return
 
         # Use the Langfuse v3 generation API shipped in this repository.
+        #
+        # IMPORTANT: The SDK ends the OTel span as soon as the 'with' block exits
+        # (end_on_exit=True is the SDK default).  Any g.update() call made in a
+        # 'finally' clause—after 'yield' returns—would execute *after* the span is
+        # already ended, meaning is_recording() == False and the update is silently
+        # dropped.  Token counts and output must therefore be written while the span
+        # is still alive, i.e. inside _GenerationHandle.set_output().
         with self.raw.start_as_current_generation(
             name=name,
             model=model,
@@ -376,24 +383,6 @@ class TraceHandle:
             except Exception as exc:
                 g.update(level="ERROR", status_message=str(exc))
                 raise
-            finally:
-                # Update with output/tokens if set
-                if (
-                    handle.output is not None
-                    or handle.input_tokens is not None
-                    or handle.output_tokens is not None
-                ):
-                    update_kwargs = {}
-                    if handle.output is not None:
-                        update_kwargs["output"] = handle.output
-                    usage_details = _build_usage_details(handle.input_tokens, handle.output_tokens)
-                    if usage_details is not None:
-                        update_kwargs["usage_details"] = usage_details
-                    if update_kwargs:
-                        try:
-                            g.update(**update_kwargs)
-                        except Exception as e:
-                            log.warning("Failed to update generation with usage: %s", e)
 
 
 class _SpanHandle:
@@ -415,9 +404,28 @@ class _GenerationHandle:
         self.output_tokens: int | None = None
 
     def set_output(self, text: str, input_tokens: int | None = None, output_tokens: int | None = None):
+        """Record output and token counts, writing them to the Langfuse span immediately.
+
+        This must be called while the generation context manager is still active (i.e.
+        before the 'with trace.generation(...)' block exits), because the SDK ends the
+        underlying OTel span on context-manager exit and subsequent update() calls are
+        silently dropped.
+        """
         self.output = text
         self.input_tokens = input_tokens
         self.output_tokens = output_tokens
+
+        if self.raw is None:
+            return
+
+        update_kwargs: dict = {"output": text}
+        usage_details = _build_usage_details(input_tokens, output_tokens)
+        if usage_details is not None:
+            update_kwargs["usage_details"] = usage_details
+        try:
+            self.raw.update(**update_kwargs)
+        except Exception as e:
+            log.warning("Failed to update generation with output/usage: %s", e)
 
 
 # ──────────────────────────────────────────────
