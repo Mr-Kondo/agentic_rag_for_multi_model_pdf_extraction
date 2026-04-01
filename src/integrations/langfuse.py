@@ -94,6 +94,29 @@ def _normalize_score_data_type(value: Any) -> str:
     return "NUMERIC"
 
 
+def _build_usage_details(input_tokens: int | None, output_tokens: int | None) -> dict[str, int] | None:
+    """
+    Build Langfuse generation usage_details payload when both token counts are known.
+
+    Args:
+        input_tokens: Prompt/input token count.
+        output_tokens: Completion/output token count.
+
+    Returns:
+        Langfuse-compatible usage_details payload, or None when either side is missing.
+    """
+    if input_tokens is None or output_tokens is None:
+        return None
+
+    prompt_tokens = int(input_tokens)
+    completion_tokens = int(output_tokens)
+    return {
+        "prompt_tokens": prompt_tokens,
+        "completion_tokens": completion_tokens,
+        "total_tokens": prompt_tokens + completion_tokens,
+    }
+
+
 # ──────────────────────────────────────────────
 # Singleton Langfuse client
 # ──────────────────────────────────────────────
@@ -363,12 +386,9 @@ class TraceHandle:
                     update_kwargs = {}
                     if handle.output is not None:
                         update_kwargs["output"] = handle.output
-                    if handle.input_tokens is not None and handle.output_tokens is not None:
-                        update_kwargs["usage_details"] = {
-                            "prompt_tokens": handle.input_tokens,
-                            "completion_tokens": handle.output_tokens,
-                            "total_tokens": handle.input_tokens + handle.output_tokens,
-                        }
+                    usage_details = _build_usage_details(handle.input_tokens, handle.output_tokens)
+                    if usage_details is not None:
+                        update_kwargs["usage_details"] = usage_details
                     if update_kwargs:
                         try:
                             g.update(**update_kwargs)
@@ -394,7 +414,7 @@ class _GenerationHandle:
         self.input_tokens: int | None = None
         self.output_tokens: int | None = None
 
-    def set_output(self, text: str, input_tokens: int = None, output_tokens: int = None):
+    def set_output(self, text: str, input_tokens: int | None = None, output_tokens: int | None = None):
         self.output = text
         self.input_tokens = input_tokens
         self.output_tokens = output_tokens

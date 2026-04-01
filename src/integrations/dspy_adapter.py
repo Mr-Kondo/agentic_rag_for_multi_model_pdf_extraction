@@ -38,8 +38,6 @@ from typing import Any
 import dspy
 from mlx_lm import generate, load
 
-from src.core.config import config
-
 log = logging.getLogger(__name__)
 
 
@@ -77,18 +75,14 @@ class MLXLM(dspy.LM):
         The model is loaded immediately upon initialization. For integration
         with BaseLoadableModel pattern, wrap this initialization in _do_load().
         """
-        super().__init__(model=model_id)
+        super().__init__(model=model_id, temperature=temperature, max_tokens=max_tokens, **kwargs)
         self.model_id = model_id
         self.max_tokens = max_tokens
         self.temperature = temperature
-        self.kwargs = kwargs
 
         log.info(f"Loading MLX model: {model_id}")
         self._model, self._tokenizer = load(model_id)
         log.info(f"✓ MLX model loaded: {model_id}")
-
-        # DSPy expects a history attribute for tracking interactions
-        self.history: list[dict[str, Any]] = []
 
     def __call__(
         self,
@@ -122,23 +116,29 @@ class MLXLM(dspy.LM):
             log.error("No prompt or messages provided to MLXLM.__call__")
             return [""]
 
-        # Merge kwargs - only include parameters that mlx-lm supports
-        gen_kwargs = {
-            "max_tokens": kwargs.get("max_tokens", self.max_tokens),
-            "verbose": False,
-        }
+        merged_kwargs = dict(self.kwargs)
+        merged_kwargs.update(kwargs)
 
-        # Only add temperature if explicitly requested and non-zero
-        # (mlx-lm may not support it in all versions/configurations)
-        temp = kwargs.get("temperature", self.temperature)
+        gen_kwargs = {"verbose": False}
+        max_tokens = merged_kwargs.pop("max_tokens", self.max_tokens)
+        if max_tokens is not None:
+            gen_kwargs["max_tokens"] = max_tokens
+
+        temp = merged_kwargs.pop("temperature", self.temperature)
         if temp != 0.0:
             gen_kwargs["temp"] = temp
 
-        gen_kwargs.update(self.kwargs)
-        gen_kwargs.update(kwargs)
+        gen_kwargs.update(merged_kwargs)
 
         # Remove DSPy-specific kwargs that mlx-lm doesn't understand
-        for key in ["n", "stop", "top_p", "frequency_penalty", "presence_penalty", "messages"]:
+        for key in [
+            "n",
+            "stop",
+            "top_p",
+            "frequency_penalty",
+            "presence_penalty",
+            "messages",
+        ]:
             gen_kwargs.pop(key, None)
 
         # Handle both string prompts and message lists

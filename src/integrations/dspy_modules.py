@@ -147,7 +147,7 @@ class ChunkQualitySignature(dspy.Signature):
         extracted_text: The structured_text field extracted by the agent
         intuition_summary: The one-sentence summary provided by the agent
         key_concepts: The list of key concepts identified by the agent
-        chunk_type: Type of chunk (TEXT, TABLE, or FIGURE)
+        chunk_type: Type of chunk (text, table, or figure)
 
     Output fields:
         is_valid: True if extraction is faithful and complete
@@ -163,7 +163,7 @@ class ChunkQualitySignature(dspy.Signature):
     extracted_text: str = dspy.InputField(description="The structured_text field extracted by the agent")
     intuition_summary: str = dspy.InputField(description="The one-sentence intuition_summary provided by the agent")
     key_concepts: list[str] = dspy.InputField(description="The list of key_concepts identified by the agent")
-    chunk_type: str = dspy.InputField(description="Type of chunk: TEXT, TABLE, or FIGURE")
+    chunk_type: str = dspy.InputField(description="Type of chunk: text, table, or figure")
 
     # Output fields
     is_valid: bool = dspy.OutputField(description="True if extraction is faithful and complete, False otherwise")
