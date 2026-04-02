@@ -65,7 +65,7 @@ def sample_rag_answer() -> RAGAnswer:
             {
                 "text": "France is a country in Western Europe. Paris is its capital.",
                 "page": 1,
-                "chunk_type": "TEXT",
+                "chunk_type": "text",
             }
         ],
     )

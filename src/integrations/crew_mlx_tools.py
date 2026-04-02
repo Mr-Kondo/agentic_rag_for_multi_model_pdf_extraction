@@ -30,7 +30,7 @@ log = logging.getLogger(__name__)
 class ExtractionResult(BaseModel):
     """Result of text/table/figure extraction."""
 
-    chunk_type: str = Field(description="Type of chunk: TEXT, TABLE, or FIGURE")
+    chunk_type: str = Field(description="Type of chunk: text, table, or figure")
     structured_text: str = Field(description="Extracted and structured content")
     intuition_summary: str = Field(description="One-sentence summary")
     key_concepts: list[str] = Field(description="Key terms extracted")

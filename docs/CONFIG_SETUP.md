@@ -160,7 +160,7 @@ CLIには`--lazy-agents`がありますが、現時点では次の状態です�
 ```bash
 LANGFUSE_PUBLIC_KEY=pk-lf-...
 LANGFUSE_SECRET_KEY=sk-lf-...
-LANGFUSE_HOST=https://cloud.langfuse.com
+LANGFUSE_BASE_URL=https://cloud.langfuse.com
 ```
 
 未設定時もno-opで動作継続します。

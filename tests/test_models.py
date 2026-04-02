@@ -28,9 +28,9 @@ class TestChunkType:
 
     def test_chunk_type_values(self):
         """Test ChunkType has expected values."""
-        assert ChunkType.TEXT.value == "TEXT"
-        assert ChunkType.TABLE.value == "TABLE"
-        assert ChunkType.FIGURE.value == "FIGURE"
+        assert ChunkType.TEXT.value == "text"
+        assert ChunkType.TABLE.value == "table"
+        assert ChunkType.FIGURE.value == "figure"
 
     def test_chunk_type_iteration(self):
         """Test iterating over ChunkType values."""
@@ -120,7 +120,7 @@ class TestRAGAnswer:
             source_chunks=[],
         )
 
-        assert answer.trace_id is None
+        assert answer.trace_id == ""
         assert answer.validation_summary is None
 
 
