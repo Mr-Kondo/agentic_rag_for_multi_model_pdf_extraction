@@ -25,7 +25,7 @@ Trace hierarchy produced per query:
 Set environment variables (or pass explicitly):
   LANGFUSE_PUBLIC_KEY=pk-lf-...
   LANGFUSE_SECRET_KEY=sk-lf-...
-  LANGFUSE_HOST=https://cloud.langfuse.com   # or your self-hosted URL
+  LANGFUSE_BASE_URL=https://cloud.langfuse.com   # or your self-hosted URL
 """
 
 from __future__ import annotations
@@ -108,12 +108,12 @@ def _build_usage_details(input_tokens: int | None, output_tokens: int | None) ->
     if input_tokens is None or output_tokens is None:
         return None
 
-    prompt_tokens = int(input_tokens)
-    completion_tokens = int(output_tokens)
+    input_token_count = int(input_tokens)
+    output_token_count = int(output_tokens)
     return {
-        "prompt_tokens": prompt_tokens,
-        "completion_tokens": completion_tokens,
-        "total_tokens": prompt_tokens + completion_tokens,
+        "input": input_token_count,
+        "output": output_token_count,
+        "total": input_token_count + output_token_count,
     }
 
 
@@ -158,7 +158,8 @@ def _get_client() -> Langfuse | None:
     _client_instance = Langfuse(
         public_key=public_key,
         secret_key=secret_key,
-        host=os.environ.get("LANGFUSE_HOST", "https://cloud.langfuse.com"),
+        host=os.environ.get("LANGFUSE_BASE_URL")
+        or os.environ.get("LANGFUSE_HOST", "https://cloud.langfuse.com"),
     )
     return _client_instance
 
@@ -377,7 +378,7 @@ class TraceHandle:
             model_parameters=model_params or {},
             metadata=metadata or {},
         ) as g:
-            handle = _GenerationHandle(g)
+            handle = _GenerationHandle(g, model=model)
             try:
                 yield handle
             except Exception as exc:
@@ -397,8 +398,9 @@ class _SpanHandle:
 
 
 class _GenerationHandle:
-    def __init__(self, raw):
+    def __init__(self, raw, model: str | None = None):
         self.raw = raw
+        self.model = model
         self.output: str | None = None
         self.input_tokens: int | None = None
         self.output_tokens: int | None = None
@@ -419,6 +421,8 @@ class _GenerationHandle:
             return
 
         update_kwargs: dict = {"output": text}
+        if self.model is not None:
+            update_kwargs["model"] = self.model
         usage_details = _build_usage_details(input_tokens, output_tokens)
         if usage_details is not None:
             update_kwargs["usage_details"] = usage_details

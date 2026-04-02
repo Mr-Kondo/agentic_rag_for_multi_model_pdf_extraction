@@ -30,12 +30,12 @@ class _FakeSpan:
         yield self.generation
 
 
-def test_build_usage_details_returns_langfuse_v3_shape():
-    """Usage payload should use prompt/completion/total token keys expected by Langfuse v3."""
+def test_build_usage_details_returns_langfuse_usage_shape():
+    """Usage payload should use Langfuse's native input/output/total token keys."""
     assert _build_usage_details(11, 7) == {
-        "prompt_tokens": 11,
-        "completion_tokens": 7,
-        "total_tokens": 18,
+        "input": 11,
+        "output": 7,
+        "total": 18,
     }
     assert _build_usage_details(None, 7) is None
     assert _build_usage_details(11, None) is None
@@ -55,10 +55,11 @@ def test_trace_generation_updates_usage_details_even_with_zero_tokens():
     assert generation.updates == [
         {
             "output": "ok",
+            "model": "test-model",
             "usage_details": {
-                "prompt_tokens": 0,
-                "completion_tokens": 5,
-                "total_tokens": 5,
+                "input": 0,
+                "output": 5,
+                "total": 5,
             },
         }
     ]
