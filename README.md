@@ -47,7 +47,7 @@ cp settings.example.json settings.json
 HF_TOKEN=your_huggingface_token
 LANGFUSE_PUBLIC_KEY=pk-lf-...
 LANGFUSE_SECRET_KEY=sk-lf-...
-LANGFUSE_HOST=https://cloud.langfuse.com
+LANGFUSE_BASE_URL=https://cloud.langfuse.com
 ```
 
 Langfuseのキーが未設定でも処理は継続します。

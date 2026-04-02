@@ -53,7 +53,7 @@ Common fixtures available in all tests (defined in conftest.py):
 from src.core.models import ChunkType
 
 def test_chunk_type():
-    assert ChunkType.TEXT.value == "TEXT"
+    assert ChunkType.TEXT.value == "text"
 ```
 
 ### Integration Test Example
