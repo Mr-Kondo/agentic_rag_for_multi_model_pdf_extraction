@@ -1,58 +1,54 @@
-"""Unit tests for the DSPy MLX adapter."""
+"""Unit tests for the DSPy Ollama adapter."""
 
 from __future__ import annotations
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
-from src.integrations.dspy_adapter import MLXLM
-
-
-class _DummyTokenizer:
-    def apply_chat_template(self, messages, add_generation_prompt=True, tokenize=False):
-        assert add_generation_prompt is True
-        assert tokenize is False
-        return "formatted-prompt"
+from src.integrations.dspy_adapter import configure_ollama_lm
 
 
-@patch("src.integrations.dspy_adapter.load")
-def test_mlxlm_initializes_dspy_kwargs(load_mock):
-    """MLXLM should preserve DSPy LM kwargs such as temperature/max_tokens."""
-    load_mock.return_value = (object(), _DummyTokenizer())
+@patch("src.integrations.dspy_adapter.dspy.configure")
+@patch("src.integrations.dspy_adapter.dspy.LM")
+def test_configure_ollama_lm_sets_dspy_lm(lm_cls_mock, configure_mock):
+    """configure_ollama_lm should build a dspy.LM with the ollama_chat prefix and call dspy.configure."""
+    fake_lm = MagicMock()
+    lm_cls_mock.return_value = fake_lm
 
-    lm = MLXLM("mlx-community/Qwen2.5-3B-Instruct-4bit", max_tokens=256, temperature=0.0)
+    result = configure_ollama_lm("qwen2.5:7b", base_url="http://localhost:11434", max_tokens=256, temperature=0.0)
 
-    assert lm.kwargs["temperature"] == 0.0
-    assert lm.kwargs["max_tokens"] == 256
+    lm_cls_mock.assert_called_once_with(
+        "ollama_chat/qwen2.5:7b",
+        api_base="http://localhost:11434",
+        api_key="ollama",
+        max_tokens=256,
+        temperature=0.0,
+    )
+    configure_mock.assert_called_once_with(lm=fake_lm)
+    assert result is fake_lm
 
 
-@patch("src.integrations.dspy_adapter.generate")
-@patch("src.integrations.dspy_adapter.load")
-def test_mlxlm_translates_generation_kwargs_for_mlx(load_mock, generate_mock):
-    """Adapter should translate DSPy kwargs to mlx-lm kwargs without leaking unsupported ones."""
-    tokenizer = _DummyTokenizer()
-    load_mock.return_value = (object(), tokenizer)
-    generate_mock.return_value = "adapter-output"
+@patch("src.integrations.dspy_adapter.dspy.configure")
+@patch("src.integrations.dspy_adapter.dspy.LM")
+def test_configure_ollama_lm_forwards_extra_kwargs(lm_cls_mock, configure_mock):
+    """configure_ollama_lm should forward extra kwargs to dspy.LM."""
+    fake_lm = MagicMock()
+    lm_cls_mock.return_value = fake_lm
 
-    lm = MLXLM("mlx-community/Qwen2.5-3B-Instruct-4bit", max_tokens=128, temperature=0.0)
-
-    result = lm(
-        messages=[{"role": "user", "content": "hello"}],
-        max_tokens=64,
-        temperature=0.7,
-        n=2,
-        stop=["DONE"],
+    result = configure_ollama_lm(
+        "qwen3:8b",
+        base_url="http://localhost:11434",
+        max_tokens=512,
+        temperature=0.0,
+        top_p=0.9,
     )
 
-    assert result == ["adapter-output"]
-
-    _, kwargs = generate_mock.call_args
-    assert kwargs["prompt"] == "formatted-prompt"
-    assert kwargs["max_tokens"] == 64
-    assert kwargs["temp"] == 0.7
-    assert kwargs["verbose"] is False
-    assert "temperature" not in kwargs
-    assert "n" not in kwargs
-    assert "stop" not in kwargs
-
-    assert lm.history[-1]["kwargs"]["temp"] == 0.7
-
+    lm_cls_mock.assert_called_once_with(
+        "ollama_chat/qwen3:8b",
+        api_base="http://localhost:11434",
+        api_key="ollama",
+        max_tokens=512,
+        temperature=0.0,
+        top_p=0.9,
+    )
+    configure_mock.assert_called_once_with(lm=fake_lm)
+    assert result is fake_lm

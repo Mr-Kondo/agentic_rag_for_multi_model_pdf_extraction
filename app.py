@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Agentic RAG CLI - MLX-powered multi-modal document intelligence.
+Agentic RAG CLI - Ollama-powered multi-modal document intelligence.
 
 Command-line interface for the Agentic RAG pipeline, supporting:
   - PDF ingestion with quality validation
@@ -19,8 +19,8 @@ Example usage:
 
     # Custom models
     python app.py ingest paper.pdf \\
-        --text-model mlx-community/Qwen3-8B-4bit \
-        --orchestrator mlx-community/DeepSeek-R1-Distill-Llama-8B-4bit
+        --text-model qwen3:8b \\
+        --orchestrator-model deepseek-r1:8b
 """
 
 import argparse
@@ -28,12 +28,9 @@ import logging
 import sys
 from pathlib import Path
 
-from src.core.cache import _model_cache
 from src.core.config import config
 from src.core.models import ChunkType
 from src.core.pipeline import AgenticRAGPipeline
-from src.core.langgraph_pipeline import LangGraphQueryPipeline
-from src.core.langgraph_pipeline import LangGraphIngestPipeline
 from src.utils.serialization import save_answer, save_chunks
 
 # Configure logging
@@ -80,65 +77,29 @@ def cmd_ingest(args: argparse.Namespace) -> int:
         return 1
 
     log.info(f"\n{'=' * 70}")
-    log.info(f"📂 Ingesting: {pdf_path.name}")
+    log.info(f"Ingesting: {pdf_path.name}")
     log.info(f"{'=' * 70}\n")
 
-    if args.use_langgraph:
-        log.info("Building LangGraph ingest pipeline...")
-        lg_pipeline = LangGraphIngestPipeline.build(
-            text_model=args.text_model,
-            table_model=args.table_model,
-            vision_model=args.vision_model,
-            chunk_validator_model=args.chunk_validator_model,
-            persist_dir=args.storage_dir,
-            enable_figure_aware_fallback=args.enable_figure_aware_fallback,
-        )
-        chunks = lg_pipeline.ingest(
-            pdf_path,
-            validates=args.validate,
-            audit_output_dir=args.output if args.output else None,
-        )
-    elif args.use_crewai:
-        log.info("Building RAG pipeline (CrewAI)...")
-        pipeline = AgenticRAGPipeline.build(
-            text_model=args.text_model,
-            table_model=args.table_model,
-            vision_model=args.vision_model,
-            orchestrator_model=args.orchestrator_model,
-            chunk_validator_model=args.chunk_validator_model,
-            answer_validator_model=args.answer_validator_model,
-            persist_dir=args.storage_dir,
-            lazy_agents=args.lazy_agents,
-            use_crewai=True,
-            enable_figure_aware_fallback=args.enable_figure_aware_fallback,
-        )
-        chunks = pipeline.ingest_with_crewai(
-            pdf_path,
-            validates=args.validate,
-            audit_output_dir=args.output if args.output else None,
-        )
-    else:
-        log.info("Building RAG pipeline...")
-        pipeline = AgenticRAGPipeline.build(
-            text_model=args.text_model,
-            table_model=args.table_model,
-            vision_model=args.vision_model,
-            orchestrator_model=args.orchestrator_model,
-            chunk_validator_model=args.chunk_validator_model,
-            answer_validator_model=args.answer_validator_model,
-            persist_dir=args.storage_dir,
-            lazy_agents=args.lazy_agents,
-            enable_figure_aware_fallback=args.enable_figure_aware_fallback,
-        )
-        chunks = pipeline.ingest(
-            pdf_path,
-            validates=args.validate,
-            audit_output_dir=args.output if args.output else None,
-        )
+    pipeline = AgenticRAGPipeline.build(
+        text_model=args.text_model,
+        table_model=args.table_model,
+        vision_model=args.vision_model,
+        orchestrator_model=args.orchestrator_model,
+        chunk_validator_model=args.chunk_validator_model,
+        answer_validator_model=args.answer_validator_model,
+        persist_dir=args.storage_dir,
+        lazy_agents=args.lazy_agents,
+        enable_figure_aware_fallback=args.enable_figure_aware_fallback,
+    )
+    chunks = pipeline.ingest(
+        pdf_path,
+        validates=args.validate,
+        audit_output_dir=args.output if args.output else None,
+    )
 
     # Print statistics
     stats = {ct.value: sum(1 for c in chunks if c.chunk_type == ct) for ct in ChunkType}
-    log.info("\n📊 Chunk Statistics:")
+    log.info("\nChunk Statistics:")
     for chunk_type, count in stats.items():
         log.info(f"  {chunk_type:6s}: {count:3d}")
     log.info(f"  {'TOTAL':6s}: {len(chunks):3d}\n")
@@ -146,13 +107,9 @@ def cmd_ingest(args: argparse.Namespace) -> int:
     # Save chunks to output
     if args.output:
         save_chunks(chunks, pdf_path)
-        log.info(f"💾 Saved chunks to {args.output}/")
+        log.info(f"Saved chunks to {args.output}/")
 
-    # Clean up unused models
-    log.info("🧹 Cleaning up unused models...")
-    _model_cache.cleanup_unused_models()
-
-    log.info("✅ Ingestion complete!\n")
+    log.info("Ingestion complete!\n")
     return 0
 
 
@@ -168,61 +125,26 @@ def cmd_query(args: argparse.Namespace) -> int:
     """
     question = args.question
 
-    # Choose pipeline implementation
-    if args.use_crewai:
-        log.info("Building CrewAI RAG pipeline...")
-        pipeline = AgenticRAGPipeline.build(
-            text_model=args.text_model,
-            table_model=args.table_model,
-            vision_model=args.vision_model,
-            orchestrator_model=args.orchestrator_model,
-            chunk_validator_model=args.chunk_validator_model,
-            answer_validator_model=args.answer_validator_model,
-            persist_dir=args.storage_dir,
-            lazy_agents=args.lazy_agents,
-            use_crewai=True,
-        )
+    pipeline = AgenticRAGPipeline.build(
+        text_model=args.text_model,
+        table_model=args.table_model,
+        vision_model=args.vision_model,
+        orchestrator_model=args.orchestrator_model,
+        chunk_validator_model=args.chunk_validator_model,
+        answer_validator_model=args.answer_validator_model,
+        persist_dir=args.storage_dir,
+        lazy_agents=args.lazy_agents,
+    )
 
-        log.info(f"\n{'=' * 70}")
-        log.info(f"🔍 Query (CrewAI): {question}")
-        log.info(f"{'=' * 70}\n")
+    log.info(f"\n{'=' * 70}")
+    log.info(f"Query: {question}")
+    log.info(f"{'=' * 70}\n")
 
-        result = pipeline.query_with_crewai(question, session_id=args.session_id, validates=args.validate)
-    elif args.use_langgraph:
-        log.info("Building LangGraph RAG pipeline...")
-        pipeline = LangGraphQueryPipeline.build(
-            orchestrator_model=args.orchestrator_model,
-            answer_validator_model=args.answer_validator_model,
-            persist_dir=args.storage_dir,
-        )
-
-        log.info(f"\n{'=' * 70}")
-        log.info(f"🔍 Query (LangGraph): {question}")
-        log.info(f"{'=' * 70}\n")
-
-        result = pipeline.query(question, session_id=args.session_id, validates=args.validate)
-    else:
-        log.info("Building RAG pipeline...")
-        pipeline = AgenticRAGPipeline.build(
-            text_model=args.text_model,
-            table_model=args.table_model,
-            vision_model=args.vision_model,
-            orchestrator_model=args.orchestrator_model,
-            chunk_validator_model=args.chunk_validator_model,
-            answer_validator_model=args.answer_validator_model,
-            persist_dir=args.storage_dir,
-            lazy_agents=args.lazy_agents,
-        )
-
-        log.info(f"\n{'=' * 70}")
-        log.info(f"🔍 Query: {question}")
-        log.info(f"{'=' * 70}\n")
-
-        result = pipeline.query(question, session_id=args.session_id, validates=args.validate)
+    result = pipeline.query(question, session_id=args.session_id, validates=args.validate)
 
     # Display answer
     print("\n" + "=" * 70)
-    print("📝 ANSWER")
+    print("ANSWER")
     print("=" * 70)
     print(result.answer)
     print()
@@ -231,7 +153,7 @@ def cmd_query(args: argparse.Namespace) -> int:
     if result.validation_summary:
         v = result.validation_summary
         print("=" * 70)
-        print("✅ VALIDATION SUMMARY")
+        print("VALIDATION SUMMARY")
         print("=" * 70)
         print(f"  Grounded       : {v.answer_is_grounded}")
         print(f"  Verdict score  : {v.answer_verdict_score:.2f}")
@@ -243,20 +165,16 @@ def cmd_query(args: argparse.Namespace) -> int:
     # Display trace ID
     if result.trace_id:
         print("=" * 70)
-        print(f"🔗 Langfuse Trace: {result.trace_id}")
+        print(f"Langfuse Trace: {result.trace_id}")
         print("=" * 70)
         print()
 
     # Save answer to output
     if args.output:
         save_answer(result, Path("query.pdf"), question)
-        log.info(f"💾 Saved answer to {args.output}/")
+        log.info(f"Saved answer to {args.output}/")
 
-    # Clean up unused models
-    log.info("🧹 Cleaning up unused models...")
-    _model_cache.cleanup_unused_models()
-
-    log.info("✅ Query complete!\n")
+    log.info("Query complete!\n")
     return 0
 
 
@@ -272,12 +190,11 @@ def cmd_pipeline(args: argparse.Namespace) -> int:
     """
     pdf_path = Path(args.pdf_path)
     if not pdf_path.exists():
-        log.error(f"❌ PDF file not found: {pdf_path}")
+        log.error(f"PDF file not found: {pdf_path}")
         return 1
 
     question = args.question
 
-    log.info("Building RAG pipeline...")
     pipeline = AgenticRAGPipeline.build(
         text_model=args.text_model,
         table_model=args.table_model,
@@ -287,31 +204,23 @@ def cmd_pipeline(args: argparse.Namespace) -> int:
         answer_validator_model=args.answer_validator_model,
         persist_dir=args.storage_dir,
         lazy_agents=args.lazy_agents,
-        use_crewai=args.use_crewai,
         enable_figure_aware_fallback=args.enable_figure_aware_fallback,
     )
 
     # ── PHASE 1: INGEST ──
     log.info(f"\n{'=' * 70}")
-    log.info(f"📂 PHASE 1: INGESTING {pdf_path.name}")
+    log.info(f"PHASE 1: INGESTING {pdf_path.name}")
     log.info(f"{'=' * 70}\n")
 
-    if args.use_crewai:
-        chunks = pipeline.ingest_with_crewai(
-            pdf_path,
-            validates=args.validate,
-            audit_output_dir=args.output if args.output else None,
-        )
-    else:
-        chunks = pipeline.ingest(
-            pdf_path,
-            validates=args.validate,
-            audit_output_dir=args.output if args.output else None,
-        )
+    chunks = pipeline.ingest(
+        pdf_path,
+        validates=args.validate,
+        audit_output_dir=args.output if args.output else None,
+    )
 
     # Print statistics
     stats = {ct.value: sum(1 for c in chunks if c.chunk_type == ct) for ct in ChunkType}
-    log.info("\n📊 Chunk Statistics:")
+    log.info("\nChunk Statistics:")
     for chunk_type, count in stats.items():
         log.info(f"  {chunk_type:6s}: {count:3d}")
     log.info(f"  {'TOTAL':6s}: {len(chunks):3d}\n")
@@ -322,27 +231,14 @@ def cmd_pipeline(args: argparse.Namespace) -> int:
 
     # ── PHASE 2: QUERY ──
     log.info(f"\n{'=' * 70}")
-    log.info(f"🔍 PHASE 2: QUERYING")
+    log.info(f"PHASE 2: QUERYING")
     log.info(f"{'=' * 70}\n")
 
-    # Use CrewAI or LangGraph for query if requested
-    if args.use_crewai:
-        log.info("Using CrewAI pipeline for query phase...")
-        result = pipeline.query_with_crewai(question, session_id=args.session_id, validates=args.validate)
-    elif args.use_langgraph:
-        log.info("Using LangGraph pipeline for query phase...")
-        langgraph_pipeline = LangGraphQueryPipeline.build(
-            orchestrator_model=args.orchestrator_model,
-            answer_validator_model=args.answer_validator_model,
-            persist_dir=args.storage_dir,
-        )
-        result = langgraph_pipeline.query(question, session_id=args.session_id, validates=args.validate)
-    else:
-        result = pipeline.query(question, session_id=args.session_id, validates=args.validate)
+    result = pipeline.query(question, session_id=args.session_id, validates=args.validate)
 
     # Display answer
     print("\n" + "=" * 70)
-    print("📝 ANSWER")
+    print("ANSWER")
     print("=" * 70)
     print(result.answer)
     print()
@@ -351,7 +247,7 @@ def cmd_pipeline(args: argparse.Namespace) -> int:
     if result.validation_summary:
         v = result.validation_summary
         print("=" * 70)
-        print("✅ VALIDATION SUMMARY")
+        print("VALIDATION SUMMARY")
         print("=" * 70)
         print(f"  Grounded       : {v.answer_is_grounded}")
         print(f"  Verdict score  : {v.answer_verdict_score:.2f}")
@@ -363,20 +259,16 @@ def cmd_pipeline(args: argparse.Namespace) -> int:
     # Display trace ID
     if result.trace_id:
         print("=" * 70)
-        print(f"🔗 Langfuse Trace: {result.trace_id}")
+        print(f"Langfuse Trace: {result.trace_id}")
         print("=" * 70)
         print()
 
     # Save answer
     if args.output:
         save_answer(result, pdf_path, question)
-        log.info(f"💾 Saved outputs to {args.output}/")
+        log.info(f"Saved outputs to {args.output}/")
 
-    # Clean up
-    log.info("🧹 Cleaning up unused models...")
-    _model_cache.cleanup_unused_models()
-
-    log.info("\n✅ Pipeline complete!\n")
+    log.info("\nPipeline complete!\n")
     return 0
 
 
@@ -393,7 +285,7 @@ def create_parser() -> argparse.ArgumentParser:
         Configured ArgumentParser instance
     """
     parser = argparse.ArgumentParser(
-        description="Agentic RAG - MLX-powered multi-modal document intelligence",
+        description="Agentic RAG - Ollama-powered multi-modal document intelligence",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -405,12 +297,11 @@ Examples:
 
   # Full pipeline with custom orchestrator
   %(prog)s pipeline paper.pdf "Summarize methodology" \\
-      --orchestrator mlx-community/DeepSeek-R1-Distill-Llama-8B-4bit
+      --orchestrator-model deepseek-r1:8b
 
   # Use different vector store
   %(prog)s ingest paper.pdf --storage-dir ./custom_db
 
-For more information, see: https://github.com/yourusername/agentic-rag
         """,
     )
 
@@ -444,18 +335,6 @@ For more information, see: https://github.com/yourusername/agentic-rag
         dest="validate",
         action="store_false",
         help="Skip chunk quality validation (faster, less reliable)",
-    )
-    ingest_parser.add_argument(
-        "--use-crewai",
-        action="store_true",
-        default=False,
-        help="Use CrewAI crews for parallel extraction and cross-linking (faster, more efficient)",
-    )
-    ingest_parser.add_argument(
-        "--use-langgraph",
-        action="store_true",
-        default=False,
-        help="Use LangGraph-based pipeline (improved workflow visibility)",
     )
     ingest_parser.add_argument(
         "--enable-figure-aware-fallback",
@@ -494,18 +373,6 @@ For more information, see: https://github.com/yourusername/agentic-rag
         action="store_false",
         help="Skip hallucination detection (faster, less reliable)",
     )
-    query_parser.add_argument(
-        "--use-crewai",
-        action="store_true",
-        default=False,
-        help="Use CrewAI crews for orchestration and multi-agent coordination",
-    )
-    query_parser.add_argument(
-        "--use-langgraph",
-        action="store_true",
-        default=False,
-        help="Use LangGraph-based pipeline (improved workflow visibility)",
-    )
     query_parser.set_defaults(func=cmd_query)
 
     # ── PIPELINE SUBCOMMAND ──
@@ -541,18 +408,6 @@ For more information, see: https://github.com/yourusername/agentic-rag
         dest="validate",
         action="store_false",
         help="Skip all validation (fastest, least reliable)",
-    )
-    pipeline_parser.add_argument(
-        "--use-crewai",
-        action="store_true",
-        default=False,
-        help="Use CrewAI crews for both ingestion and query phases (parallel processing)",
-    )
-    pipeline_parser.add_argument(
-        "--use-langgraph",
-        action="store_true",
-        default=False,
-        help="Use LangGraph-based pipeline for query phase (improved workflow)",
     )
     pipeline_parser.add_argument(
         "--enable-figure-aware-fallback",

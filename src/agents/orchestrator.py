@@ -1,7 +1,7 @@
 """
 Reasoning orchestrator agent for RAG answer generation.
 
-Uses large reasoning model (8B+) with explicit load/unload lifecycle
+Uses an Ollama-hosted reasoning model with explicit load/unload lifecycle
 to generate answers grounded in retrieved context.
 """
 
@@ -9,12 +9,12 @@ import logging
 import re
 from typing import TYPE_CHECKING
 
-from mlx_lm import generate
+import ollama
 
 from src.agents.base import BaseLoadableModel
 from src.core.cache import _model_cache
 from src.core.models import ChunkType, RAGAnswer
-from src.utils.token_counter import count_tokens_with_tokenizer
+from src.utils.token_counter import count_tokens
 
 if TYPE_CHECKING:
     from src.core.store import ChunkStore
@@ -89,13 +89,12 @@ class ReasoningOrchestratorAgent(BaseLoadableModel):
     _THINK_RE = re.compile(r"<think>(.*?)</think>", re.DOTALL | re.IGNORECASE)
 
     def _do_load(self) -> None:
-        """Load reasoning model and tokenizer."""
-        self._model, self._tokenizer = _model_cache.load_text_model(self.model_id)
+        """Obtain Ollama client for reasoning inference."""
+        self._client: ollama.Client = _model_cache.load_text_model(self.model_id)
 
     def _do_unload(self) -> None:
-        """Unload model and tokenizer references."""
-        del self._model
-        del self._tokenizer
+        """Release client reference (Ollama server manages model memory)."""
+        self._client = None
 
     # ── Retrieval (no model needed) ────────────────────────
 
@@ -168,14 +167,8 @@ class ReasoningOrchestratorAgent(BaseLoadableModel):
         prompt = _ORCHESTRATOR_SYSTEM.format(context=context_str, question=question)
         messages = [{"role": "user", "content": prompt}]
 
-        formatted_prompt = self._tokenizer.apply_chat_template(messages, add_generation_prompt=True)
+        input_tokens = count_tokens(prompt)
 
-        # Token measurement
-        input_tokens = (
-            len(formatted_prompt) if isinstance(formatted_prompt, list) else len(self._tokenizer.encode(formatted_prompt))
-        )
-
-        # Generation with tracing
         if trace:
             with trace.generation(
                 name="orchestrator_reasoning",
@@ -183,11 +176,23 @@ class ReasoningOrchestratorAgent(BaseLoadableModel):
                 input={"messages": messages},
                 model_params={"max_tokens": 2048},
             ) as g:
-                output = generate(self._model, self._tokenizer, prompt=formatted_prompt, max_tokens=2048, verbose=False)
-                output_tokens = count_tokens_with_tokenizer(output, self._tokenizer)
+                response = self._client.chat(
+                    model=self.model_id,
+                    messages=messages,
+                    options={"num_predict": 2048, "temperature": 0.0},
+                    stream=False,
+                )
+                output = response.message.content
+                output_tokens = response.eval_count or count_tokens(output)
                 g.set_output(output, input_tokens=input_tokens, output_tokens=output_tokens)
         else:
-            output = generate(self._model, self._tokenizer, prompt=formatted_prompt, max_tokens=2048, verbose=False)
+            response = self._client.chat(
+                model=self.model_id,
+                messages=messages,
+                options={"num_predict": 2048, "temperature": 0.0},
+                stream=False,
+            )
+            output = response.message.content
 
         reasoning, answer = self._strip_reasoning(output)
         return RAGAnswer(

@@ -25,13 +25,13 @@ class ConfigLoader:
     # Default model IDs
     _DEFAULTS = {
         "models": {
-            "text_extraction": "mlx-community/Qwen3-8B-4bit",
-            "table_extraction": "mlx-community/Qwen2.5-3B-Instruct-4bit",
-            "vision_extraction": "mlx-community/SmolVLM-256M-Instruct-4bit",
-            "chunk_validator": "mlx-community/Qwen2-VL-7B-Instruct-4bit",
-            "orchestrator": "mlx-community/DeepSeek-R1-Distill-Llama-8B-4bit",
-            "answer_validator": "mlx-community/Qwen3-8B-4bit",
-            "dspy_lm": "mlx-community/Qwen2.5-7B-Instruct-4bit",
+            "text_extraction": "qwen3:8b",
+            "table_extraction": "qwen2.5:3b",
+            "vision_extraction": "qwen2.5vl:7b",
+            "chunk_validator": "qwen2.5vl:7b",
+            "orchestrator": "deepseek-r1:8b",
+            "answer_validator": "qwen3:8b",
+            "dspy_lm": "qwen2.5:7b",
             "embedder": "intfloat/multilingual-e5-small",
         },
         "pipeline": {
@@ -42,6 +42,9 @@ class ConfigLoader:
         "cache": {
             "enable_hf_cache": True,
             "cache_dir": "./models",
+        },
+        "ollama": {
+            "base_url": "http://localhost:11434",
         },
         "parser": {
             "enable_native_pdf_heuristic": True,
@@ -175,6 +178,15 @@ class ConfigLoader:
             Model ID (HuggingFace path or local path)
         """
         return self.config.get("models", {}).get(model_key, self._DEFAULTS["models"].get(model_key, ""))
+
+    def get_ollama_base_url(self) -> str:
+        """
+        Get the Ollama server base URL.
+
+        Returns:
+            URL string, e.g. "http://localhost:11434"
+        """
+        return self.config.get("ollama", {}).get("base_url", self._DEFAULTS["ollama"]["base_url"])
 
     def get(self, key: str, default: Any = None) -> Any:
         """

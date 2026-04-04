@@ -1,14 +1,17 @@
 {
   "_comment": "Copy this file to settings.json and customize model IDs as needed",
   "models": {
-    "text_extraction": "mlx-community/Qwen3-8B-4bit",
-    "table_extraction": "mlx-community/Qwen2.5-3B-Instruct-4bit",
-    "vision_extraction": "mlx-community/SmolVLM-256M-Instruct-4bit",
-    "chunk_validator": "mlx-community/Qwen2-VL-7B-Instruct-4bit",
-    "orchestrator": "mlx-community/DeepSeek-R1-Distill-Llama-8B-4bit",
-    "answer_validator": "mlx-community/Qwen3-8B-4bit",
-    "dspy_lm": "mlx-community/Qwen2.5-7B-Instruct-4bit",
+    "text_extraction": "qwen3:8b",
+    "table_extraction": "qwen2.5:3b",
+    "vision_extraction": "qwen2.5vl:7b",
+    "chunk_validator": "qwen2.5vl:7b",
+    "orchestrator": "deepseek-r1:8b",
+    "answer_validator": "qwen3:8b",
+    "dspy_lm": "qwen2.5:7b",
     "embedder": "intfloat/multilingual-e5-small"
+  },
+  "ollama": {
+    "base_url": "http://localhost:11434"
   },
   "pipeline": {
     "max_context_chunks": 8,

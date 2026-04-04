@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pymupdf
 
-from src.core.models import ChunkType, CrossLinkMetadata, ProcessedChunk, RawChunk
+from src.core.models import ChunkType, ProcessedChunk, RawChunk
 from src.utils.audit import save_chunk_audit
 from src.utils.serialization import serialize_chunk
 
@@ -27,15 +27,6 @@ def test_serialize_chunk_includes_provenance_fields() -> None:
         intuition_summary="Summary",
         key_concepts=["alpha", "beta"],
         confidence=0.88,
-        cross_links=[
-            CrossLinkMetadata(
-                source_chunk_id="a",
-                target_chunk_id="b",
-                link_type="text_references_figure",
-                confidence=0.73,
-                description="Mentions the figure",
-            )
-        ],
     )
 
     data = serialize_chunk(chunk)
@@ -44,7 +35,6 @@ def test_serialize_chunk_includes_provenance_fields() -> None:
     assert data["page_size"] == {"width": 612.0, "height": 792.0}
     assert data["artifact_path"] == "audit/figures/example.png"
     assert data["source_preview"] == "Original source preview"
-    assert data["cross_links"][0]["link_type"] == "text_references_figure"
 
 
 def test_save_chunk_audit_generates_json_and_html(tmp_path: Path) -> None:
