@@ -90,4 +90,5 @@ flowchart TD
 - サポートされる実行モードは Sequential のみです。
 - `--enable-figure-aware-fallback` は ingest 側 parser にだけ影響します。
 - `--validate` は ingest では CHECKPOINT A、query では CHECKPOINT B を制御します。
+- モデル引数を省略した場合、CLI 既定値は `settings.json` の `models.*` から解決されます。
 - README には概要だけを残し、処理の詳細はこの文書を正とします。
