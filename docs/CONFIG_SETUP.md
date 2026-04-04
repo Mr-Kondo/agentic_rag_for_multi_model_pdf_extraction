@@ -1,16 +1,17 @@
 # Configuration Setup Guide
 
-Last updated: 2026-03-29
+Last updated: 2026-04-04
 
-このガイドは、現行実装で有効な設定と、設定ファイルでは見えていてもまだ実運用に接続されていない項目を区別して整理したものです。
+このガイドは、現行の Sequential + Ollama runtime で有効な設定だけを整理したものです。
 
-## 1. 前提
+## 1. Prerequisites
 
-- Python 3.13以上
-- macOS / Apple Silicon
-- ローカルMLX実行前提
+- Python 3.13 以上
+- Ollama server
+- ChromaDB 保存先の書き込み権限
+- OCR を使う場合は EasyOCR または Tesseract の実行環境
 
-OpenAIなどの外部推論APIは必須ではありません。
+OpenAI などの外部推論 API は必須ではありません。
 
 ## 2. `settings.json`
 
@@ -21,10 +22,10 @@ cp settings.example.json settings.json
 `src/core/config.py` の `ConfigLoader` は次の順で設定を作ります。
 
 1. コード内 `_DEFAULTS`
-2. `settings.json`の内容をdeep merge
+2. `settings.json` の内容を deep merge
 3. 呼び出し側が明示的に渡した引数
 
-### 2.1 deep merge の意味
+### 2.1 Deep merge
 
 `settings.json` に一部のキーしか書かれていなくても、不足分は `_DEFAULTS` から補完されます。
 
@@ -40,8 +41,10 @@ cp settings.example.json settings.json
 
 この場合でも `ocr.default_lang` や `ocr.fallback_lang` は既定値のまま残ります。
 
-### 2.2 主なキー
+### 2.2 Main keys
 
+- `ollama`
+  - `base_url`
 - `models`
   - `text_extraction`
   - `table_extraction`
@@ -69,35 +72,33 @@ cp settings.example.json settings.json
   - `enable_checkpoint_a`
   - `enable_checkpoint_b`
 
-## 3. 現在の優先順位と制約
+## 3. Configuration precedence
 
-### 3.1 CLI から見たモデル設定
+### 3.1 Model selection from the CLI
 
-ここが一番誤解しやすい点です。
+注意点は、CLI 実行時のモデル値です。
 
-- `src/core/config.py`にはmodelの既定値があります。
-- しかし`app.py`のCLI引数にもmodelの既定値がハードコードされています。
-- `app.py`はその既定値を`AgenticRAGPipeline.build()`へ渡すため、CLIで実行する限り、未指定時でも`settings.json`の`models.*`がそのまま採用されるわけではありません。
+- `src/core/config.py` に defaults があります。
+- ただし `app.py` の CLI 引数にも既定値があります。
+- CLI で実行する場合は、`app.py` が build に渡す値が `settings.json` より優先されます。
 
-つまり、現行実装のCLIでは次の理解が正確です。
+つまり優先順位は次です。
 
-1. 明示的なCLI引数
-2. `app.py` の `DEFAULT_MODELS`
-3. `settings.json`のmodel値は下位レベルのbuildを直接使う場合に効く
+1. 明示的な CLI 引数
+2. `app.py` の既定値
+3. `settings.json` の model 値
 
-この挙動はOCRやvalidation設定とは異なります。
+一方で OCR や validation の設定は `settings.json` から反映されます。
 
-### 3.2 OCR / validation / parser 設定
-
-これらは `src/core.config.config` を通じて参照されるため、`settings.json` の値が反映されます。
+### 3.2 OCR / validation / parser settings
 
 主な対象:
 
 - `ocr.*`
 - `validation.*`
-- parser内で参照する一部設定
+- parser が参照する設定項目
 
-## 4. OCR 設定
+## 4. OCR settings
 
 `settings.example.json` の既定値:
 
@@ -114,48 +115,46 @@ cp settings.example.json settings.json
 運用上の注意:
 
 - `engine` の既定値は `easyocr` です。
-- `default_lang`などはparserのOCR系定数に取り込まれます。
-- Tesseractを補助的に使う場合は`jpn`言語データの導入が必要です。
+- Tesseract を補助的に使う場合は `jpn` 言語データの導入が必要です。
+- `--enable-figure-aware-fallback` は ingest / pipeline の parser にだけ影響します。
 
-## 5. `--output` と保存先
+## 5. `--output` and save locations
 
-CLIの`--output`は名前ほど単純ではありません。
+CLI の `--output` は主に audit 出力先です。
 
 - chunks / answer JSON
-  - `src/utils/serialization.py` の `OUTPUT_DIR = ./output` に固定保存されます。
+  - `src/utils/serialization.py` により `./output` へ保存されます。
   - `--output` で保存先は変わりません。
-- 監査レポート
+- audit レポート
   - `save_chunk_audit()` に渡され、`--output` の値が反映されます。
 
-したがって、現状の運用ルールは次の理解が安全です。
+安全な理解は次です。
 
-- JSONは`./output`
-- auditは`--output`
+- JSON は `./output`
+- audit は `--output`
 
-## 6. モデルキャッシュ
+## 6. Model cache and local files
 
-`src/core/cache.py`はimport時に次を行います。
+`src/core/cache.py` は import 時に次を行います。
 
 - `MODEL_CACHE_DIR = ~/.models`
 - `os.environ["HF_HOME"] = ~/.models`
 
-このため、`settings.json` の `cache.cache_dir` は現行コードでは実際の保存先切り替えに使われていません。`cache` セクションは将来拡張の余地はありますが、現在の実行上の正本は `src/core/cache.py` です。
+これは sentence-transformers の embedder cache 用です。LLM 自体のロードとメモリ管理は Ollama server が行います。
 
-`cleanup_unused_models()` は未使用モデルディレクトリの削除を試みます。
+`settings.json` の `cache.cache_dir` は現時点では実際の保存先切り替えに使われていません。
 
 ## 7. `--lazy-agents`
 
-CLIには`--lazy-agents`がありますが、現時点では次の状態です。
+CLI には `--lazy-agents` がありますが、現時点では大きな実行分岐に接続されていません。
 
-- `AgenticRAGPipeline.build()` に値は渡される
-- pipelineオブジェクトに`lazy_agents`として保持される
-- ただし、実行時に明確なload / unload分岐へ接続されている箇所は確認できません
-
-そのため、現段階では「将来のメモリ最適化用フラグが公開されている」と理解するのが妥当です。
+- build に値は渡される
+- pipeline object に保持される
+- 明確な extra load / unload policy にはまだ接続されていない
 
 ## 8. Langfuse
 
-環境変数を設定するとtraceが記録されます。
+環境変数を設定すると trace が記録されます。
 
 ```bash
 LANGFUSE_PUBLIC_KEY=pk-lf-...
@@ -163,11 +162,11 @@ LANGFUSE_SECRET_KEY=sk-lf-...
 LANGFUSE_BASE_URL=https://cloud.langfuse.com
 ```
 
-未設定時もno-opで動作継続します。
+未設定時も no-op で処理は継続します。
 
-`--session-id`はquery / pipeline実行時に関連トレースを束ねるために使います。
+`--session-id` は query / pipeline 実行時に関連 trace を束ねるために使います。
 
-## 9. 動作確認
+## 9. Smoke checks
 
 ```bash
 python app.py --help
@@ -182,10 +181,13 @@ python app.py pipeline --help
 python -c "from src.core.config import config; print(config.get('ocr.engine'))"
 ```
 
-## 10. 注意点
+## 10. Migration note
 
-- `settings.json`のJSONが壊れている場合、`ConfigLoader`はログを出してdefaultsにフォールバックします。
-- `--validate` は既定で有効です。
-- `--enable-figure-aware-fallback`はingest / pipelineのparserにしか効きません。
-- `--use-langgraph`はpipelineではqueryフェーズにしか効きません。
-- `--use-crewai`はingest / query / pipelineで使えますが、ingestの抽出本体はlocal routerベースです。
+以下は削除済みです。
+
+- `--use-crewai`
+- `--use-langgraph`
+- MLX backend 前提の model IDs や setup 手順
+- CrewAI / LangGraph 専用 pipeline 設定
+
+現時点でサポートされる runtime は Sequential + Ollama のみです。

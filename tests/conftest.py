@@ -103,10 +103,10 @@ def temp_storage_dir(tmp_path: Path) -> Generator[Path, None, None]:
 def test_model_config() -> dict[str, str]:
     """Test model configuration using small/fast models."""
     return {
-        "text_model": "mlx-community/Phi-3.5-mini-Instruct-4bit",
-        "table_model": "mlx-community/Qwen2.5-3B-Instruct-4bit",
-        "vision_model": "mlx-community/SmolVLM-256M-Instruct-4bit",
-        "orchestrator_model": "mlx-community/Qwen2.5-3B-Instruct-4bit",
-        "chunk_validator_model": "mlx-community/SmolVLM-256M-Instruct-4bit",
-        "answer_validator_model": "mlx-community/Qwen2.5-3B-Instruct-4bit",
+        "text_model": "qwen3:8b",
+        "table_model": "qwen2.5:3b",
+        "vision_model": "qwen2.5vl:7b",
+        "orchestrator_model": "deepseek-r1:8b",
+        "chunk_validator_model": "qwen2.5vl:7b",
+        "answer_validator_model": "qwen2.5:7b",
     }

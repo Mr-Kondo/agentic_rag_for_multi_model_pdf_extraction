@@ -1,24 +1,23 @@
 """
 Specialized extraction agents for different content types.
 
-TextAgent, TableAgent, and VisionAgent process raw chunks using small
-specialized models (2-4B) that stay loaded during ingestion.
+TextAgent, TableAgent, and VisionAgent process raw chunks by calling
+Ollama-hosted models via the Ollama Python client.
 """
 
+import io
 import json
 import logging
 from typing import TYPE_CHECKING
 
-from mlx_lm import generate
-from mlx_vlm import generate as vlm_generate
-from mlx_vlm.prompt_utils import apply_chat_template
+import ollama
 
 from src.agents.base import BaseAgent
 from src.agents.table_extraction import TableFromImageExtractor
 from src.core.cache import _model_cache
 from src.core.config import config
 from src.core.models import ChunkType, ProcessedChunk
-from src.utils.token_counter import count_tokens, count_tokens_with_tokenizer
+from src.utils.token_counter import count_tokens
 
 if TYPE_CHECKING:
     from src.core.models import RawChunk, RegionOCRPolicy
@@ -117,13 +116,13 @@ class TextAgent(BaseAgent):
     """
     Extract structured data from text passages.
 
-    Uses small text LLM (e.g., Phi-3.5-mini 3.8B) to clean and structure
-    raw text from PDFs into searchable chunks.
+    Calls an Ollama-hosted text model to clean and structure raw text
+    from PDFs into searchable chunks.
     """
 
     def _load_model(self):
-        """Load text model from cache."""
-        self._model, self._tokenizer = _model_cache.load_text_model(self.model_id)
+        """Obtain Ollama client for text inference."""
+        self._client: ollama.Client = _model_cache.load_text_model(self.model_id)
 
     def _run(
         self,
@@ -148,12 +147,9 @@ class TextAgent(BaseAgent):
             {"role": "system", "content": _TEXT_SYSTEM},
             {"role": "user", "content": f"PASSAGE:\n{content}"},
         ]
-        prompt = self._tokenizer.apply_chat_template(messages, add_generation_prompt=True)
 
-        # Token measurement
-        input_tokens = len(prompt) if isinstance(prompt, list) else len(self._tokenizer.encode(prompt))
+        input_tokens = count_tokens(content)
 
-        # Generation with tracing
         if trace:
             with trace.generation(
                 name="text_extraction",
@@ -161,11 +157,23 @@ class TextAgent(BaseAgent):
                 input={"messages": messages},
                 model_params={"max_tokens": 512},
             ) as g:
-                raw = generate(self._model, self._tokenizer, prompt=prompt, max_tokens=512, verbose=False)
-                output_tokens = count_tokens_with_tokenizer(raw, self._tokenizer)
+                response = self._client.chat(
+                    model=self.model_id,
+                    messages=messages,
+                    options={"num_predict": 512, "temperature": 0.0},
+                    stream=False,
+                )
+                raw = response.message.content
+                output_tokens = response.eval_count or count_tokens(raw)
                 g.set_output(raw, input_tokens=input_tokens, output_tokens=output_tokens)
         else:
-            raw = generate(self._model, self._tokenizer, prompt=prompt, max_tokens=512, verbose=False)
+            response = self._client.chat(
+                model=self.model_id,
+                messages=messages,
+                options={"num_predict": 512, "temperature": 0.0},
+                stream=False,
+            )
+            raw = response.message.content
 
         p = self._safe_json(raw)
         return ProcessedChunk(
@@ -188,13 +196,13 @@ class TableAgent(BaseAgent):
     """
     Extract structured data from markdown tables.
 
-    Uses small text LLM (e.g., Qwen2.5-3B) to analyze and enhance
-    markdown table representations with schema metadata.
+    Calls an Ollama-hosted text model to analyze and enhance markdown table
+    representations with schema metadata.
     """
 
     def _load_model(self):
-        """Load text model from cache."""
-        self._model, self._tokenizer = _model_cache.load_text_model(self.model_id)
+        """Obtain Ollama client for text inference."""
+        self._client: ollama.Client = _model_cache.load_text_model(self.model_id)
 
     def _run(
         self,
@@ -219,12 +227,9 @@ class TableAgent(BaseAgent):
             {"role": "system", "content": _TABLE_SYSTEM},
             {"role": "user", "content": f"TABLE:\n{content}"},
         ]
-        prompt = self._tokenizer.apply_chat_template(messages, add_generation_prompt=True)
 
-        # Token measurement
-        input_tokens = len(prompt) if isinstance(prompt, list) else len(self._tokenizer.encode(prompt))
+        input_tokens = count_tokens(content)
 
-        # Generation with tracing
         if trace:
             with trace.generation(
                 name="table_extraction",
@@ -232,11 +237,23 @@ class TableAgent(BaseAgent):
                 input={"messages": messages},
                 model_params={"max_tokens": 768},
             ) as g:
-                raw = generate(self._model, self._tokenizer, prompt=prompt, max_tokens=768, verbose=False)
-                output_tokens = count_tokens_with_tokenizer(raw, self._tokenizer)
+                response = self._client.chat(
+                    model=self.model_id,
+                    messages=messages,
+                    options={"num_predict": 768, "temperature": 0.0},
+                    stream=False,
+                )
+                raw = response.message.content
+                output_tokens = response.eval_count or count_tokens(raw)
                 g.set_output(raw, input_tokens=input_tokens, output_tokens=output_tokens)
         else:
-            raw = generate(self._model, self._tokenizer, prompt=prompt, max_tokens=768, verbose=False)
+            response = self._client.chat(
+                model=self.model_id,
+                messages=messages,
+                options={"num_predict": 768, "temperature": 0.0},
+                stream=False,
+            )
+            raw = response.message.content
 
         p = self._safe_json(raw)
         schema_ann = f"\n<!-- schema: {json.dumps(p.get('schema', {}), ensure_ascii=False)} -->"
@@ -260,18 +277,19 @@ class VisionAgent(BaseAgent):
     """
     Extract structured data from figures/images.
 
-    Uses small vision-language model (e.g., SmolVLM-256M) to describe
-    charts, diagrams, and other visual elements. Falls back to OCR if
-    vision model fails to load.
+    Calls an Ollama-hosted vision-language model to describe charts, diagrams,
+    and other visual elements. Falls back to OCR if the Ollama server is
+    unavailable or the model cannot process the image.
     """
 
     def _load_model(self):
-        """Load vision model from cache, fallback to OCR if unavailable."""
+        """Obtain Ollama client for vision inference."""
         try:
-            self._model, self._processor, self._config = _model_cache.load_vision_model(self.model_id)
+            self._client: ollama.Client = _model_cache.load_vision_model(self.model_id)
             self._use_vision = True
         except Exception as e:
-            log.warning("VisionAgent: vision model failed (%s). OCR fallback.", e)
+            log.warning("VisionAgent: Ollama client unavailable (%s). OCR fallback.", e)
+            self._client = None
             self._use_vision = False
 
     def _run(
@@ -307,44 +325,51 @@ class VisionAgent(BaseAgent):
                     agent_notes="extracted_from_geometry_heuristic",
                 )
 
-        if not self._use_vision or self._processor is None:
+        if not self._use_vision or self._client is None:
             return self._ocr_fallback(chunk)
 
         img = chunk.raw_content
         extra = self.RETRY_SUFFIX if retry else ""
         user_text = f"Describe.{extra}"
-
-        # Combine system message with user text
         full_prompt = f"{_VISION_SYSTEM}\n\n{user_text}"
-        try:
-            prompt = apply_chat_template(self._processor, self._config, full_prompt, num_images=1)
-        except (TypeError, AttributeError) as e:
-            # Processor is malformed or None - use OCR fallback
-            log.warning(f"Vision model processor error: {e}. Using OCR fallback.")
-            return self._ocr_fallback(chunk)
 
-        # Generation with tracing and token estimation
-        try:
-            result = vlm_generate(self._model, self._processor, prompt, [img], verbose=False)
-            # Extract text from GenerationResult object
-            output = result if isinstance(result, str) else str(result)
+        # Encode PIL image as PNG bytes for Ollama
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        image_bytes = buf.getvalue()
 
+        messages = [
+            {"role": "user", "content": full_prompt, "images": [image_bytes]},
+        ]
+
+        try:
             if trace:
-                prompt_text_tokens = count_tokens(full_prompt)
-                image_tokens = 256  # Typical patch embedding for vision models
-                input_tokens = prompt_text_tokens + image_tokens
-                output_tokens = count_tokens(output)
-
+                input_tokens = count_tokens(full_prompt) + 256  # 256 = typical image patch budget
                 with trace.generation(
                     name="vision_extraction",
                     model=self.model_id,
                     input={"prompt": full_prompt, "has_image": True},
                     model_params={},
                 ) as g:
+                    response = self._client.chat(
+                        model=self.model_id,
+                        messages=messages,
+                        options={"num_predict": 512, "temperature": 0.0},
+                        stream=False,
+                    )
+                    output = response.message.content
+                    output_tokens = response.eval_count or count_tokens(output)
                     g.set_output(output, input_tokens=input_tokens, output_tokens=output_tokens)
-        except (TypeError, AttributeError, RuntimeError) as e:
-            # Vision generation failed - use OCR fallback
-            log.warning(f"Vision generation error: {e}. Using OCR fallback.")
+            else:
+                response = self._client.chat(
+                    model=self.model_id,
+                    messages=messages,
+                    options={"num_predict": 512, "temperature": 0.0},
+                    stream=False,
+                )
+                output = response.message.content
+        except Exception as e:
+            log.warning("VisionAgent: inference error (%s). OCR fallback.", e)
             return self._ocr_fallback(chunk)
 
         p = self._safe_json(output)
@@ -375,8 +400,7 @@ class VisionAgent(BaseAgent):
             except Exception as e:
                 log.debug("VisionAgent: table extraction failed: %s. Falling back to FIGURE.", e)
 
-        # Last-chance rescue: for figure chunks only, try deterministic table extraction.
-        # This improves table recall without changing parser text/table decisions.
+        # Last-chance rescue: try deterministic table extraction for figure chunks.
         try:
             rescued_markdown = table_extractor.extract_table_from_image(chunk.raw_content, policy=policy)
             if _is_structured_table_markdown(rescued_markdown):

@@ -3,30 +3,28 @@ Validation agents for quality assurance at two checkpoints.
 
 CHECKPOINT A (ChunkValidatorAgent):
     Audits extraction quality by comparing ProcessedChunk against original RawChunk.
-    Uses vision-language model (Qwen2-VL-7B) to validate ALL chunk types including figures.
+    Uses an Ollama-hosted vision-language model to validate ALL chunk types including figures.
 
 CHECKPOINT B (AnswerValidatorAgent):
     Detects hallucinations by verifying RAGAnswer claims against source chunk texts.
-    Uses DSPy-enhanced text model (~10B) with ChainOfThought for systematic validation.
+    Uses DSPy-enhanced model with ChainOfThought for systematic validation.
 
 Both agents inherit BaseLoadableModel with explicit load/unload lifecycle.
-Memory footprint: ~14-16 GB VRAM per agent (never loaded simultaneously).
+Model loading and memory management are delegated to the Ollama server.
 """
 
 import gc
+import io
 import json
 import logging
 import re
 from typing import TYPE_CHECKING
 
 import dspy
-from mlx_lm import generate, load
-from mlx_vlm import generate as vlm_generate
-from mlx_vlm import load as vlm_load
-from mlx_vlm.prompt_utils import apply_chat_template
-from mlx_vlm.utils import load_config
+import ollama
 
 from src.agents.base import BaseLoadableModel
+from src.core.cache import _model_cache
 from src.core.models import (
     AnswerValidationResult,
     ChunkValidationResult,
@@ -34,7 +32,7 @@ from src.core.models import (
     RAGAnswer,
     RawChunk,
 )
-from src.integrations.dspy_adapter import MLXLM
+from src.integrations.dspy_adapter import configure_ollama_lm
 from src.integrations.dspy_modules import AnswerGroundingSignature
 
 if TYPE_CHECKING:
@@ -80,73 +78,26 @@ class ChunkValidatorAgent(BaseLoadableModel):
     """
     CHECKPOINT A validator for extraction quality assurance.
 
-    Uses Qwen2-VL-7B vision-language model to validate ALL chunk types:
+    Uses an Ollama-hosted vision-language model to validate ALL chunk types:
     - TEXT chunks: Text-only validation against source
     - TABLE chunks: Schema and content correctness
     - FIGURE chunks: Direct image inspection with vision encoder
 
-    The vision capability enables detection of figure_type errors that
-    text-only agents cannot identify.
-
-    Memory: ~14 GB VRAM (FP16)
-    Backend: mlx-vlm optimized for Apple Silicon
+    Model loading and memory management are delegated to the Ollama server.
 
     Usage:
-        >>> validator = ChunkValidatorAgent("mlx-community/Qwen2-VL-7B-Instruct")
+        >>> validator = ChunkValidatorAgent("qwen2.5vl:7b")
         >>> with validator:
         ...     result = validator.validate_chunk(raw_chunk, processed_chunk, trace)
     """
 
     def _do_load(self) -> None:
-        """Load Qwen2-VL model and processor into memory."""
-        try:
-            result = vlm_load(self.model_id)
-            if result is None or len(result) < 2:
-                raise RuntimeError(f"vlm_load returned invalid result: {result}")
-
-            self._model, self._processor = result[0], result[1]
-
-            if self._processor is None:
-                raise RuntimeError(f"Vision model processor is None for {self.model_id}")
-
-            self._config = load_config(self.model_id)
-        except (TypeError, RuntimeError) as e:
-            # Handle transformers library incompatibility
-            if "NoneType" in str(e) or "iterable" in str(e) or "processor is None" in str(e):
-                log.warning(
-                    f"⚠️ Vision model processor error (likely transformers incompatibility): {e}\n"
-                    f"   Attempting to load model with trust_remote_code=True..."
-                )
-                try:
-                    # Retry with explicit trust_remote_code setting
-                    result = vlm_load(self.model_id, trust_remote_code=True)
-                    if result is None or len(result) < 2:
-                        raise RuntimeError(f"vlm_load returned invalid result: {result}")
-
-                    self._model, self._processor = result[0], result[1]
-
-                    if self._processor is None:
-                        raise RuntimeError(f"Vision model processor is None even with trust_remote_code=True")
-
-                    self._config = load_config(self.model_id)
-                    log.info("✓ Model loaded successfully with trust_remote_code=True")
-                except Exception as e2:
-                    log.warning(
-                        "✗ Failed to load vision model: %s. Continuing without vision validation.",
-                        e2,
-                    )
-                    self._model = None
-                    self._processor = None
-                    self._config = None
-                    return
-            else:
-                raise
+        """Obtain Ollama client for vision-language inference."""
+        self._client: ollama.Client = _model_cache.load_vision_model(self.model_id)
 
     def _do_unload(self) -> None:
-        """Release model resources and trigger garbage collection."""
-        del self._model
-        del self._processor
-        del self._config
+        """Release client reference (Ollama server manages model memory)."""
+        self._client = None
 
     # ── Public API ─────────────────────────────────────────
 
@@ -189,27 +140,27 @@ class ChunkValidatorAgent(BaseLoadableModel):
         )
 
         if is_figure:
-            output = self._infer_figure(raw.raw_content, extracted_repr)
+            output, messages = self._infer_figure(raw.raw_content, extracted_repr)
         else:
-            output = self._infer_text(str(raw.raw_content)[:2000], extracted_repr)
+            output, messages = self._infer_text(str(raw.raw_content)[:2000], extracted_repr)
 
         # Convert GenerationResult to string if needed
         output = output if isinstance(output, str) else str(output)
 
         span = f"chunk_validate_p{processed.page_num}_{processed.chunk_type.value}"
-        self._log_generation(trace, span, [], output)
+        self._log_generation(trace, span, messages, output)
 
         parsed = self._safe_json(output)
         return self._build_result(parsed, processed)
 
     # ── Inference ───────────────────────────────────────────
 
-    def _infer_figure(self, img: "PILImage", extracted_repr: str) -> str:
+    def _infer_figure(self, img: "PILImage", extracted_repr: str) -> tuple[str, list[dict]]:
         """
-        Run validation inference on figure chunk with vision model.
+        Run validation inference on a figure chunk via Ollama vision API.
 
-        Passes PIL.Image directly to mlx-vlm for visual content verification.
-        Falls back to text-only validation if vision processing fails.
+        Encodes the PIL image as PNG bytes and passes them in the chat message.
+        Falls back to text-only validation if image encoding fails.
         """
         user_text = (
             "Above is the ORIGINAL figure from the PDF.\n\n"
@@ -217,55 +168,49 @@ class ChunkValidatorAgent(BaseLoadableModel):
             "Does EXTRACTED faithfully describe the figure? "
             "Return only the JSON verdict."
         )
-
-        # Combine system message with user text
         full_prompt = f"{_CHUNK_VALIDATOR_SYSTEM}\n\n{user_text}"
 
         try:
-            # Guard against None processor in apply_chat_template
-            if self._processor is None:
-                raise RuntimeError("Vision model processor is None")
+            buf = io.BytesIO()
+            img.save(buf, format="PNG")
+            image_bytes = buf.getvalue()
 
-            prompt = apply_chat_template(self._processor, self._config, full_prompt, num_images=1)
-        except (TypeError, AttributeError, RuntimeError) as e:
-            log.warning(f"Vision model processor error in apply_chat_template: {e}")
-            # Fall back to text-only validation without image
+            messages = [
+                {"role": "user", "content": full_prompt, "images": [image_bytes]},
+            ]
+            response = self._client.chat(
+                model=self.model_id,
+                messages=messages,
+                options={"num_predict": 512, "temperature": 0.0},
+                stream=False,
+            )
+            return response.message.content, messages
+        except Exception as e:
+            log.warning("ChunkValidatorAgent: vision inference error (%s). Text-only fallback.", e)
             return self._infer_text(f"[Figure: {extracted_repr}]", extracted_repr)
 
-        try:
-            return vlm_generate(self._model, self._processor, prompt, [img], verbose=False)
-        except (TypeError, AttributeError, RuntimeError) as e:
-            log.warning(f"Vision model generation error: {e}. Falling back to text-only validation.")
-            return self._infer_text(f"[Figure: {extracted_repr}]", extracted_repr)
-
-    def _infer_text(self, original_text: str, extracted_repr: str) -> str:
+    def _infer_text(self, original_text: str, extracted_repr: str) -> tuple[str, list[dict]]:
         """
-        Run validation inference on text/table chunk in text-only mode.
-        Processor is used but no images are passed.
+        Run validation inference on a text/table chunk in text-only mode.
         """
         user_text = f"[ORIGINAL]\n{original_text}\n\n[EXTRACTED]\n{extracted_repr}\n\nReturn only the JSON verdict."
-
-        # Combine system message with user text
         full_prompt = f"{_CHUNK_VALIDATOR_SYSTEM}\n\n{user_text}"
-
+        messages = [
+            {"role": "user", "content": full_prompt},
+        ]
         try:
-            # Use the vision model in text-only mode (no images)
-            if self._processor is None:
-                raise RuntimeError("Vision model processor is None")
-
-            prompt = apply_chat_template(self._processor, self._config, full_prompt, num_images=0)
-        except (TypeError, AttributeError, RuntimeError) as e:
-            log.warning(f"Vision model processor error in text inference: {e}")
-            # Return minimal valid JSON response indicating we couldn't validate
-            return json.dumps({"is_valid": True, "confidence": 0.5, "reason": "Validation skipped due to processor error"})
-
-        try:
-            # Pass empty list for images since this is text-only
-            return vlm_generate(self._model, self._processor, prompt, [], verbose=False)
-        except (TypeError, AttributeError, RuntimeError) as e:
-            log.warning(f"Vision model generation error in text inference: {e}")
-            # Return minimal valid JSON response
-            return json.dumps({"is_valid": True, "confidence": 0.5, "reason": "Validation skipped due to generation error"})
+            response = self._client.chat(
+                model=self.model_id,
+                messages=messages,
+                options={"num_predict": 512, "temperature": 0.0},
+                stream=False,
+            )
+            return response.message.content, messages
+        except Exception as e:
+            log.warning("ChunkValidatorAgent: text inference error (%s). Skipping validation.", e)
+            return json.dumps(
+                {"is_valid": True, "confidence": 0.5, "reason": "Validation skipped due to inference error"}
+            ), messages
 
     # ── Result builder ──────────────────────────────────────
 
@@ -345,8 +290,7 @@ class AnswerValidatorAgent(BaseLoadableModel):
     is supported by the retrieved source chunk texts. Uses DSPy with ChainOfThought
     for systematic claim verification and structured output.
 
-    Memory: ~16 GB VRAM for 10B text model (FP16)
-    Backend: MLX via DSPy adapter, optimized for Apple Silicon
+    Inference is delegated to an Ollama-hosted model.
 
     Features:
         - DSPy ChainOfThought for step-by-step reasoning
@@ -355,7 +299,7 @@ class AnswerValidatorAgent(BaseLoadableModel):
         - Legacy fallback for non-DSPy mode
 
     Usage:
-        >>> validator = AnswerValidatorAgent("mlx-community/Qwen2.5-7B-Instruct", use_dspy=True)
+        >>> validator = AnswerValidatorAgent("qwen2.5:7b", use_dspy=True)
         >>> with validator:
         ...     result = validator.validate_answer(question, answer, source_texts, trace)
     """
@@ -365,40 +309,33 @@ class AnswerValidatorAgent(BaseLoadableModel):
         Initialize the answer validator.
 
         Args:
-            model_id: Model identifier for MLX
+            model_id: Model identifier for Ollama (e.g., 'qwen2.5:7b')
             use_dspy: Whether to use DSPy-enhanced validation (default: True)
         """
         super().__init__(model_id)
         self.use_dspy = use_dspy
         self._dspy_predictor = None
-        self._mlx_lm = None
 
     def _do_load(self) -> None:
-        """Load text model through DSPy adapter or legacy MLX."""
-        if self.use_dspy:
-            # Load model through DSPy adapter
-            log.info(f"Loading AnswerValidatorAgent with DSPy: {self.model_id}")
-            self._mlx_lm = MLXLM(self.model_id, max_tokens=1024, temperature=0.0)
-            dspy.configure(lm=self._mlx_lm)
+        """Load DSPy predictor backed by Ollama, or bare Ollama client for legacy mode."""
+        from src.core.config import config as _config
 
-            # Initialize DSPy module with Chain-of-Thought reasoning
+        base_url = _config.get_ollama_base_url()
+
+        if self.use_dspy:
+            log.info("Loading AnswerValidatorAgent with DSPy (Ollama): %s", self.model_id)
+            configure_ollama_lm(self.model_id, base_url)
             self._dspy_predictor = dspy.ChainOfThought(AnswerGroundingSignature)
-            log.info("✓ DSPy predictor initialized for answer validation")
+            log.info("DSPy predictor initialized for answer validation")
         else:
-            # Legacy: direct MLX loading
-            log.info(f"Loading AnswerValidatorAgent (legacy mode): {self.model_id}")
-            self._model, self._tokenizer = load(self.model_id)
+            log.info("Loading AnswerValidatorAgent (legacy mode): %s", self.model_id)
+            self._client: ollama.Client = _model_cache.load_text_model(self.model_id)
 
     def _do_unload(self) -> None:
-        """Release model resources."""
-        if self.use_dspy:
-            if self._mlx_lm:
-                self._mlx_lm.unload()
-            self._mlx_lm = None
-            self._dspy_predictor = None
-        else:
-            del self._model
-            del self._tokenizer
+        """Release model references."""
+        self._dspy_predictor = None
+        if not self.use_dspy:
+            self._client = None
 
     # ── Public API ─────────────────────────────────────────
 
@@ -531,7 +468,7 @@ class AnswerValidatorAgent(BaseLoadableModel):
         """
         Legacy validation method using manual prompting and regex parsing.
 
-        Kept for backward compatibility and comparison with DSPy approach.
+        Kept for backward compatibility and comparison with the DSPy approach.
         """
         sources_repr = "\n\n".join(f"[Source {i + 1}] {text[:600]}" for i, text in enumerate(source_texts))
         user_content = f"[QUESTION]\n{question}\n\n[ANSWER]\n{answer.answer}\n\n[SOURCES]\n{sources_repr}"
@@ -540,8 +477,13 @@ class AnswerValidatorAgent(BaseLoadableModel):
             {"role": "user", "content": user_content},
         ]
 
-        prompt = self._tokenizer.apply_chat_template(messages, add_generation_prompt=True)
-        output = generate(self._model, self._tokenizer, prompt=prompt, max_tokens=1024, verbose=False)
+        response = self._client.chat(
+            model=self.model_id,
+            messages=messages,
+            options={"num_predict": 1024, "temperature": 0.0},
+            stream=False,
+        )
+        output = response.message.content
 
         # Remove <think> blocks
         _THINK_RE = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)

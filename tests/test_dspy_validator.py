@@ -1,212 +1,127 @@
-"""
-test_dspy_validator.py
-======================
-Test suite for DSPy integration with AnswerValidatorAgent.
-
-This test verifies:
-1. MLXLM adapter initialization
-2. DSPy AnswerValidator loading and inference
-3. Structured output generation
-4. Comparison with legacy validation method
-
-Usage:
-    pytest tests/test_dspy_validator.py -v
-    # or directly
-    python tests/test_dspy_validator.py
-"""
+"""Unit tests for AnswerValidatorAgent behavior."""
 
 from __future__ import annotations
 
-import logging
+from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
 
 from src.agents.validation import AnswerValidatorAgent
 from src.core.models import RAGAnswer
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-)
-log = logging.getLogger(__name__)
 
-
-def test_dspy_validator():
-    """Test DSPy AnswerValidatorAgent with a simple example."""
-
-    # Use a smaller model for quick testing (3B is faster than 7B)
-    model_id = "mlx-community/Qwen2.5-3B-Instruct-4bit"
-
-    log.info("=" * 70)
-    log.info("Testing DSPy AnswerValidatorAgent")
-    log.info(f"Model: {model_id}")
-    log.info("=" * 70)
-
-    # Test question and context
-    question = "What is the capital of France?"
-
-    # Create a test answer with a hallucination
-    answer = RAGAnswer(
-        question=question,
-        answer="The capital of France is Paris, and it has a population of 10 million people.",
-        reasoning_trace="Based on the provided sources about France.",
+def _answer(text: str) -> RAGAnswer:
+    return RAGAnswer(
+        question="What is the capital of France?",
+        answer=text,
+        reasoning_trace="Based on retrieved sources.",
         source_chunks=[],
     )
 
-    # Source context (doesn't mention population)
-    source_texts = [
-        "France is a country in Western Europe. Its capital city is Paris, which is located in the north-central part of the country.",
-        "Paris is known for the Eiffel Tower and is a major cultural center.",
-    ]
 
-    log.info("\n📋 Test Input:")
-    log.info(f"  Question: {question}")
-    log.info(f"  Answer: {answer.answer}")
-    log.info(f"  Sources: {len(source_texts)} chunks")
-
-    # Test DSPy version
-    log.info("\n🤖 Testing DSPy-enhanced validation...")
-    try:
-        validator_dspy = AnswerValidatorAgent(model_id, use_dspy=True)
-
-        with validator_dspy:
-            result_dspy = validator_dspy.validate_answer(
-                question=question,
-                answer=answer,
-                source_texts=source_texts,
-                trace=None,
-            )
-
-        log.info("\n✅ DSPy Validation Result:")
-        log.info(f"  is_grounded: {result_dspy.is_grounded}")
-        log.info(f"  verdict_score: {result_dspy.verdict_score:.2f}")
-        log.info(f"  hallucinations: {result_dspy.hallucinations}")
-        log.info(f"  validator_notes: {result_dspy.validator_notes}")
-        if result_dspy.revised_answer:
-            log.info(f"  revised_answer: {result_dspy.revised_answer}")
-
-    except Exception as e:
-        log.error(f"\n❌ DSPy validation failed: {e}", exc_info=True)
-        return False
-
-    # Test legacy version for comparison
-    log.info("\n🔧 Testing legacy validation for comparison...")
-    try:
-        validator_legacy = AnswerValidatorAgent(model_id, use_dspy=False)
-
-        with validator_legacy:
-            result_legacy = validator_legacy.validate_answer(
-                question=question,
-                answer=answer,
-                source_texts=source_texts,
-                trace=None,
-            )
-
-        log.info("\n✅ Legacy Validation Result:")
-        log.info(f"  is_grounded: {result_legacy.is_grounded}")
-        log.info(f"  verdict_score: {result_legacy.verdict_score:.2f}")
-        log.info(f"  hallucinations: {result_legacy.hallucinations}")
-        log.info(f"  validator_notes: {result_legacy.validator_notes}")
-        if result_legacy.revised_answer:
-            log.info(f"  revised_answer: {result_legacy.revised_answer}")
-
-    except Exception as e:
-        log.error(f"\n❌ Legacy validation failed: {e}", exc_info=True)
-        return False
-
-    # Compare results
-    log.info("\n" + "=" * 70)
-    log.info("📊 Comparison Summary:")
-    log.info("=" * 70)
-    log.info(f"  DSPy detected hallucination: {not result_dspy.is_grounded}")
-    log.info(f"  Legacy detected hallucination: {not result_legacy.is_grounded}")
-    log.info(f"  DSPy score: {result_dspy.verdict_score:.2f}")
-    log.info(f"  Legacy score: {result_legacy.verdict_score:.2f}")
-
-    if not result_dspy.is_grounded:
-        log.info("\n✅ Success: DSPy correctly identified hallucination!")
-        log.info(f"  Hallucinations found: {result_dspy.hallucinations}")
-    else:
-        log.warning("\n⚠️  DSPy marked answer as grounded despite hallucination")
-
-    log.info("\n" + "=" * 70)
-    log.info("✅ DSPy integration test completed successfully!")
-    log.info("=" * 70)
-
-    return True
-
-
-def test_dspy_validator_no_hallucination():
-    """Test DSPy validator with a properly grounded answer."""
-
-    model_id = "mlx-community/Qwen2.5-3B-Instruct-4bit"
-
-    question = "What is the capital of France?"
-
-    # Create a properly grounded answer
-    answer = RAGAnswer(
-        question=question,
-        answer="The capital of France is Paris.",
-        reasoning_trace="Based on the provided sources.",
-        source_chunks=[],
-    )
-
-    # Source context that fully supports the answer
-    source_texts = [
-        "France is a country in Western Europe. Its capital city is Paris.",
-    ]
-
-    log.info("\n" + "=" * 70)
-    log.info("Testing well-grounded answer (no hallucination expected)")
-    log.info("=" * 70)
-
-    validator = AnswerValidatorAgent(model_id, use_dspy=True)
-
-    with validator:
-        result = validator.validate_answer(
-            question=question,
-            answer=answer,
-            source_texts=source_texts,
-            trace=None,
+def test_validate_answer_uses_dspy_predictor() -> None:
+    """DSPy mode should return structured values from the predictor."""
+    validator = AnswerValidatorAgent("qwen2.5:7b", use_dspy=True)
+    validator._loaded = True
+    validator._dspy_predictor = MagicMock(
+        return_value=SimpleNamespace(
+            is_grounded=False,
+            hallucinations=["Population claim is unsupported"],
+            revised_answer="The capital of France is Paris.",
+            verdict_score="0.25",
+            validator_notes="Population was not supported by the sources.",
         )
+    )
 
-    log.info(f"\n✅ Result:")
-    log.info(f"  is_grounded: {result.is_grounded}")
-    log.info(f"  verdict_score: {result.verdict_score:.2f}")
-    log.info(f"  hallucinations: {result.hallucinations}")
+    result = validator.validate_answer(
+        question="What is the capital of France?",
+        answer=_answer("The capital of France is Paris, and it has a population of 10 million people."),
+        source_texts=["France is a country in Western Europe. Its capital is Paris."],
+        trace=None,
+    )
 
-    # Assert that the answer is properly grounded
-    assert result.is_grounded, "Expected well-grounded answer to be marked as grounded"
-    assert result.verdict_score >= 0.8, f"Expected high verdict score, got {result.verdict_score}"
-    assert len(result.hallucinations) == 0, "Expected no hallucinations"
-
-    log.info("✅ Well-grounded answer test passed!")
-    return True
+    assert result.is_grounded is False
+    assert result.hallucinations == ["Population claim is unsupported"]
+    assert result.revised_answer == "The capital of France is Paris."
+    assert result.verdict_score == 0.25
+    assert "Population" in result.validator_notes
 
 
-if __name__ == "__main__":
-    try:
-        log.info("\n" + "=" * 70)
-        log.info("Starting DSPy Validator Test Suite")
-        log.info("=" * 70 + "\n")
+def test_validate_answer_dspy_fallback_on_predictor_error() -> None:
+    """DSPy mode should degrade safely when the predictor raises an exception."""
+    validator = AnswerValidatorAgent("qwen2.5:7b", use_dspy=True)
+    validator._loaded = True
 
-        # Run test with hallucination
-        success1 = test_dspy_validator()
+    def _raise(*args, **kwargs):
+        raise RuntimeError("predictor exploded")
 
-        # Run test without hallucination
-        success2 = test_dspy_validator_no_hallucination()
+    validator._dspy_predictor = _raise
 
-        if success1 and success2:
-            log.info("\n" + "=" * 70)
-            log.info("✅ ALL TESTS PASSED")
-            log.info("=" * 70)
-            exit(0)
-        else:
-            log.error("\n❌ SOME TESTS FAILED")
-            exit(1)
+    result = validator.validate_answer(
+        question="What is the capital of France?",
+        answer=_answer("Paris is the capital of France."),
+        source_texts=["France is a country in Europe. Paris is its capital city."],
+        trace=None,
+    )
 
-    except KeyboardInterrupt:
-        log.info("\n⚠️  Test interrupted by user")
-        exit(130)
-    except Exception as e:
-        log.error(f"\n❌ Test failed with exception: {e}", exc_info=True)
-        exit(1)
+    assert result.is_grounded is True
+    assert result.hallucinations == []
+    assert result.revised_answer is None
+    assert result.verdict_score == 0.5
+    assert "predictor exploded" in result.validator_notes
+
+
+def test_validate_answer_legacy_strips_think_blocks() -> None:
+    """Legacy mode should strip <think> blocks before parsing JSON output."""
+    validator = AnswerValidatorAgent("qwen2.5:7b", use_dspy=False)
+    validator._loaded = True
+    validator._client = MagicMock()
+    validator._client.chat.return_value = SimpleNamespace(
+        message=SimpleNamespace(
+            content=(
+                "<think>internal reasoning</think>\n"
+                '{"is_grounded": false, "hallucinations": ["Population claim"], '
+                '"revised_answer": "The capital of France is Paris.", '
+                '"verdict_score": 0.4, "validator_notes": "Unsupported population claim."}'
+            )
+        )
+    )
+
+    result = validator.validate_answer(
+        question="What is the capital of France?",
+        answer=_answer("The capital of France is Paris, and it has a population of 10 million people."),
+        source_texts=["France is a country in Europe. Paris is its capital city."],
+        trace=None,
+    )
+
+    assert result.is_grounded is False
+    assert result.hallucinations == ["Population claim"]
+    assert result.revised_answer == "The capital of France is Paris."
+    assert result.verdict_score == 0.4
+
+
+@patch("src.agents.validation.dspy.ChainOfThought")
+@patch("src.agents.validation.configure_ollama_lm")
+def test_do_load_configures_dspy_predictor(configure_mock, cot_mock) -> None:
+    """Loading DSPy mode should configure the LM and create the predictor."""
+    predictor = MagicMock()
+    cot_mock.return_value = predictor
+
+    validator = AnswerValidatorAgent("qwen2.5:7b", use_dspy=True)
+    validator._do_load()
+
+    configure_mock.assert_called_once()
+    cot_mock.assert_called_once()
+    assert validator._dspy_predictor is predictor
+
+
+@patch("src.agents.validation._model_cache.load_text_model")
+def test_do_load_legacy_initializes_client(load_text_model_mock) -> None:
+    """Loading legacy mode should request an Ollama client from the model cache."""
+    client = MagicMock()
+    load_text_model_mock.return_value = client
+
+    validator = AnswerValidatorAgent("qwen2.5:7b", use_dspy=False)
+    validator._do_load()
+
+    load_text_model_mock.assert_called_once_with("qwen2.5:7b")
+    assert validator._client is client

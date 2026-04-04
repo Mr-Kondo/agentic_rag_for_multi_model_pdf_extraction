@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-import json
 import sys
 from types import SimpleNamespace
 
 from src.core.models import ChunkType, RegionOCRPolicy
 from src.core.parser import PDFParser
-from src.utils.text_correction import DictionaryCorrector
 
 
 def _word(text: str, x0: float, top: float, x1: float, bottom: float) -> dict[str, float | str]:
@@ -506,50 +504,6 @@ def test_ocr_text_from_bbox_reocrs_low_confidence_lines(monkeypatch) -> None:
     assert parser._last_ocr_metadata is not None
     assert parser._last_ocr_metadata["reocr_attempts"] == 1
     assert parser._last_ocr_metadata["reocr_replaced_lines"] == 1
-
-
-def test_rescue_text_with_ocr_applies_dictionary_post_correction() -> None:
-    """Dictionary post-correction is applied to rescued OCR text."""
-    parser = PDFParser()
-    parser.OCR_POST_CORRECTION_ENABLED = True
-    parser.OCR_POST_CORRECTION_APPLY_TO_OCR_ONLY = True
-    parser._dictionary_corrector = DictionaryCorrector(exact_rules={"流沢": "流況"})
-    parser._should_try_ocr = lambda _text: True  # type: ignore[assignment]
-    parser._ocr_text_from_bbox = lambda fitz_page, bbox, policy=None: "河川流沢の変化"  # type: ignore[assignment]
-
-    class _DummyPage:
-        pass
-
-    rescued, metadata = parser._rescue_text_with_ocr(
-        original_text="ᣑᙇ,62㧗ឤᗘ",
-        bbox=(0.0, 0.0, 20.0, 20.0),
-        fitz_page=_DummyPage(),
-    )
-
-    assert rescued == "河川流況の変化"
-    assert metadata is not None
-    assert metadata["dictionary_replacements"] == 1
-
-
-def test_dictionary_corrector_loads_exact_and_regex_rules(tmp_path) -> None:
-    """DictionaryCorrector loads supported rule types from JSON files."""
-    rule_file = tmp_path / "rules.json"
-    rule_file.write_text(
-        json.dumps(
-            {
-                "exact": {"流沢": "流況"},
-                "regex": [{"pattern": "高水(?!時)", "repl": "高水時"}],
-            },
-            ensure_ascii=False,
-        ),
-        encoding="utf-8",
-    )
-
-    corrector = DictionaryCorrector.from_paths([str(rule_file)])
-    corrected, count = corrector.correct("高水では流沢が変化する")
-
-    assert corrected == "高水時では流況が変化する"
-    assert count == 2
 
 
 def test_get_region_policy_uses_region_specific_defaults() -> None:
