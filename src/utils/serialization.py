@@ -58,16 +58,6 @@ def serialize_chunk(chunk: ProcessedChunk) -> dict:
         "key_concepts": chunk.key_concepts,
         "confidence": chunk.confidence,
         "agent_notes": chunk.agent_notes,
-        "cross_links": [
-            {
-                "source_chunk_id": link.source_chunk_id,
-                "target_chunk_id": link.target_chunk_id,
-                "link_type": link.link_type,
-                "confidence": link.confidence,
-                "description": link.description,
-            }
-            for link in chunk.cross_links
-        ],
         "validation": {
             "is_valid": chunk.validation.is_valid,
             "verdict_score": chunk.validation.verdict_score,

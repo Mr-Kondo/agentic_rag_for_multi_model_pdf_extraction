@@ -1,22 +1,28 @@
 """
-Model caching system for managing in-memory model instances.
+Model client management for Ollama-backed inference.
 
-Handles loading, caching, and cleanup of MLX text and vision models.
+Provides a lightweight ModelCache that returns configured Ollama client
+instances. Model loading and memory management are delegated to the Ollama
+server process.
+
+The HF_HOME environment variable is still set to ensure the sentence-transformers
+embedding model is cached in the project-local ./models directory.
 """
 
 import logging
 import os
-import shutil
 from pathlib import Path
 from typing import Any
 
-from mlx_lm import load
-from mlx_vlm import load as vlm_load
-from mlx_vlm.utils import load_config
+import ollama
+
+from src.core.config import config
 
 log = logging.getLogger(__name__)
 
-# Configure model cache directory
+# Configure HuggingFace cache directory for the embedder model.
+# LLM inference is handled by Ollama; this path is only used by
+# sentence-transformers (intfloat/multilingual-e5-small).
 MODEL_CACHE_DIR = Path.home() / ".models"
 MODEL_CACHE_DIR.mkdir(parents=True, exist_ok=True)
 os.environ["HF_HOME"] = str(MODEL_CACHE_DIR.resolve())
@@ -24,111 +30,78 @@ os.environ["HF_HOME"] = str(MODEL_CACHE_DIR.resolve())
 
 class ModelCache:
     """
-    Manages in-memory caching of loaded models and tracks their usage.
+    Manages Ollama client instances for text and vision inference.
 
-    Models are cached in memory while loaded to avoid redundant downloads.
-    Cleanup removes models from .models/ that are no longer being used.
+    All LLM inference is delegated to a running Ollama server. This class
+    acts as a lightweight factory that provides a shared client and validates
+    that requested models are available on the server.
 
     Attributes:
-        _text_models: Dictionary of cached text models {model_id: model}
-        _vision_models: Dictionary of cached vision models {model_id: (model, processor, config)}
-        _model_usage: Set of model IDs currently in use
+        _base_url: Ollama server base URL from configuration
+        _client: Shared ollama.Client instance
     """
 
-    def __init__(self):
-        self._text_models: dict[str, Any] = {}
-        self._vision_models: dict[str, Any] = {}
-        self._model_usage: set[str] = set()
-        self._lock = None  # Could be threading.Lock() for thread safety if needed
+    def __init__(self) -> None:
+        self._base_url: str = config.get_ollama_base_url()
+        self._client: ollama.Client = ollama.Client(host=self._base_url)
 
-    def load_text_model(self, model_id: str) -> Any:
+    def load_text_model(self, model_id: str) -> ollama.Client:
         """
-        Load a text model from cache or download it.
+        Return the shared Ollama client for text inference.
+
+        Verifies the model is available on the server. Does not load weights
+        into this process; the Ollama server manages memory.
 
         Args:
-            model_id: HuggingFace model identifier
+            model_id: Ollama model name, e.g. "qwen3:8b"
 
         Returns:
-            Loaded MLX text model
+            Configured ollama.Client instance
         """
-        if model_id in self._text_models:
-            log.debug(f"📦 Returning cached text model: {model_id}")
-            return self._text_models[model_id]
+        self._ensure_model_available(model_id)
+        return self._client
 
-        log.info(f"🔄 Loading text model: {model_id}")
-        model = load(model_id)
-        self._text_models[model_id] = model
-        self._model_usage.add(model_id)
-        return model
-
-    def load_vision_model(self, model_id: str) -> tuple[Any, Any, Any]:
+    def load_vision_model(self, model_id: str) -> ollama.Client:
         """
-        Load a vision model from cache or download it.
+        Return the shared Ollama client for vision-language inference.
+
+        Verifies the model is available on the server. Multimodal models
+        accept image bytes through the same chat API as text models.
 
         Args:
-            model_id: HuggingFace model identifier
+            model_id: Ollama model name, e.g. "qwen2.5vl:7b"
 
         Returns:
-            Tuple of (model, processor, config)
+            Configured ollama.Client instance
+        """
+        self._ensure_model_available(model_id)
+        return self._client
+
+    def _ensure_model_available(self, model_id: str) -> None:
+        """
+        Check that a model is available in Ollama, logging a warning if not.
+
+        Args:
+            model_id: Ollama model name to check
 
         Raises:
-            RuntimeError: If model, processor, or config cannot be loaded
-        """
-        if model_id in self._vision_models:
-            log.debug(f"📦 Returning cached vision model: {model_id}")
-            return self._vision_models[model_id]
-
-        log.info(f"🔄 Loading vision model: {model_id}")
-
-        # Load model and processor
-        result = vlm_load(model_id)
-        if result is None or len(result) < 2:
-            raise RuntimeError(f"Failed to load vision model {model_id}: vlm_load returned {result}")
-
-        model, processor = result[0], result[1] if len(result) > 1 else None
-
-        if processor is None:
-            log.warning(f"⚠️  Vision model processor is None for {model_id}")
-            raise RuntimeError(f"Vision model processor failed to load for {model_id}")
-
-        # Load config
-        try:
-            config = load_config(model_id)
-        except Exception as e:
-            log.warning(f"⚠️  Failed to load config for {model_id}: {e}")
-            config = None
-
-        cached_model = (model, processor, config)
-        self._vision_models[model_id] = cached_model
-        self._model_usage.add(model_id)
-        return cached_model
-
-    def cleanup_unused_models(self):
-        """
-        Remove model directories from .models/ that are not currently loaded.
-
-        This frees up disk space after models are no longer needed.
+            RuntimeError: If the Ollama server is not reachable
         """
         try:
-            if not MODEL_CACHE_DIR.exists():
-                return
-
-            # Get list of cached model directories
-            cached_models = set(d.name for d in MODEL_CACHE_DIR.glob("**/") if d.is_dir())
-
-            # Find models not currently in use
-            loaded_models = set(self._text_models.keys()) | set(self._vision_models.keys())
-            unused = cached_models - self._model_usage
-
-            if unused:
-                log.info(f"🧹 Cleaning up {len(unused)} unused model(s)...")
-                for model_name in unused:
-                    model_path = MODEL_CACHE_DIR / model_name
-                    if model_path.exists():
-                        log.info(f"  Removing {model_name}...")
-                        shutil.rmtree(model_path, ignore_errors=True)
-        except Exception as e:
-            log.warning(f"⚠️  Error during model cleanup: {e}")
+            models_response = self._client.list()
+            available = {m.model for m in models_response.models}
+            # Normalize: Ollama appends ":latest" when no tag is given
+            base_id = model_id.split(":")[0]
+            if model_id not in available and f"{base_id}:latest" not in available:
+                log.warning(
+                    "Model '%s' not found in Ollama. Run: ollama pull %s",
+                    model_id,
+                    model_id,
+                )
+        except Exception as exc:
+            raise RuntimeError(
+                f"Cannot reach Ollama server at {self._base_url}. Ensure Ollama is running: ollama serve"
+            ) from exc
 
 
 # Global model cache instance

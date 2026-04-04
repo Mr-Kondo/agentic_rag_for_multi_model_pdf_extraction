@@ -18,7 +18,6 @@ from PIL import Image
 
 from src.core.config import config
 from src.core.models import BBox, ChunkType, RawChunk, RegionOCRPolicy
-from src.utils.text_correction import DictionaryCorrector
 
 log = logging.getLogger(__name__)
 
@@ -91,7 +90,6 @@ class PDFParser:
         self._available_tesseract_languages_loaded = False
         self._easyocr_reader: Any | None = None
         self._last_ocr_metadata: dict[str, Any] | None = None
-        self._dictionary_corrector = DictionaryCorrector.from_paths(self.OCR_POST_CORRECTION_PATHS)
         if self.OCR_PREWARM_EASYOCR and self.OCR_ENGINE == "easyocr":
             self._get_easyocr_reader()
 
@@ -436,13 +434,6 @@ class PDFParser:
             and self.OCR_POST_CORRECTION_ENABLED
             and (not self.OCR_POST_CORRECTION_APPLY_TO_OCR_ONLY or best_text is ocr_text)
         )
-        if should_apply_post_correction:
-            corrected_text, replacement_count = self._dictionary_corrector.correct(best_text)
-            if replacement_count > 0:
-                best_text = corrected_text
-                if metadata is None:
-                    metadata = {}
-                metadata["dictionary_replacements"] = replacement_count
 
         return best_text, metadata
 

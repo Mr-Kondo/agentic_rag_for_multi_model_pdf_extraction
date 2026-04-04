@@ -49,51 +49,6 @@ class AnswerGroundingOutput(BaseModel):
     )
 
 
-class ChunkQualityOutput(BaseModel):
-    """
-    Pydantic model for DSPy-based chunk validation output.
-
-    Validates extraction quality against original source content.
-    Detects fabrications, omissions, and extraction errors.
-
-    Attributes:
-        is_valid: Whether extraction is faithful and complete
-        issues: Specific problems found
-        corrected_structured_text: Corrected text (if needed)
-        corrected_intuition_summary: Corrected summary (if needed)
-        corrected_key_concepts: Corrected concepts (if needed)
-        verdict_score: Extraction quality score 0-1
-        validator_notes: Reasoning about validation issues
-    """
-
-    is_valid: bool = Field(description="Whether the extracted chunk faithfully represents the original content")
-    issues: list[str] = Field(
-        default_factory=list,
-        description="Specific problems found (fabrication, omissions, incorrect metadata, etc.)",
-    )
-    corrected_structured_text: str | None = Field(
-        default=None,
-        description="Corrected version of structured_text (null if no correction needed)",
-    )
-    corrected_intuition_summary: str | None = Field(
-        default=None,
-        description="Corrected version of intuition_summary (null if no correction needed)",
-    )
-    corrected_key_concepts: list[str] | None = Field(
-        default=None,
-        description="Corrected list of key concepts (null if no correction needed)",
-    )
-    verdict_score: float = Field(
-        ge=0.0,
-        le=1.0,
-        description="Extraction quality score from 0.0 (invalid) to 1.0 (perfect)",
-    )
-    validator_notes: str = Field(
-        default="",
-        description="Brief reasoning about validation issues",
-    )
-
-
 # ═══════════════════════════════════════════════════════════
 # DSPY SIGNATURES (input/output schemas for LLM tasks)
 # ═══════════════════════════════════════════════════════════
@@ -132,50 +87,3 @@ class AnswerGroundingSignature(dspy.Signature):
     )
     verdict_score: float = dspy.OutputField(description="Grounding quality score between 0.0 and 1.0")
     validator_notes: str = dspy.OutputField(description="Brief explanation of validation decision")
-
-
-class ChunkQualitySignature(dspy.Signature):
-    """
-    DSPy signature for chunk extraction quality validation.
-
-    Audits whether the extracted chunk faithfully and completely represents
-    the original source content. Checks for fabrications, omissions, incorrect
-    metadata, and other extraction errors.
-
-    Input fields:
-        original_content: The original raw content from the PDF
-        extracted_text: The structured_text field extracted by the agent
-        intuition_summary: The one-sentence summary provided by the agent
-        key_concepts: The list of key concepts identified by the agent
-        chunk_type: Type of chunk (text, table, or figure)
-
-    Output fields:
-        is_valid: True if extraction is faithful and complete
-        issues: List of specific problems found
-        corrected_structured_text: Corrected text if needed
-        corrected_intuition_summary: Corrected summary if needed
-        corrected_key_concepts: Corrected concepts list if needed
-        verdict_score: Extraction quality score between 0.0 and 1.0
-        validator_notes: Brief reasoning about validation decision
-    """
-
-    original_content: str = dspy.InputField(description="The original raw content from the PDF")
-    extracted_text: str = dspy.InputField(description="The structured_text field extracted by the agent")
-    intuition_summary: str = dspy.InputField(description="The one-sentence intuition_summary provided by the agent")
-    key_concepts: list[str] = dspy.InputField(description="The list of key_concepts identified by the agent")
-    chunk_type: str = dspy.InputField(description="Type of chunk: text, table, or figure")
-
-    # Output fields
-    is_valid: bool = dspy.OutputField(description="True if extraction is faithful and complete, False otherwise")
-    issues: list[str] = dspy.OutputField(description="Specific problems found (empty list if valid)")
-    corrected_structured_text: str = dspy.OutputField(
-        description="Corrected structured_text (set to 'null' if no correction needed)"
-    )
-    corrected_intuition_summary: str = dspy.OutputField(
-        description="Corrected intuition_summary (set to 'null' if no correction needed)"
-    )
-    corrected_key_concepts: list[str] = dspy.OutputField(
-        description="Corrected key_concepts (set to 'null' if no correction needed)"
-    )
-    verdict_score: float = dspy.OutputField(description="Extraction quality score between 0.0 and 1.0")
-    validator_notes: str = dspy.OutputField(description="Brief reasoning about validation decision")
