@@ -178,6 +178,7 @@ DSPy 連携は `AnswerValidatorAgent` で使われます。
 
 ## 9. Implementation notes
 
-- `app.py` の CLI 既定モデル値は `settings.json` より優先されます。
+- `app.py` の CLI 既定モデル値は `config.get_model(...)` から解決されます。
+  CLI でモデルを明示しない限り、`settings.json` の `models.*` が使われます。
 - `lazy_agents` は保持されますが、現時点では大きな実行分岐には接続されていません。
 - サポートされる実行モードは Sequential のみです。

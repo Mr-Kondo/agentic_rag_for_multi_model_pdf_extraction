@@ -199,8 +199,9 @@ app.py (CLI)
 - `src/core/config.py` の `_DEFAULTS` が全設定の基底値です。
 - `settings.json` で値を上書きできます (deep merge)。
 - `app.py` の CLI 引数は `settings.json` より優先されます。
-  そのため `settings.json` の `models.*` を変えても、CLI で `--text-model` 等を
-  明示しない限り、`app.py` 側のデフォルト値が使われる場合があります。
+  ただし `app.py` のモデル既定値は `config.get_model(...)` から取得されるため、
+  CLI で `--text-model` 等を明示しない場合は `settings.json` の `models.*` が既定値として使われます。
+  (`settings.json` が無い場合のみ `_DEFAULTS` にフォールバック)
 - OCR / バリデーション / パーサ設定は `settings.json` が参照されます。
 
 ---
