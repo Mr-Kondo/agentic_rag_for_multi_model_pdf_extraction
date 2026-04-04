@@ -79,14 +79,14 @@ cp settings.example.json settings.json
 注意点は、CLI 実行時のモデル値です。
 
 - `src/core/config.py` に defaults があります。
-- ただし `app.py` の CLI 引数にも既定値があります。
-- CLI で実行する場合は、`app.py` が build に渡す値が `settings.json` より優先されます。
+- `app.py` の CLI 引数の既定値は `config.get_model(...)` で解決されます。
+- そのため CLI でモデル引数を省略した場合は `settings.json` の `models.*` が使われます。
 
 つまり優先順位は次です。
 
 1. 明示的な CLI 引数
-2. `app.py` の既定値
-3. `settings.json` の model 値
+2. `settings.json` の model 値 (CLI 既定値の解決元)
+3. `_DEFAULTS` (settings.json が無い/不足している場合)
 
 一方で OCR や validation の設定は `settings.json` から反映されます。
 
