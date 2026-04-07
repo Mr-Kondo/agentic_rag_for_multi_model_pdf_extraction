@@ -10,6 +10,7 @@
     "dspy_lm": "qwen2.5:7b",
     "embedder": "intfloat/multilingual-e5-small"
   },
+  "_embedder_note": "Upgrade to 'intfloat/multilingual-e5-base' for better Japanese retrieval quality (requires re-ingestion)",
   "ollama": {
     "base_url": "http://localhost:11434"
   },

@@ -269,7 +269,9 @@ Untraceable claims are hallucinations.
 Rules:
   - Ignore meta-phrases: "Based on the context", "it appears", "Insufficient context".
   - Focus on: numbers, named entities, relationships, stated conclusions.
-  - If ANSWER says "Insufficient context" → is_grounded=true automatically.
+  - If ANSWER contains "[INSUFFICIENT CONTEXT]" or any phrase indicating the context was
+    insufficient (including "Insufficient context", "不足しているコンテキスト", "コンテキストが不十分",
+    "情報が不足", or similar) → set is_grounded=true, hallucinations=[], verdict_score=1.0.
 
 Return ONLY valid JSON (no preamble, no markdown fences):
 {
@@ -365,6 +367,17 @@ class AnswerValidatorAgent(BaseLoadableModel):
         else:
             return self._validate_legacy(question, answer, source_texts, trace)
 
+    # Patterns that indicate "insufficient context" in any language
+    _INSUFFICIENT_CONTEXT_PATTERNS = re.compile(
+        r"\[INSUFFICIENT CONTEXT\]"
+        r"|Insufficient context"
+        r"|不足しているコンテキスト"
+        r"|コンテキストが不十分"
+        r"|情報が不足"
+        r"|提供されたコンテキストには.*情報がありません",
+        re.IGNORECASE,
+    )
+
     def _validate_with_dspy(
         self,
         question: str,
@@ -378,6 +391,17 @@ class AnswerValidatorAgent(BaseLoadableModel):
         Uses ChainOfThought for systematic claim verification and automatic
         output structuring without regex parsing.
         """
+        # Short-circuit: "insufficient context" answers are always grounded by definition
+        if self._INSUFFICIENT_CONTEXT_PATTERNS.search(answer.answer):
+            log.info("Answer indicates insufficient context — skipping DSPy validation, marking as grounded")
+            return AnswerValidationResult(
+                is_grounded=True,
+                hallucinations=[],
+                revised_answer=None,
+                verdict_score=1.0,
+                validator_notes="Answer indicates insufficient context; treated as grounded.",
+            )
+
         # Format sources for context
         sources_repr = "\n\n".join(f"[Source {i + 1}] {text[:600]}" for i, text in enumerate(source_texts))
 
