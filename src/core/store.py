@@ -1,9 +1,12 @@
 """
 Vector store interface for chunk storage and retrieval.
 
-Uses ChromaDB for persistent vector storage with e5-small embeddings,
-and BM25 for keyword-based retrieval. Hybrid search fuses both via
-Reciprocal Rank Fusion (RRF).
+Uses ChromaDB for persistent vector storage and BM25 for keyword-based
+retrieval. Hybrid search fuses both via Reciprocal Rank Fusion (RRF).
+
+Embedding backend is configurable via settings.json:
+  - "sentence_transformers" (default): uses HuggingFace sentence-transformers
+  - "ollama": uses Ollama embed API (e.g. kun432/cl-nagoya-ruri-large)
 """
 
 import json
@@ -12,8 +15,8 @@ import re
 
 import chromadb
 from rank_bm25 import BM25Okapi
-from sentence_transformers import SentenceTransformer
 
+from src.core.embedder import BaseEmbedder, create_embedder
 from src.core.models import ChunkType, ProcessedChunk
 
 log = logging.getLogger(__name__)
@@ -23,13 +26,11 @@ class ChunkStore:
     """
     Manages chunk storage and retrieval using ChromaDB vector database and BM25.
 
-    Embeds chunks using multilingual e5-small model and stores in persistent
-    ChromaDB collection with cosine similarity search. Also maintains a BM25
-    index for keyword-based retrieval. Hybrid search combines both via RRF.
+    The embedding backend is selected via settings.json (embedder.backend).
+    Supports sentence-transformers (local) and Ollama (remote API) backends.
 
     Attributes:
-        EMBED_MODEL: Sentence transformer model for embeddings
-        _embedder: SentenceTransformer instance
+        _embedder: Embedder backend (BaseEmbedder protocol)
         _client: ChromaDB client
         _col: ChromaDB collection
         _bm25: BM25Okapi index (rebuilt on each upsert)
@@ -37,7 +38,8 @@ class ChunkStore:
         _bm25_ids: Parallel list of chunk IDs for BM25 lookup
     """
 
-    EMBED_MODEL = "intfloat/multilingual-e5-small"
+    # Fallback model when no embedder is configured in settings
+    _DEFAULT_EMBED_MODEL = "intfloat/multilingual-e5-small"
 
     # RRF constant — 60 is the standard default from the original paper
     _RRF_K = 60
@@ -46,33 +48,88 @@ class ChunkStore:
         """
         Initialize chunk store with persistent ChromaDB.
 
+        Reads embedder configuration from settings.json. If an existing
+        ChromaDB collection has embeddings with a different dimension than
+        the configured model, raises ValueError to prompt re-ingestion.
+
         Args:
             persist_dir: Directory for ChromaDB persistence
+
+        Raises:
+            ValueError: If existing collection has different embedding dimension
+                        than the current embedder model.
         """
         from src.core.config import config as _config
 
-        embed_model = _config.get_model("embedder") or self.EMBED_MODEL
-        self._embedder = SentenceTransformer(embed_model)
-        log.info("ChunkStore embedding model: %s", embed_model)
+        model_id = _config.get_model("embedder") or self._DEFAULT_EMBED_MODEL
+        emb_cfg = _config.get("embedder") or {}
+        backend = emb_cfg.get("backend", "sentence_transformers")
+        query_prefix = emb_cfg.get("query_prefix")   # None → backend default
+        passage_prefix = emb_cfg.get("passage_prefix")  # None → backend default
+        batch_size = emb_cfg.get("batch_size", 32)
+        ollama_url = _config.get("ollama_base_url") or "http://localhost:11434"
+
+        self._embedder: BaseEmbedder = create_embedder(
+            model_id=model_id,
+            backend=backend,
+            query_prefix=query_prefix,
+            passage_prefix=passage_prefix,
+            batch_size=batch_size,
+            ollama_base_url=ollama_url,
+        )
+        log.info("ChunkStore embedder: backend=%s model=%s dim=%d", backend, model_id, self._embedder.embedding_dim)
+
         self._client = chromadb.PersistentClient(path=persist_dir)
         self._col = self._client.get_or_create_collection("agentic_rag", metadata={"hnsw:space": "cosine"})
+
+        self._check_dimension_mismatch()
+
         self._bm25: BM25Okapi | None = None
         self._bm25_docs: list[str] = []
         self._bm25_ids: list[str] = []
+        self._bm25_metas: list[dict] = []
         self._rebuild_bm25_from_store()
+
+    def _check_dimension_mismatch(self) -> None:
+        """
+        Detect embedding dimension mismatch between existing store and current model.
+
+        If the collection contains vectors with a different dimensionality than
+        the current embedder, raises ValueError to inform the user to re-ingest.
+
+        Raises:
+            ValueError: If a dimension mismatch is detected.
+        """
+        try:
+            peek = self._col.peek(limit=1)
+            existing_embs = peek.get("embeddings")
+            if not existing_embs or not existing_embs[0]:
+                return  # Empty store — no mismatch possible
+            existing_dim = len(existing_embs[0])
+            current_dim = self._embedder.embedding_dim
+            if existing_dim != current_dim:
+                raise ValueError(
+                    f"Embedding dimension mismatch: existing store has dim={existing_dim}, "
+                    f"but current embedder produces dim={current_dim}. "
+                    f"Please delete the chroma_db directory and re-ingest all documents."
+                )
+        except ValueError:
+            raise
+        except Exception as e:
+            log.warning("Could not verify embedding dimension (non-fatal): %s", e)
 
     def upsert(self, chunks: list[ProcessedChunk]) -> None:
         """
         Insert or update chunks in the vector database.
 
-        Embeds chunk text and upserts with metadata for filtering.
+        Embeds chunk text using the configured passage prefix and upserts
+        with metadata for filtering.
 
         Args:
             chunks: List of ProcessedChunk objects to upsert
         """
-        # multilingual-e5 requires "passage: " prefix for documents
-        texts = [f"passage: {c.structured_text}\n\n{c.intuition_summary}" for c in chunks]
-        embs = self._embedder.encode(texts, normalize_embeddings=True).tolist()
+        texts = [f"{c.structured_text}\n\n{c.intuition_summary}" for c in chunks]
+        embs = self._embedder.encode_passages(texts)
         metadatas = []
         for c in chunks:
             m = {
@@ -236,8 +293,8 @@ class ChunkStore:
         Returns:
             List of dicts with 'text', 'meta', and 'score' keys, sorted by score descending
         """
-        # multilingual-e5 requires "query: " prefix for queries
-        vec = self._embedder.encode([f"query: {question}"], normalize_embeddings=True).tolist()
+        # Encode query using the configured backend and query prefix
+        vec = self._embedder.encode_query(question)
         where = {"chunk_type": chunk_type.value} if chunk_type else None
         res = self._col.query(
             query_embeddings=vec, n_results=n_results, where=where, include=["documents", "metadatas", "distances"]

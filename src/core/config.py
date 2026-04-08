@@ -34,6 +34,12 @@ class ConfigLoader:
             "dspy_lm": "qwen2.5:7b",
             "embedder": "intfloat/multilingual-e5-small",
         },
+        "embedder": {
+            "backend": "sentence_transformers",  # "sentence_transformers" | "ollama"
+            "query_prefix": None,   # None = use backend default
+            "passage_prefix": None, # None = use backend default
+            "batch_size": 32,
+        },
         "pipeline": {
             "max_context_chunks": 8,
             "embedder_batch_size": 32,
