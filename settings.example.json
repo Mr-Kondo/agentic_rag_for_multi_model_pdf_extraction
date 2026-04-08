@@ -10,6 +10,26 @@
     "dspy_lm": "qwen2.5:7b",
     "embedder": "intfloat/multilingual-e5-small"
   },
+  "_embedder_note": "Upgrade to 'intfloat/multilingual-e5-base' for better Japanese retrieval quality (requires re-ingestion)",
+  "embedder": {
+    "_comment": "Embedder backend: 'sentence_transformers' (local HuggingFace) or 'ollama' (Ollama API)",
+    "backend": "sentence_transformers",
+    "_prefix_note": "null = use backend default (e5: 'query: '/'passage: ', ruri: 'クエリ: '/'文章: ')",
+    "query_prefix": null,
+    "passage_prefix": null,
+    "batch_size": 32
+  },
+  "_embedder_ruri_example": {
+    "_comment": "To use kun432/cl-nagoya-ruri-large (Japanese-specialized, JMTEB Retrieval: 73.02 vs e5-small: 67.27):",
+    "_step1": "Run: ollama pull kun432/cl-nagoya-ruri-large",
+    "_step2": "Set models.embedder to 'kun432/cl-nagoya-ruri-large'",
+    "_step3": "Set embedder.backend to 'ollama'",
+    "_step4": "Delete chroma_db/ and re-ingest (dimension changes 384→1024)",
+    "models.embedder": "kun432/cl-nagoya-ruri-large",
+    "embedder.backend": "ollama",
+    "embedder.query_prefix": "クエリ: ",
+    "embedder.passage_prefix": "文章: "
+  },
   "ollama": {
     "base_url": "http://localhost:11434"
   },

@@ -33,10 +33,11 @@ Your final answer must:
   - Be grounded ONLY in the retrieved context.
   - Cite source_file and page_num for every claim.
   - Note when information comes from a figure description.
-  - State "Insufficient context" if context is insufficient.
+  - If context is insufficient, respond with exactly: [INSUFFICIENT CONTEXT]
   - Preserve the original language of the source material. If the context is in Japanese, answer in Japanese.
   - Do not convert Japanese text into Chinese (Simplified or Traditional).
   - 日本語のコンテキストには日本語で回答し、中国語に変換しないでください。
+  - ただし、コンテキストが不十分な場合は [INSUFFICIENT CONTEXT] とのみ回答してください。
 
 Retrieved context:
 {context}
@@ -103,28 +104,36 @@ class ReasoningOrchestratorAgent(BaseLoadableModel):
         question: str,
         store: "ChunkStore",
         trace: "TraceHandle | None" = None,
+        min_score: float = 0.3,
     ) -> list[dict]:
         """
-        Retrieve relevant chunks from vector store.
+        Retrieve relevant chunks from vector store using hybrid search (BM25 + vector).
 
-        Performs semantic search and optionally adds figure-specific results
-        if visual keywords detected in question. Does not require model to
-        be loaded.
+        Performs hybrid semantic+keyword search via Reciprocal Rank Fusion (RRF) and
+        optionally adds figure-specific results if visual keywords are detected.
+        Filters results by minimum similarity score to reduce noise.
+
+        Does not require the orchestrator model to be loaded.
 
         Args:
             question: User's question
-            store: ChunkStore for vector search
+            store: ChunkStore for vector/BM25 search
             trace: Optional Langfuse trace handle
+            min_score: Minimum score threshold to filter low-relevance chunks
 
         Returns:
             List of retrieved chunk dicts with text, metadata, and scores
         """
 
         def _do():
-            hits = store.query(question, n_results=8)
+            hits = store.hybrid_query(question, n_results=8, min_score=min_score)
+            # Fallback to pure vector search if hybrid returns too few results
+            if len(hits) < 3:
+                log.debug("Hybrid search returned %d hits — falling back to vector search", len(hits))
+                hits = store.query(question, n_results=8, min_score=0.0)
             # Add figure-specific search if visual keywords present
             if any(kw in question.lower() for kw in _VISUAL_KEYWORDS):
-                fig = store.query(question, n_results=3, chunk_type=ChunkType.FIGURE)
+                fig = store.query(question, n_results=3, chunk_type=ChunkType.FIGURE, min_score=0.0)
                 seen = {h["text"] for h in hits}
                 hits += [h for h in fig if h["text"] not in seen]
             return hits
@@ -244,6 +253,6 @@ class ReasoningOrchestratorAgent(BaseLoadableModel):
             parts.append(
                 f"[{i}] ({m['chunk_type'].upper()} | {m['source_file']} p.{m['page_num']} | "
                 f"score={h['score']:.2f})\n"
-                f"Summary: {m['intuition_summary']}\nContent: {h['text'][:800]}"
+                f"Summary: {m['intuition_summary']}\nContent: {h['text'][:1500]}"
             )
         return "\n\n---\n\n".join(parts)
