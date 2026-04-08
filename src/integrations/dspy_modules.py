@@ -78,9 +78,15 @@ class AnswerGroundingSignature(dspy.Signature):
     context: str = dspy.InputField(description="The source context text that should support all claims in the answer")
 
     # Output fields - DSPy will structure the LLM response to match these
-    is_grounded: bool = dspy.OutputField(description="True if all material claims are supported by context, False otherwise")
+    is_grounded: bool = dspy.OutputField(
+        description=(
+            "True if all material claims are supported by context, or if the answer indicates "
+            "insufficient context (e.g. '[INSUFFICIENT CONTEXT]', 'Insufficient context', "
+            "'不足しているコンテキスト', 'コンテキストが不十分'). False otherwise."
+        )
+    )
     hallucinations: list[str] = dspy.OutputField(
-        description="List of specific unsupported claims (empty list if fully grounded)"
+        description="List of specific unsupported claims (empty list if fully grounded or if answer is an insufficient-context notice)"
     )
     revised_answer: str = dspy.OutputField(
         description="Corrected answer with hallucinations removed (set to 'null' if answer is already grounded)"
