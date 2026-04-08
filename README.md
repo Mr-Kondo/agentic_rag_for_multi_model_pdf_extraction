@@ -13,12 +13,12 @@ PDF からテキスト・テーブル・図版を抽出してチャンク化し�
 - 対象環境: macOS (Apple Silicon / Intel)
 - Python: 3.13 以上
 - 推論バックエンド: [Ollama](https://ollama.com) (すべての LLM をローカルサーバーで提供)
-- 埋め込みモデル: `intfloat/multilingual-e5-small` (HuggingFace sentence-transformers)
+- 埋め込みモデル: `intfloat/multilingual-e5-small` (デフォルト) または `kun432/cl-nagoya-ruri-large` 等 (Ollama バックエンドに切り替え可能)
 - ベクトルストア: ChromaDB
 - 主な処理:
   - PDF parse (テキスト / テーブル / 図版)
   - チャンク抽出と品質検証 (CHECKPOINT A)
-  - ベクトル検索
+  - ハイブリッド検索 (ベクトル検索 + BM25 キーワード検索、RRF でフュージョン)
   - 根拠付き回答生成と幻覚検出 (CHECKPOINT B)
   - Langfuse によるオブザーバビリティ
 - 実行モード: Sequential
@@ -86,9 +86,18 @@ cp settings.example.json settings.json
     "answer_validator": "qwen3:8b",
     "dspy_lm": "qwen2.5:7b",
     "embedder": "intfloat/multilingual-e5-small"
+  },
+  "embedder": {
+    "backend": "sentence_transformers",
+    "query_prefix": null,
+    "passage_prefix": null,
+    "batch_size": 32
   }
 }
 ```
+
+日本語検索品質を優先する場合は `kun432/cl-nagoya-ruri-large`（Ollama バックエンド）に切り替えられます。
+手順は `settings.example.json` 内の `_embedder_ruri_example` コメントを参照してください。
 
 詳細は [docs/CONFIG_SETUP.md](docs/CONFIG_SETUP.md) を参照してください。
 
@@ -97,7 +106,7 @@ cp settings.example.json settings.json
 ```bash
 LANGFUSE_PUBLIC_KEY=pk-lf-...
 LANGFUSE_SECRET_KEY=sk-lf-...
-LANGFUSE_BASE_URL=https://cloud.langfuse.com
+LANGFUSE_BASE_URL=https://cloud.langfuse.com  # または後方互換エイリアス LANGFUSE_HOST
 ```
 
 Langfuse のキーが未設定でも処理は継続します。
@@ -105,13 +114,17 @@ Langfuse トレースにはモデル名として Ollama モデル名 (`qwen3:8b`
 
 ### 6. OCR 前提
 
-日本語 PDF を扱う場合は Tesseract の日本語データをインストールしてください。
+OCR のメインエンジンは **EasyOCR** です。`uv sync` または `pip install -e .` で自動インストールされます。
+
+図版領域の補助 OCR に Tesseract が使われます。日本語 PDF を扱う場合は Tesseract の日本語データも必要です。
 
 ```bash
 brew install tesseract
 brew install tesseract-lang
 tesseract --list-langs    # jpn が表示されれば OK
 ```
+
+OCR エンジンは `settings.json` の `ocr.engine` で切り替えられます (既定: `easyocr`)。
 
 ---
 
@@ -148,6 +161,7 @@ python app.py pipeline ./input/sample.pdf "要点を3つで要約して"
 |---|---|
 | `--validate` / `--no-validate` | CHECKPOINT A (ingest) / CHECKPOINT B (query) の有効化 |
 | `--enable-figure-aware-fallback` | parser の figure-aware テーブル fallback を有効化 |
+| `--lazy-agents` | 抽出エージェントをチャンクごとにロード/アンロード (VRAM 節約、低速化) |
 | `--session-id` | Langfuse トレースのグループ ID |
 | `--storage-dir` | ChromaDB 保存先 |
 | `--output` | 監査レポートの出力先 |
@@ -180,8 +194,8 @@ app.py (CLI)
         │   ├── VisionAgent    — qwen2.5vl:7b 図版解析 (VLM)
         │   ├── ChunkValidatorAgent   — qwen2.5vl:7b CHECKPOINT A
         │   ├── ReasoningOrchestratorAgent — deepseek-r1:8b 回答生成
-        │   └── AnswerValidatorAgent  — qwen2.5:7b (DSPy) CHECKPOINT B
-        ├── store.py           — ChromaDB (intfloat/multilingual-e5-small)
+        │   └── AnswerValidatorAgent  — qwen3:8b (DSPy) CHECKPOINT B
+        ├── store.py           — ChromaDB + BM25 ハイブリッド検索 (RRF)
         └── integrations/
             ├── langfuse.py    — Langfuse v3 OTel トレース
             └── dspy_adapter.py — DSPy + Ollama 設定ヘルパー
@@ -189,8 +203,9 @@ app.py (CLI)
 
 すべての LLM 呼び出しは `ollama.Client.chat()` 経由で行われます。
 モデルのロード / アンロードおよび VRAM 管理は Ollama サーバーが担います。
-埋め込みモデル (`intfloat/multilingual-e5-small`) のみ HuggingFace からダウンロードし、
-`sentence-transformers` で推論します (キャッシュ先: `~/.models`)。
+埋め込みモデルは `sentence_transformers` バックエンド（デフォルト: `intfloat/multilingual-e5-small`、
+HuggingFace からダウンロード、キャッシュ先: `~/.models`）または
+`ollama` バックエンド（例: `kun432/cl-nagoya-ruri-large`）から選択できます。
 
 ---
 
