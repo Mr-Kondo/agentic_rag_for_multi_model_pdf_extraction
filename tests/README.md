@@ -13,8 +13,14 @@ pytest tests/ -v
 ```bash
 pytest tests/test_models.py -v
 pytest tests/test_pipeline.py -v
+pytest tests/test_parser.py -v
+pytest tests/test_embedder.py -v
 pytest tests/test_dspy_adapter.py -v
 pytest tests/test_dspy_validator.py -v
+pytest tests/test_langfuse.py -v
+pytest tests/test_audit.py -v
+pytest tests/test_table_extraction.py -v
+pytest tests/test_token_counter.py -v
 ```
 
 ### Run with coverage
@@ -27,8 +33,14 @@ pytest tests/ --cov=src --cov-report=html
 - `conftest.py` - shared fixtures and sample payloads
 - `test_models.py` - unit tests for data structures
 - `test_pipeline.py` - pipeline construction and workflow structure checks
+- `test_parser.py` - PDF parser unit tests
+- `test_embedder.py` - embedder backend unit tests
 - `test_dspy_adapter.py` - DSPy adapter configuration tests
 - `test_dspy_validator.py` - mocked unit tests for `AnswerValidatorAgent`
+- `test_langfuse.py` - Langfuse tracer unit tests
+- `test_audit.py` - audit output generation tests
+- `test_table_extraction.py` - table extraction agent unit tests
+- `test_token_counter.py` - token counter utility tests
 
 ## Fixtures
 

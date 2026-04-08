@@ -1,6 +1,6 @@
 # Configuration Setup Guide
 
-Last updated: 2026-04-04
+Last updated: 2026-04-08
 
 このガイドは、現行の Sequential + Ollama runtime で有効な設定だけを整理したものです。
 
@@ -54,6 +54,11 @@ cp settings.example.json settings.json
   - `answer_validator`
   - `dspy_lm`
   - `embedder`
+- `embedder`
+  - `backend` (`"sentence_transformers"` または `"ollama"`)
+  - `query_prefix` (null = backend 既定値を使用)
+  - `passage_prefix` (null = backend 既定値を使用)
+  - `batch_size`
 - `pipeline`
   - `max_context_chunks`
   - `embedder_batch_size`
@@ -61,12 +66,29 @@ cp settings.example.json settings.json
 - `cache`
   - `enable_hf_cache`
   - `cache_dir`
+- `parser`
+  - `enable_native_pdf_heuristic`
+  - `native_pdf_max_images`
+  - `native_pdf_min_words`
 - `ocr`
   - `engine`
   - `default_lang`
   - `japanese_lang`
   - `fallback_lang`
   - `config`
+  - `render_scale`
+  - `tesseract_render_scale`
+  - `prewarm_easyocr`
+  - `max_rescue_blocks_per_page`
+  - `min_reocr_text_length`
+  - `cache_tesseract_languages`
+  - `line_confidence_threshold`
+  - `enable_line_reocr`
+  - `max_line_reocr_attempts`
+  - `region_policies` (チャンク種別ごとの OCR ポリシー: `text` / `table` / `figure`)
+  - `post_correction` (`enabled`, `dictionary_paths`, `apply_to_ocr_only`)
+- `audit`
+  - `render_page_previews`
 - `validation`
   - `confidence_threshold`
   - `enable_checkpoint_a`

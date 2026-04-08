@@ -1,6 +1,6 @@
 # Agentic RAG Architecture
 
-Last updated: 2026-04-04
+Last updated: 2026-04-08
 
 この文書は、現在サポートされている Sequential + Ollama 構成だけを説明します。削除済みの CrewAI、LangGraph、MLX 経路は対象外です。
 
@@ -68,6 +68,8 @@ Last updated: 2026-04-04
   - chunks / answer JSON を `./output` に保存します。
 - `audit.py`
   - 監査用 JSON / HTML / 画像を出力します。
+- `token_counter.py`
+  - tiktoken を使ってテキストのトークン数を近似計算します。Langfuse の `usage_details` 送信に使われます。
 
 ## 3. Runtime flow
 

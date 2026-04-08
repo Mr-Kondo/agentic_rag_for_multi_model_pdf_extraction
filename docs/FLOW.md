@@ -1,6 +1,6 @@
 # Processing Flow
 
-Last updated: 2026-04-04
+Last updated: 2026-04-08
 
 このドキュメントは、現在サポートされている Sequential CLI flow だけを可視化します。詳細な責務は [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)、設定上の注意点は [docs/CONFIG_SETUP.md](docs/CONFIG_SETUP.md) を参照してください。
 
