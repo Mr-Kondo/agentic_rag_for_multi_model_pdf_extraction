@@ -103,7 +103,7 @@ class ChunkStore:
         try:
             peek = self._col.peek(limit=1)
             existing_embs = peek.get("embeddings")
-            if not existing_embs or len(existing_embs[0]) == 0:
+            if existing_embs is None or len(existing_embs) == 0 or len(existing_embs[0]) == 0:
                 return  # Empty store — no mismatch possible
             existing_dim = len(existing_embs[0])
             current_dim = self._embedder.embedding_dim
