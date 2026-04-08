@@ -154,6 +154,11 @@ class OllamaEmbedder:
         if self._dim is None:
             # Probe dimension with a single call
             sample = self._client.embed(model=self._model_id, input=["probe"])
+            if not sample.embeddings or not sample.embeddings[0]:
+                raise ValueError(
+                    f"Ollama model {self._model_id!r} returned empty embeddings. "
+                    "Is the model loaded? Run: ollama pull <model>"
+                )
             self._dim = len(sample.embeddings[0])
             log.info("OllamaEmbedder dimension probed: %d", self._dim)
         return self._dim

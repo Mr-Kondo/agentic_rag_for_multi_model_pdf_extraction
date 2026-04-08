@@ -141,6 +141,23 @@ def test_ollama_embedder_dimension_probe():
     assert dim == 1024
 
 
+def test_ollama_embedder_dimension_probe_empty_raises():
+    """OllamaEmbedder raises ValueError when Ollama returns empty embeddings."""
+    import ollama
+
+    from src.core.embedder import OllamaEmbedder
+
+    empty_response = MagicMock()
+    empty_response.embeddings = []
+    mock_client = MagicMock()
+    mock_client.embed.return_value = empty_response
+
+    with patch.object(ollama, "Client", return_value=mock_client):
+        embedder = OllamaEmbedder("not-loaded-model")
+        with pytest.raises(ValueError, match="empty embeddings"):
+            _ = embedder.embedding_dim
+
+
 def test_ollama_embedder_batching():
     """OllamaEmbedder splits large input lists into batches."""
     import ollama

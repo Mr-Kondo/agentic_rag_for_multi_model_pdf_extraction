@@ -67,7 +67,7 @@ class ChunkStore:
         query_prefix = emb_cfg.get("query_prefix")   # None → backend default
         passage_prefix = emb_cfg.get("passage_prefix")  # None → backend default
         batch_size = emb_cfg.get("batch_size", 32)
-        ollama_url = _config.get("ollama_base_url") or "http://localhost:11434"
+        ollama_url = _config.get_ollama_base_url()
 
         self._embedder: BaseEmbedder = create_embedder(
             model_id=model_id,
