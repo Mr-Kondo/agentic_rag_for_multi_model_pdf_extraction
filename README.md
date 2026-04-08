@@ -229,4 +229,5 @@ pytest tests/test_parser.py -v
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - [docs/CONFIG_SETUP.md](docs/CONFIG_SETUP.md)
 - [docs/FLOW.md](docs/FLOW.md)
+- [docs/library.md](docs/library.md)
 - [tests/README.md](tests/README.md)
