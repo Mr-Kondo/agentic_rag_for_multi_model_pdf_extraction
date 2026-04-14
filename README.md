@@ -13,7 +13,7 @@ PDF からテキスト・テーブル・図版を抽出してチャンク化し�
 - 対象環境: macOS (Apple Silicon / Intel)
 - Python: 3.13 以上
 - 推論バックエンド: [Ollama](https://ollama.com) (すべての LLM をローカルサーバーで提供)
-- 埋め込みモデル: `intfloat/multilingual-e5-small` (デフォルト) または `kun432/cl-nagoya-ruri-large` 等 (Ollama バックエンドに切り替え可能)
+- 埋め込みモデル: `kun432/cl-nagoya-ruri-large` (デフォルト, Ollama) または `intfloat/multilingual-e5-small` 等
 - ベクトルストア: ChromaDB
 - 主な処理:
   - PDF parse (テキスト / テーブル / 図版)
@@ -38,18 +38,16 @@ ollama serve          # 別ターミナルで常時起動しておく
 
 | 役割 | モデル | サイズ概算 |
 |---|---|---|
-| テキスト抽出 / 回答検証 | `qwen3:8b` | 5.2 GB |
+| テキスト抽出 | `qwen3:8b` | 5.2 GB |
 | テーブル抽出 | `qwen2.5:3b` | 1.9 GB |
 | 図版抽出 / チャンク検証 (VLM) | `qwen2.5vl:7b` | 6.0 GB |
-| 推論オーケストレーター | `deepseek-r1:8b` | 5.2 GB |
-| DSPy 幻覚検出 | `qwen2.5:7b` | 4.7 GB |
+| 推論オーケストレーター / 回答検証 / DSPy 検証 | `gemma4:latest` | depends on local Ollama manifest |
 
 ```bash
 ollama pull qwen3:8b
 ollama pull qwen2.5:3b
 ollama pull qwen2.5vl:7b
-ollama pull deepseek-r1:8b
-ollama pull qwen2.5:7b
+ollama pull gemma4:latest
 ```
 
 ### 3. Python 依存関係のインストール
@@ -82,13 +80,13 @@ cp settings.example.json settings.json
     "table_extraction": "qwen2.5:3b",
     "vision_extraction": "qwen2.5vl:7b",
     "chunk_validator": "qwen2.5vl:7b",
-    "orchestrator": "deepseek-r1:8b",
-    "answer_validator": "qwen3:8b",
-    "dspy_lm": "qwen2.5:7b",
-    "embedder": "intfloat/multilingual-e5-small"
+    "orchestrator": "gemma4:latest",
+    "answer_validator": "gemma4:latest",
+    "dspy_lm": "gemma4:latest",
+    "embedder": "kun432/cl-nagoya-ruri-large"
   },
   "embedder": {
-    "backend": "sentence_transformers",
+    "backend": "ollama",
     "query_prefix": null,
     "passage_prefix": null,
     "batch_size": 32
@@ -96,8 +94,8 @@ cp settings.example.json settings.json
 }
 ```
 
-日本語検索品質を優先する場合は `kun432/cl-nagoya-ruri-large`（Ollama バックエンド）に切り替えられます。
-手順は `settings.example.json` 内の `_embedder_ruri_example` コメントを参照してください。
+デフォルトは `kun432/cl-nagoya-ruri-large`（Ollama バックエンド）です。
+sentence-transformers を使う場合は `settings.example.json` を参考に切り替えてください。
 
 詳細は [docs/CONFIG_SETUP.md](docs/CONFIG_SETUP.md) を参照してください。
 
@@ -146,9 +144,9 @@ agentic-rag --help
 ### 基本例
 
 ```bash
-python app.py ingest ./input/sample.pdf
+python app.py ingest ./in/sample.pdf
 python app.py query "図2は何を示していますか？"
-python app.py pipeline ./input/sample.pdf "要点を3つで要約して"
+python app.py pipeline ./in/sample.pdf "要点を3つで要約して"
 ```
 
 ### 実行モード
@@ -173,16 +171,18 @@ python app.py pipeline ./input/sample.pdf "要点を3つで要約して"
 
 | ファイル | 内容 |
 |---|---|
-| `./output/<stem>_chunks.json` | 抽出チャンク一覧 |
-| `./output/<stem>_answer.json` | 質問応答結果 |
-| `./output/<stem>_audit.json` | 監査ログ |
-| `./output/<stem>_audit.html` | 監査レポート (HTML) |
-| `./output/<stem>_audit/pages/*.png` | ページプレビュー画像 |
-| `./output/<stem>_audit/figures/*.png` | 図版画像 |
+| `./out/<stem>_chunks.json` | 抽出チャンク一覧 |
+| `./out/<stem>_answer.json` | 質問応答結果 |
+| `./out/<stem>_audit.json` | 監査ログ |
+| `./out/<stem>_audit.html` | 監査レポート (HTML) |
+| `./out/<stem>_audit/pages/*.png` | ページプレビュー画像 |
+| `./out/<stem>_audit/figures/*.png` | 図版画像 |
 
 ---
 
 ## アーキテクチャ概要
+
+注: 下記のモデル ID は `settings.json` または CLI オプションで上書き可能です。既定値はセットアップ節と `src/core/config.py` の定義を参照してください。
 
 ```
 app.py (CLI)
@@ -193,8 +193,8 @@ app.py (CLI)
         │   ├── TableAgent     — qwen2.5:3b テーブル抽出
         │   ├── VisionAgent    — qwen2.5vl:7b 図版解析 (VLM)
         │   ├── ChunkValidatorAgent   — qwen2.5vl:7b CHECKPOINT A
-        │   ├── ReasoningOrchestratorAgent — deepseek-r1:8b 回答生成
-        │   └── AnswerValidatorAgent  — qwen3:8b (DSPy) CHECKPOINT B
+        │   ├── ReasoningOrchestratorAgent — gemma4:latest 回答生成
+        │   └── AnswerValidatorAgent  — gemma4:latest (DSPy) CHECKPOINT B
         ├── store.py           — ChromaDB + BM25 ハイブリッド検索 (RRF)
         └── integrations/
             ├── langfuse.py    — Langfuse v3 OTel トレース
@@ -203,9 +203,8 @@ app.py (CLI)
 
 すべての LLM 呼び出しは `ollama.Client.chat()` 経由で行われます。
 モデルのロード / アンロードおよび VRAM 管理は Ollama サーバーが担います。
-埋め込みモデルは `sentence_transformers` バックエンド（デフォルト: `intfloat/multilingual-e5-small`、
-HuggingFace からダウンロード、キャッシュ先: `~/.models`）または
-`ollama` バックエンド（例: `kun432/cl-nagoya-ruri-large`）から選択できます。
+埋め込みモデルは `ollama` バックエンド（デフォルト: `kun432/cl-nagoya-ruri-large`）
+または `sentence_transformers` バックエンド（例: `intfloat/multilingual-e5-small`）から選択できます。
 
 ---
 

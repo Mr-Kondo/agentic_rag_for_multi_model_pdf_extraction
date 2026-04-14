@@ -65,7 +65,7 @@ Last updated: 2026-04-08
 ### 2.4 `src/utils`
 
 - `serialization.py`
-  - chunks / answer JSON を `./output` に保存します。
+  - chunks / answer JSON を `./out` に保存します。
 - `audit.py`
   - 監査用 JSON / HTML / 画像を出力します。
 - `token_counter.py`
@@ -151,7 +151,7 @@ DSPy 連携は `AnswerValidatorAgent` で使われます。
 
 ### 7.1 JSON outputs
 
-`src/utils/serialization.py` は次を `./output` に保存します。
+`src/utils/serialization.py` は次を `./out` に保存します。
 
 - `<pdf_stem>_chunks.json`
 - `<pdf_stem>_answer.json`

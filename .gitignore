@@ -211,8 +211,9 @@ chroma_db*/
 .vscode*/
 
 # Generated audit image artifacts
-output/*_audit/figures/*.png
-output/*_audit/pages/*.png
+out/*_audit/figures/*.png
+out/*_audit/pages/*.png
+app.log
 
 # Configuration (user-customized)
 settings.json

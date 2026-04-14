@@ -33,11 +33,18 @@ from src.core.models import ChunkType
 from src.core.pipeline import AgenticRAGPipeline
 from src.utils.serialization import save_answer, save_chunks
 
+# Log file path for persistent debugging logs
+LOG_FILE_PATH = Path("./app.log")
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler(LOG_FILE_PATH, encoding="utf-8"),
+    ],
 )
 log = logging.getLogger(__name__)
 
@@ -106,7 +113,7 @@ def cmd_ingest(args: argparse.Namespace) -> int:
 
     # Save chunks to output
     if args.output:
-        save_chunks(chunks, pdf_path)
+        save_chunks(chunks, pdf_path, output_dir=args.output)
         log.info(f"Saved chunks to {args.output}/")
 
     log.info("Ingestion complete!\n")
@@ -171,7 +178,7 @@ def cmd_query(args: argparse.Namespace) -> int:
 
     # Save answer to output
     if args.output:
-        save_answer(result, Path("query.pdf"), question)
+        save_answer(result, Path("query.pdf"), question, output_dir=args.output)
         log.info(f"Saved answer to {args.output}/")
 
     log.info("Query complete!\n")
@@ -227,7 +234,7 @@ def cmd_pipeline(args: argparse.Namespace) -> int:
 
     # Save chunks
     if args.output:
-        save_chunks(chunks, pdf_path)
+        save_chunks(chunks, pdf_path, output_dir=args.output)
 
     # ── PHASE 2: QUERY ──
     log.info(f"\n{'=' * 70}")
@@ -265,7 +272,7 @@ def cmd_pipeline(args: argparse.Namespace) -> int:
 
     # Save answer
     if args.output:
-        save_answer(result, pdf_path, question)
+        save_answer(result, pdf_path, question, output_dir=args.output)
         log.info(f"Saved outputs to {args.output}/")
 
     log.info("\nPipeline complete!\n")
@@ -467,8 +474,8 @@ Examples:
         storage_group.add_argument(
             "--output",
             type=str,
-            default="./output",
-            help="Directory for saving output files [default: ./output]",
+            default="./out",
+            help="Directory for saving output files [default: ./out]",
         )
 
         perf_group = subparser.add_argument_group("Performance Options")

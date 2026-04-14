@@ -1,0 +1,80 @@
+{
+  "pdf_file": "in/21_77.pdf",
+  "question": "要点を3つで要約して",
+  "answer": "[INSUFFICIENT CONTEXT]",
+  "reasoning_trace": "",
+  "source_chunks": [
+    {
+      "type": "text",
+      "file": "21_77.pdf",
+      "page": 6,
+      "score": 0.832,
+      "summary": "",
+      "text": "ࡇ࡜ 㸬ᶫୖ ࡛ࡢ సᴗ ࡛࠶ࡿࡇ࡜࠿ࡽ 㸪ほ ࡢ ㎿㏿"
+    },
+    {
+      "type": "text",
+      "file": "21_77.pdf",
+      "page": 4,
+      "score": 0.826,
+      "summary": "",
+      "text": "ࡿ Ἴ⣠ ࡢ ㍤ᗘศᕸ ࡟ࡼࡗ࡚ ほ ᡂຌ ࡢ ᭷↓ ࡀ ᕥྑ ࡉࢀࡿ 㸬"
+    },
+    {
+      "type": "text",
+      "file": "21_77.pdf",
+      "page": 4,
+      "score": 0.826,
+      "summary": "",
+      "text": "ձ㸸ኪ㛫 ࡢ పỈ᫬㸦㜿Ṋ㝰ᕝ⚟ᓥỈ఩ὶ㔞ほ ᡤ㸧"
+    },
+    {
+      "type": "text",
+      "file": "21_77.pdf",
+      "page": 6,
+      "score": 0.826,
+      "summary": "",
+      "text": "ほ ⢭ᗘ ࡣ࣓࢝ࣛࡢ ᛶ⬟ ࡟ ౫Ꮡ ࡋ 㸪ほ ဨ ࡢ ⩦⇍ᗘ ࡟ࡼ"
+    },
+    {
+      "type": "text",
+      "file": "21_77.pdf",
+      "page": 2,
+      "score": 0.822,
+      "summary": "",
+      "text": "ド ࡜ࡋ࡚ 㸪ᶓἙ㟁Ꮚᕤᴗ(ᰴ) ࡢ࣏࣮ࢱࣈࣝ 㟁Ἴὶ㏿ィ"
+    },
+    {
+      "type": "text",
+      "file": "21_77.pdf",
+      "page": 5,
+      "score": 0.822,
+      "summary": "",
+      "text": "ᮌ⏣Ỉ఩ὶ㔞ほ ᡤ ࡜ 㜿Ṋ㝰ᕝ ࡢ ⚟ᓥỈ఩ὶ㔞ほ ᡤ ࡛ 㸪"
+    },
+    {
+      "type": "text",
+      "file": "21_77.pdf",
+      "page": 4,
+      "score": 0.82,
+      "summary": "",
+      "text": "᪉ྥ ࣋ࢡࢺࣝࡢ ໙㓄 ࣄࢫࢺࢢ࣒ࣛࡣ ᫂░ ࡞ࣆ࣮ࢡࢆ ♧ ࡋ 㸪"
+    },
+    {
+      "type": "text",
+      "file": "21_77.pdf",
+      "page": 6,
+      "score": 0.82,
+      "summary": "",
+      "text": "ᛶ㸪┬ຊ໬ ࡜ Ᏻ඲ᛶ ࡟ ඃ఩ᛶ ࢆ ♧ ࡋࡓ 㸬"
+    }
+  ],
+  "trace_id": "3df2027d13b28b14a490b88ffde1fc32",
+  "validation": {
+    "answer_is_grounded": true,
+    "hallucinations": [],
+    "answer_verdict_score": 1.0,
+    "validator_notes": "Answer indicates insufficient context; treated as grounded.",
+    "answer_was_revised": false
+  }
+}

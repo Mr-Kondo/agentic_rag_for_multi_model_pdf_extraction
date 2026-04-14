@@ -13,7 +13,7 @@ from src.core.models import ProcessedChunk, RAGAnswer
 log = logging.getLogger(__name__)
 
 # Output directory for generated files
-OUTPUT_DIR = Path("./output")
+OUTPUT_DIR = Path("./out")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 
@@ -73,16 +73,19 @@ def serialize_chunk(chunk: ProcessedChunk) -> dict:
     }
 
 
-def save_chunks(chunks: list[ProcessedChunk], pdf_name: str) -> None:
+def save_chunks(chunks: list[ProcessedChunk], pdf_name: str | Path, output_dir: str | Path | None = None) -> None:
     """
     Save processed chunks to JSON file.
 
     Args:
         chunks: List of ProcessedChunk objects
         pdf_name: Source PDF filename (used for output filename)
+        output_dir: Optional output directory override
     """
     chunks_data = [serialize_chunk(c) for c in chunks]
-    output_path = OUTPUT_DIR / f"{Path(pdf_name).stem}_chunks.json"
+    base_dir = Path(output_dir) if output_dir else OUTPUT_DIR
+    base_dir.mkdir(parents=True, exist_ok=True)
+    output_path = base_dir / f"{Path(pdf_name).stem}_chunks.json"
 
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(chunks_data, f, ensure_ascii=False, indent=2)
@@ -90,7 +93,12 @@ def save_chunks(chunks: list[ProcessedChunk], pdf_name: str) -> None:
     log.info(f"✓ Saved {len(chunks)} chunks to {output_path}")
 
 
-def save_answer(result: RAGAnswer, pdf_name: str | Path, question: str) -> None:
+def save_answer(
+    result: RAGAnswer,
+    pdf_name: str | Path,
+    question: str,
+    output_dir: str | Path | None = None,
+) -> None:
     """
     Save RAG answer to JSON file.
 
@@ -98,6 +106,7 @@ def save_answer(result: RAGAnswer, pdf_name: str | Path, question: str) -> None:
         result: RAGAnswer object with answer and metadata
         pdf_name: Source PDF filename (str or Path)
         question: Original question
+        output_dir: Optional output directory override
     """
     # Convert Path to string for JSON serialization
     pdf_name_str = str(pdf_name) if isinstance(pdf_name, Path) else pdf_name
@@ -122,7 +131,9 @@ def save_answer(result: RAGAnswer, pdf_name: str | Path, question: str) -> None:
         else None,
     }
 
-    output_path = OUTPUT_DIR / f"{Path(pdf_name).stem}_answer.json"
+    base_dir = Path(output_dir) if output_dir else OUTPUT_DIR
+    base_dir.mkdir(parents=True, exist_ok=True)
+    output_path = base_dir / f"{Path(pdf_name).stem}_answer.json"
 
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(answer_data, f, ensure_ascii=False, indent=2)

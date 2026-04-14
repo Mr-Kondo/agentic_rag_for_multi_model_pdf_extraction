@@ -142,18 +142,16 @@ cp settings.example.json settings.json
 
 ## 5. `--output` and save locations
 
-CLI の `--output` は主に audit 出力先です。
+CLI の `--output` は chunks / answer JSON と audit の両方の保存先です。
 
-- chunks / answer JSON
-  - `src/utils/serialization.py` により `./output` へ保存されます。
-  - `--output` で保存先は変わりません。
-- audit レポート
-  - `save_chunk_audit()` に渡され、`--output` の値が反映されます。
+- 既定値は `./out`
+- `src/utils/serialization.py` の JSON 出力に反映されます
+- `save_chunk_audit()` の監査出力にも反映されます
 
 安全な理解は次です。
 
-- JSON は `./output`
-- audit は `--output`
+- `--output` 未指定: `./out`
+- `--output` 指定: 指定ディレクトリ
 
 ## 6. Model cache and local files
 
