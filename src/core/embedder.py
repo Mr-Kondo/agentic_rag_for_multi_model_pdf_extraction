@@ -138,6 +138,8 @@ class OllamaEmbedder:
         query_prefix: str = "クエリ: ",
         passage_prefix: str = "文章: ",
         batch_size: int = 32,
+        retry_trim_enabled: bool = True,
+        retry_trim_min_chars: int = 128,
     ) -> None:
         import ollama
 
@@ -146,6 +148,9 @@ class OllamaEmbedder:
         self._query_prefix = query_prefix
         self._passage_prefix = passage_prefix
         self._batch_size = batch_size
+        self._retry_trim_enabled = retry_trim_enabled
+        self._retry_trim_min_chars = max(1, int(retry_trim_min_chars))
+        self._retry_trim_ratios = (1.0, 0.75, 0.5, 0.35, 0.25)
         self._dim: int | None = None
         log.info("OllamaEmbedder initialized: %s (base_url=%s)", model_id, base_url)
 
@@ -156,8 +161,7 @@ class OllamaEmbedder:
             sample = self._client.embed(model=self._model_id, input=["probe"])
             if not sample.embeddings or not sample.embeddings[0]:
                 raise ValueError(
-                    f"Ollama model {self._model_id!r} returned empty embeddings. "
-                    "Is the model loaded? Run: ollama pull <model>"
+                    f"Ollama model {self._model_id!r} returned empty embeddings. Is the model loaded? Run: ollama pull <model>"
                 )
             self._dim = len(sample.embeddings[0])
             log.info("OllamaEmbedder dimension probed: %d", self._dim)
@@ -172,13 +176,81 @@ class OllamaEmbedder:
         return self._encode_batched([prefixed])
 
     def _encode_batched(self, texts: list[str]) -> list[list[float]]:
-        """Encode texts in batches, collecting all embeddings."""
+        """Encode texts in batches with fallback for context-length failures."""
         all_embeddings: list[list[float]] = []
         for i in range(0, len(texts), self._batch_size):
             batch = texts[i : i + self._batch_size]
-            response = self._client.embed(model=self._model_id, input=batch)
-            all_embeddings.extend(response.embeddings)
+            try:
+                response = self._client.embed(model=self._model_id, input=batch, truncate=True)
+                all_embeddings.extend(response.embeddings)
+            except Exception as exc:
+                if not self._is_context_length_error(exc):
+                    raise
+
+                log.warning(
+                    "Embed batch failed; fallback to single: batch_start=%d batch_size=%d error=%s",
+                    i,
+                    len(batch),
+                    exc,
+                )
+                for offset, text in enumerate(batch):
+                    embedding = self._encode_single_with_retry(text, global_index=i + offset)
+                    all_embeddings.append(embedding)
         return all_embeddings
+
+    def _encode_single_with_retry(self, text: str, global_index: int) -> list[float]:
+        """Encode one text, progressively trimming when context-length errors occur."""
+        original_len = len(text)
+        trim_lengths = [original_len]
+
+        if self._retry_trim_enabled:
+            for ratio in self._retry_trim_ratios[1:]:
+                trim_lengths.append(max(self._retry_trim_min_chars, int(original_len * ratio)))
+
+        # Preserve order and deduplicate lengths while clipping to original length.
+        seen: set[int] = set()
+        unique_lengths: list[int] = []
+        for length in trim_lengths:
+            clipped = min(original_len, length)
+            if clipped not in seen:
+                seen.add(clipped)
+                unique_lengths.append(clipped)
+
+        last_error: Exception | None = None
+        for candidate_len in unique_lengths:
+            candidate_text = text[:candidate_len]
+            try:
+                response = self._client.embed(model=self._model_id, input=[candidate_text], truncate=True)
+                if not response.embeddings or not response.embeddings[0]:
+                    raise ValueError("Ollama embed returned empty embedding in single retry mode")
+                if candidate_len < original_len:
+                    log.warning(
+                        "Embed single retry succeeded after trim: index=%d chars=%d->%d",
+                        global_index,
+                        original_len,
+                        candidate_len,
+                    )
+                return response.embeddings[0]
+            except Exception as exc:
+                last_error = exc
+                if not self._is_context_length_error(exc):
+                    raise
+                log.warning(
+                    "Embed single retry length error: index=%d chars=%d error=%s",
+                    global_index,
+                    candidate_len,
+                    exc,
+                )
+
+        # If we exhausted retries, re-raise the last context-length exception.
+        if last_error is not None:
+            raise last_error
+        raise RuntimeError("Unexpected embed retry state: no attempts were executed")
+
+    @staticmethod
+    def _is_context_length_error(exc: Exception) -> bool:
+        """Return True if an exception indicates embed context-length overflow."""
+        return "input length exceeds the context length" in str(exc).lower()
 
 
 # ═══════════════════════════════════════════════════════════
@@ -193,6 +265,8 @@ def create_embedder(
     passage_prefix: str | None = None,
     batch_size: int = 32,
     ollama_base_url: str = "http://localhost:11434",
+    retry_trim_enabled: bool = True,
+    retry_trim_min_chars: int = 128,
 ) -> SentenceTransformerEmbedder | OllamaEmbedder:
     """
     Factory function that creates the appropriate embedder backend.
@@ -204,6 +278,8 @@ def create_embedder(
         passage_prefix: Override passage prefix (uses backend default if None)
         batch_size: Batch size for encoding
         ollama_base_url: Ollama server URL (only used when backend="ollama")
+        retry_trim_enabled: Whether to retry single embeds with progressive trims
+        retry_trim_min_chars: Minimum chars preserved during retry trim
 
     Returns:
         Configured embedder instance
@@ -218,6 +294,8 @@ def create_embedder(
             query_prefix=query_prefix if query_prefix is not None else "クエリ: ",
             passage_prefix=passage_prefix if passage_prefix is not None else "文章: ",
             batch_size=batch_size,
+            retry_trim_enabled=retry_trim_enabled,
+            retry_trim_min_chars=retry_trim_min_chars,
         )
     elif backend == "sentence_transformers":
         return SentenceTransformerEmbedder(

@@ -5,8 +5,8 @@ Uses ChromaDB for persistent vector storage and BM25 for keyword-based
 retrieval. Hybrid search fuses both via Reciprocal Rank Fusion (RRF).
 
 Embedding backend is configurable via settings.json:
-  - "sentence_transformers" (default): uses HuggingFace sentence-transformers
-  - "ollama": uses Ollama embed API (e.g. kun432/cl-nagoya-ruri-large)
+    - "ollama" (default): uses Ollama embed API (e.g. kun432/cl-nagoya-ruri-large)
+    - "sentence_transformers": uses HuggingFace sentence-transformers
 """
 
 import json
@@ -39,7 +39,7 @@ class ChunkStore:
     """
 
     # Fallback model when no embedder is configured in settings
-    _DEFAULT_EMBED_MODEL = "intfloat/multilingual-e5-small"
+    _DEFAULT_EMBED_MODEL = "kun432/cl-nagoya-ruri-large"
 
     # RRF constant — 60 is the standard default from the original paper
     _RRF_K = 60
@@ -63,10 +63,13 @@ class ChunkStore:
 
         model_id = _config.get_model("embedder") or self._DEFAULT_EMBED_MODEL
         emb_cfg = _config.get("embedder") or {}
-        backend = emb_cfg.get("backend", "sentence_transformers")
-        query_prefix = emb_cfg.get("query_prefix")   # None → backend default
+        backend = emb_cfg.get("backend", "ollama")
+        query_prefix = emb_cfg.get("query_prefix")  # None → backend default
         passage_prefix = emb_cfg.get("passage_prefix")  # None → backend default
         batch_size = emb_cfg.get("batch_size", 32)
+        self._max_embed_input_chars = int(emb_cfg.get("max_input_chars", 800))
+        retry_trim_enabled = bool(emb_cfg.get("retry_trim_enabled", True))
+        retry_trim_min_chars = int(emb_cfg.get("retry_trim_min_chars", 128))
         ollama_url = _config.get_ollama_base_url()
 
         self._embedder: BaseEmbedder = create_embedder(
@@ -76,6 +79,8 @@ class ChunkStore:
             passage_prefix=passage_prefix,
             batch_size=batch_size,
             ollama_base_url=ollama_url,
+            retry_trim_enabled=retry_trim_enabled,
+            retry_trim_min_chars=retry_trim_min_chars,
         )
         log.info("ChunkStore embedder: backend=%s model=%s dim=%d", backend, model_id, self._embedder.embedding_dim)
 
@@ -128,7 +133,7 @@ class ChunkStore:
         Args:
             chunks: List of ProcessedChunk objects to upsert
         """
-        texts = [f"{c.structured_text}\n\n{c.intuition_summary}" for c in chunks]
+        texts = self._build_embedding_inputs(chunks)
         embs = self._embedder.encode_passages(texts)
         metadatas = []
         for c in chunks:
@@ -153,6 +158,39 @@ class ChunkStore:
         )
         log.info("Upserted %d chunks.", len(chunks))
         self._rebuild_bm25_from_store()
+
+    def _build_embedding_inputs(self, chunks: list[ProcessedChunk]) -> list[str]:
+        """
+        Build embedder input texts with a defensive length guard.
+
+        This prevents Ollama embed API 400 errors when a chunk exceeds
+        model context length. Oversized chunks are trimmed and logged.
+        """
+        max_chars = max(1, self._max_embed_input_chars)
+        texts: list[str] = []
+        trimmed_count = 0
+
+        for chunk in chunks:
+            input_text = f"{chunk.structured_text}\n\n{chunk.intuition_summary or ''}".strip()
+            original_len = len(input_text)
+
+            if original_len > max_chars:
+                trimmed_count += 1
+                log.warning(
+                    "Embedding input trimmed: chunk_id=%s page=%d chars=%d->%d",
+                    chunk.chunk_id,
+                    chunk.page_num,
+                    original_len,
+                    max_chars,
+                )
+                input_text = input_text[:max_chars]
+
+            texts.append(input_text)
+
+        if trimmed_count:
+            log.warning("Embedding trim summary: %d/%d chunks trimmed", trimmed_count, len(chunks))
+
+        return texts
 
     def hybrid_query(
         self,
@@ -267,11 +305,13 @@ class ChunkStore:
             meta = self._bm25_metas[idx] if hasattr(self, "_bm25_metas") else {}
             if chunk_type and meta.get("chunk_type") != chunk_type.value:
                 continue
-            results.append({
-                "text": self._bm25_docs[idx],
-                "meta": meta,
-                "score": float(scores[idx]),
-            })
+            results.append(
+                {
+                    "text": self._bm25_docs[idx],
+                    "meta": meta,
+                    "score": float(scores[idx]),
+                }
+            )
         return results
 
     def query(

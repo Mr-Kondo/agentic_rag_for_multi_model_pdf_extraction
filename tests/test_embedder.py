@@ -178,6 +178,89 @@ def test_ollama_embedder_batching():
     assert len(results) == 4
 
 
+def test_ollama_embedder_passes_truncate_true():
+    """OllamaEmbedder should always pass truncate=True to embed API."""
+    import ollama
+
+    from src.core.embedder import OllamaEmbedder
+
+    mock_client = _make_ollama_client_mock()
+
+    with patch.object(ollama, "Client", return_value=mock_client):
+        embedder = OllamaEmbedder("model")
+        embedder.encode_passages(["a", "b"])
+
+    call_kwargs = mock_client.embed.call_args[1]
+    assert call_kwargs["truncate"] is True
+
+
+def test_ollama_embedder_fallbacks_to_single_on_context_error():
+    """Batch context-length error should fallback to per-item embedding."""
+    import ollama
+
+    from src.core.embedder import OllamaEmbedder
+
+    context_error = Exception("the input length exceeds the context length (status code: 400)")
+    single_response = MagicMock()
+    single_response.embeddings = [[0.1, 0.2, 0.3]]
+
+    mock_client = MagicMock()
+    mock_client.embed.side_effect = [context_error, single_response, single_response]
+
+    with patch.object(ollama, "Client", return_value=mock_client):
+        embedder = OllamaEmbedder("model", batch_size=2)
+        vectors = embedder.encode_passages(["x", "y"])
+
+    assert len(vectors) == 2
+    assert mock_client.embed.call_count == 3
+
+
+def test_ollama_embedder_retry_with_progressive_trim():
+    """Single-item fallback should retry with shorter input on context error."""
+    import ollama
+
+    from src.core.embedder import OllamaEmbedder
+
+    def embed_side_effect(*, model, input, truncate):
+        _ = model
+        _ = truncate
+        text = input[0]
+        if len(text) > 750:
+            raise Exception("the input length exceeds the context length (status code: 400)")
+        ok = MagicMock()
+        ok.embeddings = [[0.4, 0.5, 0.6]]
+        return ok
+
+    mock_client = MagicMock()
+    mock_client.embed.side_effect = embed_side_effect
+
+    with patch.object(ollama, "Client", return_value=mock_client):
+        embedder = OllamaEmbedder("model", batch_size=8, retry_trim_enabled=True, retry_trim_min_chars=128)
+        vectors = embedder.encode_passages(["A" * 1000])
+
+    assert len(vectors) == 1
+    assert mock_client.embed.call_count >= 2
+    # First try should fail with full text; a shorter retry should eventually succeed.
+    attempted_lengths = [len(call.kwargs["input"][0]) for call in mock_client.embed.call_args_list]
+    assert max(attempted_lengths) >= 1000
+    assert min(attempted_lengths) <= 750
+
+
+def test_ollama_embedder_non_context_error_is_raised():
+    """Non-context API errors should not trigger retry fallback behavior."""
+    import ollama
+
+    from src.core.embedder import OllamaEmbedder
+
+    mock_client = MagicMock()
+    mock_client.embed.side_effect = Exception("connection reset")
+
+    with patch.object(ollama, "Client", return_value=mock_client):
+        embedder = OllamaEmbedder("model")
+        with pytest.raises(Exception, match="connection reset"):
+            embedder.encode_passages(["x"])
+
+
 # ── create_embedder factory ──────────────────────────────────────────────────
 
 
