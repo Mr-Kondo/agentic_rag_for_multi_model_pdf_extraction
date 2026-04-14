@@ -22,7 +22,7 @@ log = logging.getLogger(__name__)
 
 # Configure HuggingFace cache directory for the embedder model.
 # LLM inference is handled by Ollama; this path is only used by
-# sentence-transformers (intfloat/multilingual-e5-small).
+# sentence-transformers backends (non-default configuration).
 MODEL_CACHE_DIR = Path.home() / ".models"
 MODEL_CACHE_DIR.mkdir(parents=True, exist_ok=True)
 os.environ["HF_HOME"] = str(MODEL_CACHE_DIR.resolve())

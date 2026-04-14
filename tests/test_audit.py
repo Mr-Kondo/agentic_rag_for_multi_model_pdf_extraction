@@ -73,12 +73,12 @@ def test_save_chunk_audit_generates_json_and_html(tmp_path: Path) -> None:
         pdf_path=pdf_path,
         extracted=[(raw, processed)],
         accepted=[processed],
-        output_dir=tmp_path / "output",
+        output_dir=tmp_path / "out",
     )
 
     assert paths["json"].exists()
     assert paths["html"].exists()
-    assert (tmp_path / "output" / "sample_audit" / "pages" / "page_001.png").exists()
+    assert (tmp_path / "out" / "sample_audit" / "pages" / "page_001.png").exists()
 
     audit_data = json.loads(paths["json"].read_text(encoding="utf-8"))
     html = paths["html"].read_text(encoding="utf-8")
@@ -129,7 +129,7 @@ def test_save_chunk_audit_preserves_japanese_text_in_html(tmp_path: Path) -> Non
         pdf_path=pdf_path,
         extracted=[(raw, processed)],
         accepted=[processed],
-        output_dir=tmp_path / "output",
+        output_dir=tmp_path / "out",
     )
 
     html = paths["html"].read_text(encoding="utf-8")
@@ -173,13 +173,13 @@ def test_save_chunk_audit_skips_page_preview_rendering_when_disabled(tmp_path: P
         pdf_path=pdf_path,
         extracted=[(raw, processed)],
         accepted=[processed],
-        output_dir=tmp_path / "output",
+        output_dir=tmp_path / "out",
         render_page_previews=False,
     )
 
     assert paths["json"].exists()
     assert paths["html"].exists()
-    assert not (tmp_path / "output" / "sample_audit" / "pages").exists()
+    assert not (tmp_path / "out" / "sample_audit" / "pages").exists()
 
     audit_data = json.loads(paths["json"].read_text(encoding="utf-8"))
     html = paths["html"].read_text(encoding="utf-8")

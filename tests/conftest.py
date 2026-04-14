@@ -84,7 +84,7 @@ def sample_source_texts() -> list[str]:
 @pytest.fixture
 def temp_output_dir(tmp_path: Path) -> Generator[Path, None, None]:
     """Create a temporary output directory for tests."""
-    output_dir = tmp_path / "output"
+    output_dir = tmp_path / "out"
     output_dir.mkdir()
     yield output_dir
     # Cleanup happens automatically with tmp_path

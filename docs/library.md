@@ -133,8 +133,8 @@ BERT 系モデルを用いて文・段落を高品質なベクトルに変換し
 |-----------|------|
 | `src/core/embedder.py` | `SentenceTransformerEmbedder` として実装されており、`ChunkStore` のデフォルト埋め込み backend として使用される |
 
-デフォルトモデルは `intfloat/multilingual-e5-small` (多言語対応)。
-クエリには `"query: "` プレフィックス、文書には `"passage: "` プレフィックスを付与して encode します。
+デフォルトモデルは `kun432/cl-nagoya-ruri-large` (Ollama backend)。
+クエリには `"クエリ: "` プレフィックス、文書には `"文章: "` プレフィックスを付与して encode します。
 
 **役割**
 
