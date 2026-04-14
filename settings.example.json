@@ -5,19 +5,22 @@
     "table_extraction": "qwen2.5:3b",
     "vision_extraction": "qwen2.5vl:7b",
     "chunk_validator": "qwen2.5vl:7b",
-    "orchestrator": "deepseek-r1:8b",
-    "answer_validator": "qwen3:8b",
-    "dspy_lm": "qwen2.5:7b",
-    "embedder": "intfloat/multilingual-e5-small"
+    "orchestrator": "gemma4:latest",
+    "answer_validator": "gemma4:latest",
+    "dspy_lm": "gemma4:latest",
+    "embedder": "kun432/cl-nagoya-ruri-large:latest"
   },
-  "_embedder_note": "Upgrade to 'intfloat/multilingual-e5-base' for better Japanese retrieval quality (requires re-ingestion)",
+  "_embedder_note": "Default embedder uses ruri via Ollama. Re-ingest after model changes.",
   "embedder": {
     "_comment": "Embedder backend: 'sentence_transformers' (local HuggingFace) or 'ollama' (Ollama API)",
-    "backend": "sentence_transformers",
+    "backend": "ollama",
     "_prefix_note": "null = use backend default (e5: 'query: '/'passage: ', ruri: 'クエリ: '/'文章: ')",
     "query_prefix": null,
     "passage_prefix": null,
-    "batch_size": 32
+    "batch_size": 32,
+    "max_input_chars": 800,
+    "retry_trim_enabled": true,
+    "retry_trim_min_chars": 128
   },
   "_embedder_ruri_example": {
     "_comment": "To use kun432/cl-nagoya-ruri-large (Japanese-specialized, JMTEB Retrieval: 73.02 vs e5-small: 67.27):",

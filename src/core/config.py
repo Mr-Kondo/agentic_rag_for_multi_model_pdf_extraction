@@ -29,16 +29,19 @@ class ConfigLoader:
             "table_extraction": "qwen2.5:3b",
             "vision_extraction": "qwen2.5vl:7b",
             "chunk_validator": "qwen2.5vl:7b",
-            "orchestrator": "deepseek-r1:8b",
-            "answer_validator": "qwen3:8b",
-            "dspy_lm": "qwen2.5:7b",
-            "embedder": "intfloat/multilingual-e5-small",
+            "orchestrator": "gemma4:latest",
+            "answer_validator": "gemma4:latest",
+            "dspy_lm": "gemma4:latest",
+            "embedder": "kun432/cl-nagoya-ruri-large",
         },
         "embedder": {
-            "backend": "sentence_transformers",  # "sentence_transformers" | "ollama"
-            "query_prefix": None,   # None = use backend default
-            "passage_prefix": None, # None = use backend default
+            "backend": "ollama",  # "sentence_transformers" | "ollama"
+            "query_prefix": None,  # None = use backend default
+            "passage_prefix": None,  # None = use backend default
             "batch_size": 32,
+            "max_input_chars": 800,
+            "retry_trim_enabled": True,
+            "retry_trim_min_chars": 128,
         },
         "pipeline": {
             "max_context_chunks": 8,
