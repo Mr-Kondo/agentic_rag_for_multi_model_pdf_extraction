@@ -182,6 +182,8 @@ python app.py pipeline ./in/sample.pdf "要点を3つで要約して"
 
 ## アーキテクチャ概要
 
+注: 下記のモデル ID は `settings.json` または CLI オプションで上書き可能です。既定値はセットアップ節と `src/core/config.py` の定義を参照してください。
+
 ```
 app.py (CLI)
   └── pipeline.py
@@ -191,8 +193,8 @@ app.py (CLI)
         │   ├── TableAgent     — qwen2.5:3b テーブル抽出
         │   ├── VisionAgent    — qwen2.5vl:7b 図版解析 (VLM)
         │   ├── ChunkValidatorAgent   — qwen2.5vl:7b CHECKPOINT A
-        │   ├── ReasoningOrchestratorAgent — deepseek-r1:8b 回答生成
-        │   └── AnswerValidatorAgent  — qwen3:8b (DSPy) CHECKPOINT B
+        │   ├── ReasoningOrchestratorAgent — gemma4:latest 回答生成
+        │   └── AnswerValidatorAgent  — gemma4:latest (DSPy) CHECKPOINT B
         ├── store.py           — ChromaDB + BM25 ハイブリッド検索 (RRF)
         └── integrations/
             ├── langfuse.py    — Langfuse v3 OTel トレース
