@@ -22,6 +22,9 @@ dependencies = [
     "rank-bm25>=0.2.2",
     "sentence-transformers>=5.2.3",
     "tiktoken>=0.12.0",
+    "vllm==0.11.0",
+    "qwen-vl-utils==0.0.14",
+    "transformers==4.57.0",
 ]
 
 [project.optional-dependencies]

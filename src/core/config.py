@@ -25,10 +25,10 @@ class ConfigLoader:
     # Default model IDs
     _DEFAULTS = {
         "models": {
-            "text_extraction": "qwen3:8b",
-            "table_extraction": "qwen2.5:3b",
-            "vision_extraction": "qwen2.5vl:7b",
-            "chunk_validator": "qwen2.5vl:7b",
+                "text_extraction": "qwen3:30b",
+                "table_extraction": "qwen2.5:7b",
+                "vision_extraction": "deepseek-r1:8b",
+                "chunk_validator": "qwen3-vl:8b",
             "orchestrator": "gemma4:latest",
             "answer_validator": "gemma4:latest",
             "dspy_lm": "gemma4:latest",

@@ -199,11 +199,10 @@ class LangfuseTracer:
         session_id: str | None = None,
     ) -> Generator[TraceHandle, None, None]:
         """
-        Create a trace context using Langfuse SDK v3.14.4 API.
+        Create a trace context using Langfuse SDK.
 
-        Uses start_as_current_span() to ensure OpenTelemetry context propagation
-        is properly set up, allowing child spans and generations to discover this
-        trace as their parent.
+        Creates a span context that allows child spans and generations to
+        discover the parent trace.
 
         Args:
             name: Trace name (e.g., "ingest_pdf", "rag_query")
@@ -224,27 +223,51 @@ class LangfuseTracer:
                 _CURRENT_TRACE.reset(token)
             return
 
-        # ✅ Use start_as_current_span to ensure OpenTelemetry context is set
-        # This allows child spans/generations to discover this trace as parent
-        with self._client.start_as_current_span(
-            name=name,
-            input=input or {},
-            metadata=metadata or {},
-        ) as span:
-            # Retrieve the trace ID from current context
-            trace_id = self._client.get_current_trace_id()
-            log.debug(f"✓ Trace started: {name} (trace_id={trace_id})")
+        # Fallback: If start_as_current_span is not available, use basic tracing
+        try:
+            # Try new API if available
+            span = self._client.start_as_current_span(
+                name=name,
+                input=input or {},
+                metadata=metadata or {},
+            )
+        except AttributeError:
+            # Fallback to disabled tracing (method not available in this SDK version)
+            # This allows the pipeline to run without observability
+            log.warning(f"Langfuse trace unavailable (SDK version incompatible). Trace '{name}' disabled.")
+            span = None
 
-            handle = TraceHandle(span, trace_id)
+        if span is None:
+            # Run without tracing
+            handle = TraceHandle(None, None)
             token = _CURRENT_TRACE.set(handle)
             try:
                 yield handle
-            except Exception as e:
-                span.update(level="ERROR", status_message=str(e))
-                log.error(f"Trace error in '{name}': {e}")
-                raise
             finally:
                 _CURRENT_TRACE.reset(token)
+            return
+
+        trace_id = None
+        try:
+            trace_id = self._client.get_current_trace_id()
+            log.debug(f"✓ Trace started: {name} (trace_id={trace_id})")
+        except Exception:
+            pass
+
+        handle = TraceHandle(span, trace_id)
+        token = _CURRENT_TRACE.set(handle)
+        try:
+            yield handle
+        except Exception as e:
+            if hasattr(span, 'update'):
+                try:
+                    span.update(level="ERROR", status_message=str(e))
+                except Exception:
+                    pass
+            log.error(f"Trace error in '{name}': {e}")
+            raise
+        finally:
+            _CURRENT_TRACE.reset(token)
 
     # ── Scoring ──────────────────────────────
     def score(

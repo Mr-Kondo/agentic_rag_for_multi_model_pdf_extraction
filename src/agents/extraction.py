@@ -283,14 +283,18 @@ class VisionAgent(BaseAgent):
     """
 
     def _load_model(self):
-        """Obtain Ollama client for vision inference."""
+        """Obtain vision inference client (Ollama or vLLM)."""
         try:
-            self._client: ollama.Client = _model_cache.load_vision_model(self.model_id)
+            client = _model_cache.load_vision_model(self.model_id)
+            self._client = client
+            self._is_vllm = "/" in self.model_id  # HF hub IDs contain '/'
             self._use_vision = True
+            log.info(f"VisionAgent: loaded model {self.model_id} ({'vLLM' if self._is_vllm else 'Ollama'})")
         except Exception as e:
-            log.warning("VisionAgent: Ollama client unavailable (%s). OCR fallback.", e)
+            log.warning("VisionAgent: client unavailable (%s). OCR fallback.", e)
             self._client = None
             self._use_vision = False
+            self._is_vllm = False
 
     def _run(
         self,
@@ -338,10 +342,6 @@ class VisionAgent(BaseAgent):
         img.save(buf, format="PNG")
         image_bytes = buf.getvalue()
 
-        messages = [
-            {"role": "user", "content": full_prompt, "images": [image_bytes]},
-        ]
-
         try:
             if trace:
                 input_tokens = count_tokens(full_prompt) + 256  # 256 = typical image patch budget
@@ -351,23 +351,11 @@ class VisionAgent(BaseAgent):
                     input={"prompt": full_prompt, "has_image": True},
                     model_params={},
                 ) as g:
-                    response = self._client.chat(
-                        model=self.model_id,
-                        messages=messages,
-                        options={"num_predict": 512, "temperature": 0.0},
-                        stream=False,
-                    )
-                    output = response.message.content
-                    output_tokens = response.eval_count or count_tokens(output)
+                    output = self._infer(image_bytes, full_prompt)
+                    output_tokens = count_tokens(output)
                     g.set_output(output, input_tokens=input_tokens, output_tokens=output_tokens)
             else:
-                response = self._client.chat(
-                    model=self.model_id,
-                    messages=messages,
-                    options={"num_predict": 512, "temperature": 0.0},
-                    stream=False,
-                )
-                output = response.message.content
+                output = self._infer(image_bytes, full_prompt)
         except Exception as e:
             log.warning("VisionAgent: inference error (%s). OCR fallback.", e)
             return self._ocr_fallback(chunk)
@@ -427,6 +415,119 @@ class VisionAgent(BaseAgent):
             confidence=confidence,
             agent_notes=f"figure_type={figure_type} | {p.get('agent_notes', '')}",
         )
+
+    def _infer(self, img_bytes: bytes, full_prompt: str) -> str:
+        """
+        Run inference on image + prompt via Ollama or vLLM.
+
+        Args:
+            img_bytes: PNG-encoded image bytes
+            full_prompt: Text prompt with system message
+
+        Returns:
+            Model output text
+
+        Raises:
+            Exception: If inference fails
+        """
+        if self._is_vllm:
+            return self._infer_vllm(img_bytes, full_prompt)
+        else:
+            return self._infer_ollama(img_bytes, full_prompt)
+
+    def _infer_ollama(self, img_bytes: bytes, full_prompt: str) -> str:
+        """
+        Inference via Ollama chat API.
+
+        Args:
+            img_bytes: PNG bytes
+            full_prompt: Prompt with system message
+
+        Returns:
+            Model output text
+        """
+        messages = [
+            {"role": "user", "content": full_prompt, "images": [img_bytes]},
+        ]
+        response = self._client.chat(
+            model=self.model_id,
+            messages=messages,
+            options={"num_predict": 512, "temperature": 0.0},
+            stream=False,
+        )
+        return response.message.content
+
+    def _infer_vllm(self, img_bytes: bytes, full_prompt: str) -> str:
+        """
+        Inference via vLLM.
+
+        Processes image + prompt using vLLM LLM.generate API.
+
+        Args:
+            img_bytes: PNG bytes
+            full_prompt: Prompt with system message
+
+        Returns:
+            Model output text
+
+        Raises:
+            ImportError: If required dependencies unavailable
+        """
+        try:
+            from transformers import AutoProcessor
+            from qwen_vl_utils import process_vision_info
+            from vllm import SamplingParams
+            from PIL import Image
+        except ImportError as e:
+            raise ImportError("vLLM inference requires: pip install transformers qwen-vl-utils vllm") from e
+
+        # Convert PNG bytes to PIL image
+        img = Image.open(io.BytesIO(img_bytes))
+
+        # Prepare messages for vLLM
+        messages = [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "image", "image": img},
+                    {"type": "text", "text": full_prompt},
+                ],
+            },
+        ]
+
+        try:
+            processor = AutoProcessor.from_pretrained(self.model_id)
+            prompt = processor.apply_chat_template(
+                messages,
+                tokenize=False,
+                add_generation_prompt=True,
+            )
+            image_inputs, video_inputs, video_kwargs = process_vision_info(messages, return_video_kwargs=True)
+
+            mm_data = {}
+            if image_inputs is not None:
+                mm_data["image"] = image_inputs
+            if video_inputs is not None:
+                mm_data["video"] = video_inputs
+
+            llm_inputs = {
+                "prompt": prompt,
+                "multi_modal_data": mm_data,
+                "mm_processor_kwargs": video_kwargs,
+            }
+
+            sampling_params = SamplingParams(
+                temperature=0.0,
+                top_p=1.0,
+                max_tokens=512,
+            )
+
+            outputs = self._client.generate([llm_inputs], sampling_params=sampling_params)
+            return outputs[0].outputs[0].text
+
+        except Exception as e:
+            log.warning(f"vLLM inference failed: {e}")
+            raise
 
     def _ocr_fallback(self, chunk: "RawChunk") -> ProcessedChunk:
         """
