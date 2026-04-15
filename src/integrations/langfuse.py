@@ -158,8 +158,7 @@ def _get_client() -> Langfuse | None:
     _client_instance = Langfuse(
         public_key=public_key,
         secret_key=secret_key,
-        host=os.environ.get("LANGFUSE_BASE_URL")
-        or os.environ.get("LANGFUSE_HOST", "https://cloud.langfuse.com"),
+        host=os.environ.get("LANGFUSE_BASE_URL") or os.environ.get("LANGFUSE_HOST", "https://cloud.langfuse.com"),
     )
     return _client_instance
 
@@ -259,7 +258,7 @@ class LangfuseTracer:
         try:
             yield handle
         except Exception as e:
-            if hasattr(span, 'update'):
+            if hasattr(span, "update"):
                 try:
                     span.update(level="ERROR", status_message=str(e))
                 except Exception:

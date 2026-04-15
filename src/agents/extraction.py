@@ -142,6 +142,19 @@ class TextAgent(BaseAgent):
         Returns:
             ProcessedChunk with structured text and metadata
         """
+        if bool(config.get("pipeline.text_passthrough", True)):
+            raw_text = str(chunk.raw_content).strip()
+            summary = raw_text.replace("\n", " ")[:200]
+            return ProcessedChunk(
+                chunk_type=ChunkType.TEXT,
+                **_chunk_kwargs(chunk),
+                structured_text=raw_text,
+                intuition_summary=summary,
+                key_concepts=[],
+                confidence=0.95,
+                agent_notes="text_passthrough",
+            )
+
         content = str(chunk.raw_content) + (self.RETRY_SUFFIX if retry else "")
         messages = [
             {"role": "system", "content": _TEXT_SYSTEM},
@@ -314,6 +327,9 @@ class VisionAgent(BaseAgent):
         Returns:
             ProcessedChunk with figure description and metadata
         """
+        if bool(config.get("pipeline.figure_ocr_only", True)):
+            return self._ocr_fallback(chunk)
+
         table_extractor = TableFromImageExtractor(policy=policy)
         if table_extractor.is_probable_table_image(chunk.raw_content):
             log.info("VisionAgent: geometry heuristic detected table-like image on page %d", chunk.page_num)
@@ -539,12 +555,21 @@ class VisionAgent(BaseAgent):
         Returns:
             ProcessedChunk with OCR-extracted text (low confidence)
         """
+        text = ""
         try:
             import pytesseract
 
-            text = pytesseract.image_to_string(chunk.raw_content, lang=_OCR_LANG)
+            try:
+                text = pytesseract.image_to_string(chunk.raw_content, lang=_OCR_LANG)
+            except Exception:
+                fallback_lang = str(config.get("ocr.fallback_lang", "eng"))
+                text = pytesseract.image_to_string(chunk.raw_content, lang=fallback_lang)
         except Exception:
+            text = ""
+
+        if not text.strip():
             text = "[OCR unavailable]"
+
         return ProcessedChunk(
             chunk_type=ChunkType.FIGURE,
             **_chunk_kwargs(chunk),

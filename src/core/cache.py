@@ -43,7 +43,11 @@ class ModelCache:
 
     def __init__(self) -> None:
         self._base_url: str = config.get_ollama_base_url()
-        self._client: ollama.Client = ollama.Client(host=self._base_url)
+        self._request_timeout_seconds: float = config.get_ollama_request_timeout_seconds()
+        self._client: ollama.Client = ollama.Client(
+            host=self._base_url,
+            timeout=self._request_timeout_seconds,
+        )
         self._vllm_models: dict[str, Any] = {}  # Cache vLLM LLM instances (heavy)
 
     def load_text_model(self, model_id: str) -> ollama.Client:
