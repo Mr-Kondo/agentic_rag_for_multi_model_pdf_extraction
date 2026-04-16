@@ -1,6 +1,6 @@
 # Configuration Setup Guide
 
-Last updated: 2026-04-08
+Last updated: 2026-04-16
 
 このガイドは、現行の Sequential + Ollama runtime で有効な設定だけを整理したものです。
 
@@ -45,6 +45,7 @@ cp settings.example.json settings.json
 
 - `ollama`
   - `base_url`
+  - `request_timeout_seconds` (Ollama API 呼び出しのタイムアウト秒数、既定: `120`)
 - `models`
   - `text_extraction`
   - `table_extraction`
@@ -59,10 +60,15 @@ cp settings.example.json settings.json
   - `query_prefix` (null = backend 既定値を使用)
   - `passage_prefix` (null = backend 既定値を使用)
   - `batch_size`
+  - `max_input_chars` (埋め込み入力の最大文字数、超過時に trim してリトライ; 既定: `800`)
+  - `retry_trim_enabled` (trim リトライの有効化; 既定: `true`)
+  - `retry_trim_min_chars` (trim リトライの最低文字数; 既定: `128`)
 - `pipeline`
   - `max_context_chunks`
   - `embedder_batch_size`
   - `chunk_size`
+  - `text_passthrough` (テキストチャンクを LLM に通さず原文のまま採用; 既定: `true`)
+  - `figure_ocr_only` (図版チャンクを LLM 解析せず OCR テキストのみ採用; 既定: `true`)
 - `cache`
   - `enable_hf_cache`
   - `cache_dir`
@@ -212,29 +218,31 @@ python -c "from src.core.config import config; print(config.get('ocr.engine'))"
 
 現時点でサポートされる runtime は Sequential + Ollama のみです。
 
-## 11. Ricoh VLM rollout (recommended)
+## 11. VLM の選択
 
-`ricoh-ai/Qwen-3-VL-Ricoh-8B-20260227` を導入する場合は段階導入を推奨します。
+`models.vision_extraction` と `models.chunk_validator` はどちらも VLM を使います。
+現在の推奨値は `settings.example.json` の `qwen3vl:latest` です。
 
-1. Phase 1
-- `models.vision_extraction` のみ Ricoh VLM に変更
-- `models.chunk_validator` は `qwen2.5vl:7b` のまま維持
-
-2. Phase 2
-- Phase 1 の品質・速度評価が安定したら `models.chunk_validator` も置換を検討
-
-例:
+利用可能な VLM であれば自由に切り替えられます。例えば Ricoh VLM (`ricoh-ai/Qwen-3-VL-Ricoh-8B-20260227`) を使う場合:
 
 ```json
 {
   "models": {
     "vision_extraction": "ricoh-ai/Qwen-3-VL-Ricoh-8B-20260227",
-    "chunk_validator": "qwen2.5vl:7b"
+    "chunk_validator": "ricoh-ai/Qwen-3-VL-Ricoh-8B-20260227"
   }
 }
 ```
 
+注意: Ricoh VLM は利用規約への同意が必要な場合があります。`ollama pull` が失敗する場合は `qwen3vl:latest` に戻してください。
+
 ロールバック:
 
-- `models.vision_extraction` を `qwen2.5vl:7b` に戻すだけで復旧可能です。
-- Ricoh VLM が利用環境で pull/起動できない場合も同様に既存モデルへ戻してください。
+```json
+{
+  "models": {
+    "vision_extraction": "qwen3vl:latest",
+    "chunk_validator": "qwen3vl:latest"
+  }
+}
+```

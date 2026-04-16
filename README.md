@@ -36,23 +36,27 @@ ollama serve          # 別ターミナルで常時起動しておく
 
 ### 2. 必要モデルのダウンロード
 
-| 役割 | モデル | サイズ概算 |
-|---|---|---|
-| テキスト抽出 | `qwen3:8b` | 5.2 GB |
-| テーブル抽出 | `qwen2.5:3b` | 1.9 GB |
-| 図版抽出 (VLM) | `ricoh-ai/Qwen-3-VL-Ricoh-8B-20260227` | 9B class (BF16) |
-| チャンク検証 (VLM) | `qwen2.5vl:7b` | 6.0 GB |
-| 推論オーケストレーター / 回答検証 / DSPy 検証 | `gemma4:latest` | depends on local Ollama manifest |
+推奨モデルは `settings.example.json` の `models.*` を参照してください。
+現在のデフォルト構成 (`settings.example.json` ベース) は次の通りです。
+
+| 役割 | モデル |
+|---|---|
+| テキスト抽出 | `qwen3.5:latest` |
+| テーブル抽出 | `qwen2.5:7b` |
+| 図版抽出 / チャンク検証 (VLM) | `qwen3vl:latest` |
+| 推論オーケストレーター / 回答検証 / DSPy 検証 | `gemma4:latest` |
+| 埋め込み | `kun432/cl-nagoya-ruri-large:latest` |
 
 ```bash
-ollama pull qwen3:8b
-ollama pull qwen2.5:3b
-ollama pull ricoh-ai/Qwen-3-VL-Ricoh-8B-20260227
-ollama pull qwen2.5vl:7b
+ollama pull qwen3.5:latest
+ollama pull qwen2.5:7b
+ollama pull qwen3vl:latest
 ollama pull gemma4:latest
+ollama pull kun432/cl-nagoya-ruri-large:latest
 ```
 
-注: Ricoh VLM は利用規約への同意が必要な場合があります。`ollama pull` が利用環境で失敗する場合は、`models.vision_extraction` を従来の `qwen2.5vl:7b` に戻して運用してください。
+モデルは `settings.json` または CLI オプションで上書きできます。
+詳細は [docs/CONFIG_SETUP.md](docs/CONFIG_SETUP.md) を参照してください。
 
 ### 3. Python 依存関係のインストール
 
@@ -77,28 +81,36 @@ cp settings.example.json settings.json
 ```json
 {
   "ollama": {
-    "base_url": "http://localhost:11434"
+    "base_url": "http://localhost:11434",
+    "request_timeout_seconds": 120
   },
   "models": {
-    "text_extraction": "qwen3:8b",
-    "table_extraction": "qwen2.5:3b",
-    "vision_extraction": "ricoh-ai/Qwen-3-VL-Ricoh-8B-20260227",
-    "chunk_validator": "qwen2.5vl:7b",
+    "text_extraction": "qwen3.5:latest",
+    "table_extraction": "qwen2.5:7b",
+    "vision_extraction": "qwen3vl:latest",
+    "chunk_validator": "qwen3vl:latest",
     "orchestrator": "gemma4:latest",
     "answer_validator": "gemma4:latest",
     "dspy_lm": "gemma4:latest",
-    "embedder": "kun432/cl-nagoya-ruri-large"
+    "embedder": "kun432/cl-nagoya-ruri-large:latest"
   },
   "embedder": {
     "backend": "ollama",
-    "query_prefix": null,
-    "passage_prefix": null,
-    "batch_size": 32
+    "batch_size": 32,
+    "max_input_chars": 800,
+    "retry_trim_enabled": true,
+    "retry_trim_min_chars": 128
+  },
+  "pipeline": {
+    "text_passthrough": true,
+    "figure_ocr_only": true
   }
 }
 ```
 
-デフォルトは `kun432/cl-nagoya-ruri-large`（Ollama バックエンド）です。
+完全な設定リファレンスは `settings.example.json` および [docs/CONFIG_SETUP.md](docs/CONFIG_SETUP.md) を参照してください。
+
+デフォルトは `kun432/cl-nagoya-ruri-large:latest`（Ollama バックエンド）です。
 sentence-transformers を使う場合は `settings.example.json` を参考に切り替えてください。
 
 詳細は [docs/CONFIG_SETUP.md](docs/CONFIG_SETUP.md) を参照してください。
@@ -112,7 +124,8 @@ LANGFUSE_BASE_URL=https://cloud.langfuse.com  # または後方互換エイリ�
 ```
 
 Langfuse のキーが未設定でも処理は継続します。
-Langfuse トレースにはモデル名として Ollama モデル名 (`qwen3:8b` 等) が記録されます。
+Langfuse トレースにはモデル名として Ollama モデル名が記録されます。
+Langfuse SDK バージョンが互換でない場合は no-op に切り替わり、診断情報がログに出力されます。
 
 ### 6. OCR 前提
 
@@ -186,33 +199,30 @@ python app.py pipeline ./in/sample.pdf "要点を3つで要約して"
 
 ## アーキテクチャ概要
 
-注: 下記のモデル ID は `settings.json` または CLI オプションで上書き可能です。既定値はセットアップ節と `src/core/config.py` の定義を参照してください。
+使用モデルは `settings.json` の `models.*` または CLI オプションで指定します。
+推奨値は `settings.example.json` を参照してください。
 
 ```
 app.py (CLI)
   └── pipeline.py
         ├── parser.py          — PDF parse (pdfplumber + PyMuPDF + OCR)
         ├── agents/
-        │   ├── TextAgent      — qwen3:8b   テキスト抽出
-        │   ├── TableAgent     — qwen2.5:3b テーブル抽出
-        │   ├── VisionAgent    — ricoh-ai/Qwen-3-VL-Ricoh-8B-20260227 図版解析 (VLM)
-        │   ├── ChunkValidatorAgent   — qwen2.5vl:7b CHECKPOINT A
-        │   ├── ReasoningOrchestratorAgent — gemma4:latest 回答生成
-        │   └── AnswerValidatorAgent  — gemma4:latest (DSPy) CHECKPOINT B
+        │   ├── TextAgent      — テキスト抽出 (models.text_extraction)
+        │   ├── TableAgent     — テーブル抽出 (models.table_extraction)
+        │   ├── VisionAgent    — 図版解析 VLM (models.vision_extraction)
+        │   ├── ChunkValidatorAgent   — CHECKPOINT A (models.chunk_validator)
+        │   ├── ReasoningOrchestratorAgent — 回答生成 (models.orchestrator)
+        │   └── AnswerValidatorAgent  — CHECKPOINT B / DSPy (models.answer_validator)
         ├── store.py           — ChromaDB + BM25 ハイブリッド検索 (RRF)
         └── integrations/
-            ├── langfuse.py    — Langfuse v3 OTel トレース
+            ├── langfuse.py    — Langfuse v3 OTel トレース (SDK 互換時)
             └── dspy_adapter.py — DSPy + Ollama 設定ヘルパー
 ```
 
 すべての LLM 呼び出しは `ollama.Client.chat()` 経由で行われます。
 モデルのロード / アンロードおよび VRAM 管理は Ollama サーバーが担います。
-埋め込みモデルは `ollama` バックエンド（デフォルト: `kun432/cl-nagoya-ruri-large`）
+埋め込みモデルは `ollama` バックエンド（デフォルト: `kun432/cl-nagoya-ruri-large:latest`）
 または `sentence_transformers` バックエンド（例: `intfloat/multilingual-e5-small`）から選択できます。
-
-VLM の段階導入方針:
-- Phase 1: `vision_extraction` を Ricoh VLM に置換
-- Phase 2: 品質評価後に `chunk_validator` 置換を検討
 
 ---
 

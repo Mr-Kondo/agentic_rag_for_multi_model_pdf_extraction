@@ -1,6 +1,6 @@
 # Agentic RAG Architecture
 
-Last updated: 2026-04-08
+Last updated: 2026-04-16
 
 この文書は、現在サポートされている Sequential + Ollama 構成だけを説明します。削除済みの CrewAI、LangGraph、MLX 経路は対象外です。
 
@@ -170,6 +170,7 @@ DSPy 連携は `AnswerValidatorAgent` で使われます。
 ## 8. Observability
 
 `LangfuseTracer` が trace / span / score を記録します。環境変数が未設定でも処理は継続します。
+Langfuse SDK バージョンが互換でない場合は自動的に no-op トレースに切り替わり、管理の診断情報が WARNING レベルでログに出力されます。
 
 - ingest trace
 - query trace
