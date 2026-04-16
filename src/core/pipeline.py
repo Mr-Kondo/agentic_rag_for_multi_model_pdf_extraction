@@ -374,6 +374,8 @@ class AgenticRAGPipeline:
 
         log.info("=" * 70)
         log.info("✅ Query complete - Trace ID: %s", result.trace_id)
+        if getattr(trace, "disable_reason", None):
+            log.warning("Langfuse trace disabled summary: %s", trace.diagnostic_summary())
         log.info("=" * 70 + "\n")
 
         return result

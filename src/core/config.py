@@ -25,8 +25,8 @@ class ConfigLoader:
     # Default model IDs
     _DEFAULTS = {
         "models": {
-            "text_extraction": "qwen3:8b",
-            "table_extraction": "qwen2.5:3b",
+            "text_extraction": "qwen3:30b",
+            "table_extraction": "qwen2.5:7b",
             "vision_extraction": "qwen2.5vl:7b",
             "chunk_validator": "qwen2.5vl:7b",
             "orchestrator": "gemma4:latest",
@@ -47,6 +47,8 @@ class ConfigLoader:
             "max_context_chunks": 8,
             "embedder_batch_size": 32,
             "chunk_size": 800,
+            "text_passthrough": True,
+            "figure_ocr_only": True,
         },
         "cache": {
             "enable_hf_cache": True,
@@ -54,6 +56,7 @@ class ConfigLoader:
         },
         "ollama": {
             "base_url": "http://localhost:11434",
+            "request_timeout_seconds": 120,
         },
         "parser": {
             "enable_native_pdf_heuristic": True,
@@ -196,6 +199,22 @@ class ConfigLoader:
             URL string, e.g. "http://localhost:11434"
         """
         return self.config.get("ollama", {}).get("base_url", self._DEFAULTS["ollama"]["base_url"])
+
+    def get_ollama_request_timeout_seconds(self) -> float:
+        """
+        Get Ollama HTTP request timeout in seconds.
+
+        Returns:
+            Timeout as float seconds
+        """
+        value = self.config.get("ollama", {}).get(
+            "request_timeout_seconds",
+            self._DEFAULTS["ollama"]["request_timeout_seconds"],
+        )
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return float(self._DEFAULTS["ollama"]["request_timeout_seconds"])
 
     def get(self, key: str, default: Any = None) -> Any:
         """

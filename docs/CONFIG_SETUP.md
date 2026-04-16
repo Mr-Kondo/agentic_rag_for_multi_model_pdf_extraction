@@ -211,3 +211,30 @@ python -c "from src.core.config import config; print(config.get('ocr.engine'))"
 - CrewAI / LangGraph 専用 pipeline 設定
 
 現時点でサポートされる runtime は Sequential + Ollama のみです。
+
+## 11. Ricoh VLM rollout (recommended)
+
+`ricoh-ai/Qwen-3-VL-Ricoh-8B-20260227` を導入する場合は段階導入を推奨します。
+
+1. Phase 1
+- `models.vision_extraction` のみ Ricoh VLM に変更
+- `models.chunk_validator` は `qwen2.5vl:7b` のまま維持
+
+2. Phase 2
+- Phase 1 の品質・速度評価が安定したら `models.chunk_validator` も置換を検討
+
+例:
+
+```json
+{
+  "models": {
+    "vision_extraction": "ricoh-ai/Qwen-3-VL-Ricoh-8B-20260227",
+    "chunk_validator": "qwen2.5vl:7b"
+  }
+}
+```
+
+ロールバック:
+
+- `models.vision_extraction` を `qwen2.5vl:7b` に戻すだけで復旧可能です。
+- Ricoh VLM が利用環境で pull/起動できない場合も同様に既存モデルへ戻してください。

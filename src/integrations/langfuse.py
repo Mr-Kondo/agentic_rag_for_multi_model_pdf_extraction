@@ -31,10 +31,12 @@ Set environment variables (or pass explicitly):
 from __future__ import annotations
 
 import contextvars
+import importlib.metadata
 import logging
 import os
 import time
 from contextlib import contextmanager
+from dataclasses import dataclass, field
 from typing import Any, Callable, Generator
 
 from dotenv import load_dotenv
@@ -59,6 +61,116 @@ _CURRENT_TRACE: contextvars.ContextVar["TraceHandle | None"] = contextvars.Conte
     "langfuse_current_trace",
     default=None,
 )
+
+_TRACE_START_API_CANDIDATES = ("start_as_current_span", "start_span")
+_CHILD_SPAN_API_CANDIDATES = ("start_as_current_span", "start_span")
+_GENERATION_API_CANDIDATES = ("start_as_current_generation", "start_generation")
+_TRACE_ID_API_CANDIDATES = ("get_current_trace_id",)
+_SCORE_API_CANDIDATES = ("create_score", "score")
+_COMPATIBILITY_LOGGED = False
+
+
+@dataclass(slots=True)
+class LangfuseDiagnostics:
+    """
+    Diagnostic payload describing Langfuse compatibility state.
+
+    Attributes:
+        sdk_version: Installed Langfuse SDK version, if known.
+        client_class: Runtime class name of the Langfuse client.
+        raw_class: Runtime class name of the active trace/span handle.
+        resolved_apis: Mapping of operation group to resolved API name.
+        reason: Short machine-readable reason for degraded tracing.
+        error: Optional exception string captured while probing/starting.
+        trace_name: Trace name associated with this diagnostic event.
+    """
+
+    sdk_version: str = "unknown"
+    client_class: str | None = None
+    raw_class: str | None = None
+    resolved_apis: dict[str, str | None] = field(default_factory=dict)
+    reason: str | None = None
+    error: str | None = None
+    trace_name: str | None = None
+
+    def format(self) -> str:
+        """Render a compact diagnostic string for logs."""
+        parts: list[str] = [f"sdk_version={self.sdk_version}"]
+        if self.trace_name:
+            parts.append(f"trace={self.trace_name}")
+        if self.reason:
+            parts.append(f"reason={self.reason}")
+        if self.client_class:
+            parts.append(f"client_class={self.client_class}")
+        if self.raw_class:
+            parts.append(f"raw_class={self.raw_class}")
+        for key, value in self.resolved_apis.items():
+            parts.append(f"{key}={value or 'missing'}")
+        if self.error:
+            parts.append(f"error={self.error}")
+        return " ".join(parts)
+
+
+def _get_langfuse_sdk_version() -> str:
+    """Return the installed Langfuse SDK version when discoverable."""
+    try:
+        return importlib.metadata.version("langfuse")
+    except importlib.metadata.PackageNotFoundError:
+        return "unknown"
+
+
+def _resolve_api(target: Any, candidates: tuple[str, ...]) -> tuple[str | None, Callable | None]:
+    """Resolve the first available callable API name from a candidate list."""
+    for name in candidates:
+        method = getattr(target, name, None)
+        if callable(method):
+            return name, method
+    return None, None
+
+
+def _build_diagnostics(
+    *,
+    client: Any = None,
+    raw: Any = None,
+    trace_name: str | None = None,
+    reason: str | None = None,
+    error: Exception | str | None = None,
+) -> LangfuseDiagnostics:
+    """Build a diagnostic snapshot for client/raw Langfuse compatibility."""
+    resolved_apis: dict[str, str | None] = {}
+    if client is not None:
+        resolved_apis["trace_api"] = _resolve_api(client, _TRACE_START_API_CANDIDATES)[0]
+        resolved_apis["trace_id_api"] = _resolve_api(client, _TRACE_ID_API_CANDIDATES)[0]
+        resolved_apis["score_api"] = _resolve_api(client, _SCORE_API_CANDIDATES)[0]
+    if raw is not None:
+        resolved_apis["child_span_api"] = _resolve_api(raw, _CHILD_SPAN_API_CANDIDATES)[0]
+        resolved_apis["generation_api"] = _resolve_api(raw, _GENERATION_API_CANDIDATES)[0]
+
+    return LangfuseDiagnostics(
+        sdk_version=_get_langfuse_sdk_version(),
+        client_class=type(client).__name__ if client is not None else None,
+        raw_class=type(raw).__name__ if raw is not None else None,
+        resolved_apis=resolved_apis,
+        reason=reason,
+        error=str(error) if error is not None else None,
+        trace_name=trace_name,
+    )
+
+
+def _log_diagnostics(level: int, message: str, diagnostics: LangfuseDiagnostics) -> None:
+    """Log a Langfuse diagnostic line with structured details."""
+    log.log(level, "%s %s", message, diagnostics.format())
+
+
+@contextmanager
+def _wrap_context_object(context: Any) -> Generator[Any, None, None]:
+    """Use an object as a context manager when supported, or yield it directly."""
+    if hasattr(context, "__enter__") and hasattr(context, "__exit__"):
+        with context as entered:
+            yield entered
+        return
+
+    yield context
 
 
 def _normalize_score_data_type(value: Any) -> str:
@@ -158,8 +270,7 @@ def _get_client() -> Langfuse | None:
     _client_instance = Langfuse(
         public_key=public_key,
         secret_key=secret_key,
-        host=os.environ.get("LANGFUSE_BASE_URL")
-        or os.environ.get("LANGFUSE_HOST", "https://cloud.langfuse.com"),
+        host=os.environ.get("LANGFUSE_BASE_URL") or os.environ.get("LANGFUSE_HOST", "https://cloud.langfuse.com"),
     )
     return _client_instance
 
@@ -187,6 +298,35 @@ class LangfuseTracer:
 
     def __init__(self):
         self._client: Langfuse | None = _get_client()
+        self._client_diagnostics = _build_diagnostics(client=self._client, reason="client_unavailable")
+        self._log_compatibility_once()
+
+    def _log_compatibility_once(self) -> None:
+        """Emit a one-time compatibility summary for the current Langfuse client."""
+        global _COMPATIBILITY_LOGGED
+
+        if _COMPATIBILITY_LOGGED or self._client is None:
+            return
+
+        diagnostics = _build_diagnostics(client=self._client)
+        trace_api = diagnostics.resolved_apis.get("trace_api")
+        generation_api = diagnostics.resolved_apis.get("generation_api")
+        if trace_api is None:
+            diagnostics.reason = "missing_client_trace_api"
+            _log_diagnostics(logging.ERROR, "Langfuse compatibility check failed.", diagnostics)
+        elif diagnostics.resolved_apis.get("trace_id_api") is None or diagnostics.resolved_apis.get("score_api") is None:
+            diagnostics.reason = "partial_client_api_support"
+            _log_diagnostics(logging.WARNING, "Langfuse compatibility check detected limited API support.", diagnostics)
+        elif generation_api is not None:
+            log.debug("Langfuse compatibility check passed. %s", diagnostics.format())
+
+        _COMPATIBILITY_LOGGED = True
+
+    @staticmethod
+    def _disabled_handle(trace_name: str, reason: str, error: Exception | str | None = None) -> "TraceHandle":
+        """Create a no-op trace handle with diagnostics attached."""
+        diagnostics = _build_diagnostics(trace_name=trace_name, reason=reason, error=error)
+        return TraceHandle.noop(reason=reason, diagnostics=diagnostics)
 
     # ── Trace ────────────────────────────────
     @contextmanager
@@ -199,11 +339,10 @@ class LangfuseTracer:
         session_id: str | None = None,
     ) -> Generator[TraceHandle, None, None]:
         """
-        Create a trace context using Langfuse SDK v3.14.4 API.
+        Create a trace context using Langfuse SDK.
 
-        Uses start_as_current_span() to ensure OpenTelemetry context propagation
-        is properly set up, allowing child spans and generations to discover this
-        trace as their parent.
+        Creates a span context that allows child spans and generations to
+        discover the parent trace.
 
         Args:
             name: Trace name (e.g., "ingest_pdf", "rag_query")
@@ -216,7 +355,7 @@ class LangfuseTracer:
             Generator yielding a TraceHandle for context management
         """
         if self._client is None:
-            handle = TraceHandle(None, None)
+            handle = self._disabled_handle(name, "client_unavailable")
             token = _CURRENT_TRACE.set(handle)
             try:
                 yield handle
@@ -224,27 +363,106 @@ class LangfuseTracer:
                 _CURRENT_TRACE.reset(token)
             return
 
-        # ✅ Use start_as_current_span to ensure OpenTelemetry context is set
-        # This allows child spans/generations to discover this trace as parent
-        with self._client.start_as_current_span(
-            name=name,
-            input=input or {},
-            metadata=metadata or {},
-        ) as span:
-            # Retrieve the trace ID from current context
-            trace_id = self._client.get_current_trace_id()
-            log.debug(f"✓ Trace started: {name} (trace_id={trace_id})")
-
-            handle = TraceHandle(span, trace_id)
+        trace_api_name, trace_api = _resolve_api(self._client, _TRACE_START_API_CANDIDATES)
+        if trace_api is None:
+            diagnostics = _build_diagnostics(
+                client=self._client,
+                trace_name=name,
+                reason="missing_client_trace_api",
+            )
+            _log_diagnostics(logging.WARNING, "Langfuse trace unavailable.", diagnostics)
+            handle = TraceHandle.noop(reason="missing_client_trace_api", diagnostics=diagnostics)
             token = _CURRENT_TRACE.set(handle)
             try:
                 yield handle
-            except Exception as e:
-                span.update(level="ERROR", status_message=str(e))
-                log.error(f"Trace error in '{name}': {e}")
-                raise
             finally:
                 _CURRENT_TRACE.reset(token)
+            return
+
+        try:
+            span = trace_api(
+                name=name,
+                input=input or {},
+                metadata=metadata or {},
+            )
+        except Exception as exc:
+            diagnostics = _build_diagnostics(
+                client=self._client,
+                trace_name=name,
+                reason="trace_start_failed",
+                error=exc,
+            )
+            diagnostics.resolved_apis["trace_api"] = trace_api_name
+            _log_diagnostics(logging.WARNING, "Langfuse trace unavailable.", diagnostics)
+            handle = TraceHandle.noop(reason="trace_start_failed", diagnostics=diagnostics)
+            token = _CURRENT_TRACE.set(handle)
+            try:
+                yield handle
+            finally:
+                _CURRENT_TRACE.reset(token)
+            return
+
+        if span is None:
+            diagnostics = _build_diagnostics(
+                client=self._client,
+                trace_name=name,
+                reason="trace_start_returned_none",
+            )
+            diagnostics.resolved_apis["trace_api"] = trace_api_name
+            _log_diagnostics(logging.WARNING, "Langfuse trace unavailable.", diagnostics)
+            span = None
+
+        if span is None:
+            handle = TraceHandle.noop(reason="trace_start_returned_none", diagnostics=diagnostics)
+            token = _CURRENT_TRACE.set(handle)
+            try:
+                yield handle
+            finally:
+                _CURRENT_TRACE.reset(token)
+            return
+
+        trace_id = None
+        trace_id_api_name, trace_id_api = _resolve_api(self._client, _TRACE_ID_API_CANDIDATES)
+        if trace_id_api is not None:
+            try:
+                trace_id = trace_id_api()
+                log.debug("✓ Trace started: %s (trace_id=%s)", name, trace_id)
+            except Exception as exc:
+                diagnostics = _build_diagnostics(
+                    client=self._client,
+                    raw=span,
+                    trace_name=name,
+                    reason="trace_id_lookup_failed",
+                    error=exc,
+                )
+                diagnostics.resolved_apis["trace_api"] = trace_api_name
+                diagnostics.resolved_apis["trace_id_api"] = trace_id_api_name
+                _log_diagnostics(logging.WARNING, "Langfuse trace started without trace id lookup.", diagnostics)
+
+        handle_diagnostics = _build_diagnostics(client=self._client, raw=span, trace_name=name)
+        handle_diagnostics.resolved_apis["trace_api"] = trace_api_name
+        handle_diagnostics.resolved_apis["trace_id_api"] = trace_id_api_name
+        if (
+            handle_diagnostics.resolved_apis.get("child_span_api") is None
+            or handle_diagnostics.resolved_apis.get("generation_api") is None
+        ):
+            handle_diagnostics.reason = "partial_trace_handle_api_support"
+            _log_diagnostics(logging.WARNING, "Langfuse trace started with limited child API support.", handle_diagnostics)
+
+        handle = TraceHandle(span, trace_id, diagnostics=handle_diagnostics)
+        token = _CURRENT_TRACE.set(handle)
+        try:
+            yield handle
+        except Exception as e:
+            if hasattr(span, "update"):
+                try:
+                    span.update(level="ERROR", status_message=str(e))
+                except Exception:
+                    pass
+            log.error(f"Trace error in '{name}': {e}")
+            raise
+        finally:
+            _CURRENT_TRACE.reset(token)
 
     # ── Scoring ──────────────────────────────
     def score(
@@ -269,6 +487,10 @@ class LangfuseTracer:
             log.debug(f"⊘ Score skipped (no Langfuse client): {name}={value}")
             return
 
+        if trace_id == "no-op":
+            log.debug("⊘ Score skipped (trace disabled): %s=%s", name, value)
+            return
+
         normalized_data_type = _normalize_score_data_type(data_type)
         if normalized_data_type != data_type:
             log.warning(
@@ -278,17 +500,32 @@ class LangfuseTracer:
                 name,
             )
 
+        score_api_name, score_api = _resolve_api(self._client, _SCORE_API_CANDIDATES)
+        if score_api is None:
+            diagnostics = _build_diagnostics(
+                client=self._client,
+                reason="missing_score_api",
+            )
+            _log_diagnostics(logging.WARNING, f"Langfuse score unavailable for '{name}'.", diagnostics)
+            return
+
         try:
-            self._client.create_score(
+            score_api(
                 trace_id=trace_id,
                 name=name,
                 value=value,
                 comment=comment,
                 data_type=normalized_data_type,
             )
-            log.debug(f"✓ Score posted: {name}={value}")
+            log.debug("✓ Score posted via %s: %s=%s", score_api_name, name, value)
         except Exception as e:
-            log.warning(f"Failed to post score '{name}': {e}")
+            diagnostics = _build_diagnostics(
+                client=self._client,
+                reason="score_post_failed",
+                error=e,
+            )
+            diagnostics.resolved_apis["score_api"] = score_api_name
+            _log_diagnostics(logging.WARNING, f"Failed to post score '{name}'.", diagnostics)
 
 
 # ──────────────────────────────────────────────
@@ -297,10 +534,29 @@ class LangfuseTracer:
 
 
 class TraceHandle:
-    def __init__(self, raw, trace_id: str | None = None):
+    def __init__(
+        self,
+        raw,
+        trace_id: str | None = None,
+        diagnostics: LangfuseDiagnostics | None = None,
+        disable_reason: str | None = None,
+    ):
         self.raw = raw
-        self.trace_id: str = trace_id or (raw.id if raw else "no-op")
+        self.trace_id: str = trace_id or getattr(raw, "id", None) or "no-op"
         self._spans: list = []
+        self.diagnostics = diagnostics
+        self.disable_reason = disable_reason or (diagnostics.reason if diagnostics else None)
+
+    @classmethod
+    def noop(cls, reason: str, diagnostics: LangfuseDiagnostics | None = None) -> "TraceHandle":
+        """Create a disabled trace handle with diagnostic context."""
+        return cls(None, None, diagnostics=diagnostics, disable_reason=reason)
+
+    def diagnostic_summary(self) -> str:
+        """Return a compact diagnostic summary for disabled tracing."""
+        if self.diagnostics is None:
+            return self.disable_reason or "trace_disabled"
+        return self.diagnostics.format()
 
     def _finalise(self):
         # nothing extra needed; Langfuse auto-closes on flush
@@ -324,24 +580,45 @@ class TraceHandle:
             yield _SpanHandle(None)  # No-op span
             return
 
-        # ✅ Use standard 'with' statement for proper OTel context management
-        # Manual __enter__/__exit__() calls skip context.attach(), which breaks
-        # OpenTelemetry's context propagation to child spans/generations
-        with self.raw.start_as_current_span(
-            name=name,
-            input=input or {},
-            metadata=metadata or {},
-        ) as s:
-            handle = _SpanHandle(s)
-            t0 = time.perf_counter()
-            try:
-                yield handle
-            except Exception as exc:
-                s.update(level="ERROR", status_message=str(exc))
-                raise
-            finally:
-                elapsed_ms = int((time.perf_counter() - t0) * 1000)
-                handle._elapsed_ms = elapsed_ms
+        span_api_name, span_api = _resolve_api(self.raw, _CHILD_SPAN_API_CANDIDATES)
+        if span_api is None:
+            diagnostics = _build_diagnostics(
+                raw=self.raw,
+                trace_name=self.diagnostics.trace_name if self.diagnostics else None,
+                reason="missing_child_span_api",
+            )
+            _log_diagnostics(logging.WARNING, "Langfuse child span unavailable.", diagnostics)
+            yield _SpanHandle(None)
+            return
+
+        try:
+            context = span_api(
+                name=name,
+                input=input or {},
+                metadata=metadata or {},
+            )
+            with _wrap_context_object(context) as s:
+                handle = _SpanHandle(s)
+                t0 = time.perf_counter()
+                try:
+                    yield handle
+                except Exception as exc:
+                    if hasattr(s, "update"):
+                        s.update(level="ERROR", status_message=str(exc))
+                    raise
+                finally:
+                    elapsed_ms = int((time.perf_counter() - t0) * 1000)
+                    handle._elapsed_ms = elapsed_ms
+        except Exception as exc:
+            diagnostics = _build_diagnostics(
+                raw=self.raw,
+                trace_name=self.diagnostics.trace_name if self.diagnostics else None,
+                reason="child_span_failed",
+                error=exc,
+            )
+            diagnostics.resolved_apis["child_span_api"] = span_api_name
+            _log_diagnostics(logging.WARNING, "Langfuse child span unavailable.", diagnostics)
+            yield _SpanHandle(None)
 
     @contextmanager
     def generation(
@@ -363,27 +640,43 @@ class TraceHandle:
             yield _GenerationHandle(None)  # No-op generation
             return
 
-        # Use the Langfuse v3 generation API shipped in this repository.
-        #
-        # IMPORTANT: The SDK ends the OTel span as soon as the 'with' block exits
-        # (end_on_exit=True is the SDK default).  Any g.update() call made in a
-        # 'finally' clause—after 'yield' returns—would execute *after* the span is
-        # already ended, meaning is_recording() == False and the update is silently
-        # dropped.  Token counts and output must therefore be written while the span
-        # is still alive, i.e. inside _GenerationHandle.set_output().
-        with self.raw.start_as_current_generation(
-            name=name,
-            model=model,
-            input=input,
-            model_parameters=model_params or {},
-            metadata=metadata or {},
-        ) as g:
-            handle = _GenerationHandle(g, model=model)
-            try:
-                yield handle
-            except Exception as exc:
-                g.update(level="ERROR", status_message=str(exc))
-                raise
+        generation_api_name, generation_api = _resolve_api(self.raw, _GENERATION_API_CANDIDATES)
+        if generation_api is None:
+            diagnostics = _build_diagnostics(
+                raw=self.raw,
+                trace_name=self.diagnostics.trace_name if self.diagnostics else None,
+                reason="missing_generation_api",
+            )
+            _log_diagnostics(logging.WARNING, "Langfuse generation unavailable.", diagnostics)
+            yield _GenerationHandle(None)
+            return
+
+        try:
+            context = generation_api(
+                name=name,
+                model=model,
+                input=input,
+                model_parameters=model_params or {},
+                metadata=metadata or {},
+            )
+            with _wrap_context_object(context) as g:
+                handle = _GenerationHandle(g, model=model)
+                try:
+                    yield handle
+                except Exception as exc:
+                    if hasattr(g, "update"):
+                        g.update(level="ERROR", status_message=str(exc))
+                    raise
+        except Exception as exc:
+            diagnostics = _build_diagnostics(
+                raw=self.raw,
+                trace_name=self.diagnostics.trace_name if self.diagnostics else None,
+                reason="generation_start_failed",
+                error=exc,
+            )
+            diagnostics.resolved_apis["generation_api"] = generation_api_name
+            _log_diagnostics(logging.WARNING, "Langfuse generation unavailable.", diagnostics)
+            yield _GenerationHandle(None)
 
 
 class _SpanHandle:

@@ -63,6 +63,17 @@ _VISUAL_KEYWORDS = {
     "表",
 }
 
+_SUMMARY_KEYWORDS = {
+    "summary",
+    "summarize",
+    "summarise",
+    "key points",
+    "main points",
+    "要約",
+    "要点",
+    "まとめ",
+}
+
 
 # ═══════════════════════════════════════════════════════════
 # REASONING ORCHESTRATOR AGENT
@@ -126,7 +137,80 @@ class ReasoningOrchestratorAgent(BaseLoadableModel):
         """
 
         def _do():
-            hits = store.hybrid_query(question, n_results=8, min_score=min_score)
+            q_lower = question.lower()
+            is_summary_query = any(kw in q_lower for kw in _SUMMARY_KEYWORDS)
+
+            # Summary-style questions work better with broader recall and richer chunks.
+            if is_summary_query:
+                candidates = store.hybrid_query(question, n_results=24, min_score=0.0)
+                rich = [h for h in candidates if len((h.get("text") or "").strip()) >= 120]
+                if rich:
+                    # Favor informative chunks while preserving broad page coverage.
+                    rich.sort(key=lambda h: (len((h.get("text") or "")), h.get("score", 0.0)), reverse=True)
+                    selected: list[dict] = []
+                    seen_pages: set[int] = set()
+                    for hit in rich:
+                        page = int(hit.get("meta", {}).get("page_num", -1))
+                        if page in seen_pages and len(selected) < 6:
+                            continue
+                        selected.append(hit)
+                        if page >= 0:
+                            seen_pages.add(page)
+                        if len(selected) >= 8:
+                            break
+                    if len(selected) < 8:
+                        for hit in rich:
+                            if hit in selected:
+                                continue
+                            selected.append(hit)
+                            if len(selected) >= 8:
+                                break
+                    hits = selected if selected else candidates[:8]
+                else:
+                    # Hybrid recall can collapse on generic summary queries.
+                    # Fall back to corpus-wide representative chunks.
+                    corpus = store._col.get(include=["documents", "metadatas"])
+                    docs = corpus.get("documents") or []
+                    metas = corpus.get("metadatas") or []
+                    rep: list[dict] = []
+                    for idx, doc in enumerate(docs):
+                        text = (doc or "").strip()
+                        if len(text) < 120:
+                            continue
+                        meta = metas[idx] if idx < len(metas) else {}
+                        rep.append({"text": text, "meta": meta, "score": 0.0})
+
+                    rep.sort(
+                        key=lambda h: (
+                            float(h.get("meta", {}).get("confidence", 0.0)),
+                            len(h.get("text") or ""),
+                        ),
+                        reverse=True,
+                    )
+
+                    selected = []
+                    seen_pages: set[int] = set()
+                    for hit in rep:
+                        page = int(hit.get("meta", {}).get("page_num", -1))
+                        if page in seen_pages and len(selected) < 6:
+                            continue
+                        selected.append(hit)
+                        if page >= 0:
+                            seen_pages.add(page)
+                        if len(selected) >= 8:
+                            break
+                    if len(selected) < 8:
+                        for hit in rep:
+                            if hit in selected:
+                                continue
+                            selected.append(hit)
+                            if len(selected) >= 8:
+                                break
+
+                    hits = selected if selected else candidates[:8]
+            else:
+                hits = store.hybrid_query(question, n_results=8, min_score=min_score)
+
             # Fallback to pure vector search if hybrid returns too few results
             if len(hits) < 3:
                 log.debug("Hybrid search returned %d hits — falling back to vector search", len(hits))
