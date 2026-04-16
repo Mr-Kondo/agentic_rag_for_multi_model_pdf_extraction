@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from contextlib import contextmanager
 
-from src.integrations.langfuse import TraceHandle, _build_usage_details
+from src.integrations.langfuse import LangfuseTracer, TraceHandle, _build_usage_details
 
 
 class _FakeGeneration:
@@ -28,6 +28,53 @@ class _FakeSpan:
     def start_as_current_generation(self, **kwargs):
         self.calls.append(kwargs)
         yield self.generation
+
+
+class _FakeTraceContext:
+    def __init__(self):
+        self.child_generation = _FakeGeneration()
+        self.generation_calls: list[dict] = []
+
+    @contextmanager
+    def start_as_current_generation(self, **kwargs):
+        self.generation_calls.append(kwargs)
+        yield self.child_generation
+
+
+class _FallbackTraceContext(_FakeTraceContext):
+    @contextmanager
+    def start_generation(self, **kwargs):
+        self.generation_calls.append(kwargs)
+        yield self.child_generation
+
+
+class _FakeClientWithFallbackTraceApi:
+    def __init__(self):
+        self.calls: list[dict] = []
+        self.trace_context = _FallbackTraceContext()
+
+    def start_span(self, **kwargs):
+        self.calls.append(kwargs)
+        return self.trace_context
+
+    def get_current_trace_id(self):
+        return "trace-fallback-123"
+
+    def create_score(self, **kwargs):
+        return kwargs
+
+
+class _FakeClientMissingTraceApi:
+    def create_score(self, **kwargs):
+        return kwargs
+
+
+class _FakeClientWithLegacyScore:
+    def __init__(self):
+        self.score_calls: list[dict] = []
+
+    def score(self, **kwargs):
+        self.score_calls.append(kwargs)
 
 
 def test_build_usage_details_returns_langfuse_usage_shape():
@@ -76,3 +123,65 @@ def test_trace_generation_logs_update_failures(caplog):
             handle.set_output("oops", input_tokens=3, output_tokens=2)
 
     assert "Failed to update generation with output/usage" in caplog.text
+
+
+def test_tracer_uses_fallback_trace_api(monkeypatch):
+    """Tracer should fall back to start_span when start_as_current_span is unavailable."""
+    fake_client = _FakeClientWithFallbackTraceApi()
+    monkeypatch.setattr("src.integrations.langfuse._get_client", lambda: fake_client)
+
+    tracer = LangfuseTracer()
+
+    with tracer.trace("rag_query", input={"question": "hi"}) as trace:
+        assert trace.trace_id == "trace-fallback-123"
+        with trace.generation(name="orchestrator", model="test-model") as handle:
+            handle.set_output("ok")
+
+    assert fake_client.calls[0]["name"] == "rag_query"
+    assert fake_client.trace_context.generation_calls[0]["name"] == "orchestrator"
+
+
+def test_tracer_logs_reason_when_trace_api_is_missing(monkeypatch, caplog):
+    """Missing client trace APIs should produce a reasoned no-op diagnostic."""
+    monkeypatch.setattr("src.integrations.langfuse._get_client", lambda: _FakeClientMissingTraceApi())
+
+    tracer = LangfuseTracer()
+
+    with caplog.at_level(logging.WARNING):
+        with tracer.trace("rag_query") as trace:
+            assert trace.trace_id == "no-op"
+            assert trace.disable_reason == "missing_client_trace_api"
+
+    assert "Langfuse trace unavailable." in caplog.text
+    assert "reason=missing_client_trace_api" in caplog.text
+
+
+def test_trace_generation_logs_reason_when_generation_api_is_missing(caplog):
+    """Missing generation APIs on an active trace should degrade to no-op with diagnostics."""
+    trace = TraceHandle(raw=object())
+
+    with caplog.at_level(logging.WARNING):
+        with trace.generation(name="test_generation", model="test-model") as handle:
+            handle.set_output("ignored")
+
+    assert "Langfuse generation unavailable." in caplog.text
+    assert "reason=missing_generation_api" in caplog.text
+
+
+def test_score_falls_back_to_legacy_score_api(monkeypatch):
+    """Score posting should use legacy score() when create_score() is unavailable."""
+    fake_client = _FakeClientWithLegacyScore()
+    monkeypatch.setattr("src.integrations.langfuse._get_client", lambda: fake_client)
+
+    tracer = LangfuseTracer()
+    tracer.score(trace_id="trace-123", name="answer_grounding", value=0.9)
+
+    assert fake_client.score_calls == [
+        {
+            "trace_id": "trace-123",
+            "name": "answer_grounding",
+            "value": 0.9,
+            "comment": None,
+            "data_type": "NUMERIC",
+        }
+    ]

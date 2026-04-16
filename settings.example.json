@@ -3,8 +3,8 @@
   "models": {
     "text_extraction": "qwen3.5:latest",
     "table_extraction": "qwen2.5:7b",
-    "vision_extraction": "qwen2.5vl:7b",
-    "chunk_validator": "qwen2.5vl:7b",
+    "vision_extraction": "qwen3vl:latest",
+    "chunk_validator": "qwen3vl:latest",
     "orchestrator": "gemma4:latest",
     "answer_validator": "gemma4:latest",
     "dspy_lm": "gemma4:latest",
