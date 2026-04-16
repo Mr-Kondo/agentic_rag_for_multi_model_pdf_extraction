@@ -1,6 +1,6 @@
 # ライブラリ・フレームワーク解説
 
-Last updated: 2026-04-08
+Last updated: 2026-04-16
 
 このドキュメントは、Agentic RAG for Multi-Model PDF Extraction が依存する主要なフレームワーク・ライブラリについて説明します。
 各項目では「概要」「このアプリでの用途」「役割」を記述します。
@@ -133,8 +133,9 @@ BERT 系モデルを用いて文・段落を高品質なベクトルに変換し
 |-----------|------|
 | `src/core/embedder.py` | `SentenceTransformerEmbedder` として実装されており、`ChunkStore` のデフォルト埋め込み backend として使用される |
 
-デフォルトモデルは `kun432/cl-nagoya-ruri-large` (Ollama backend)。
-クエリには `"クエリ: "` プレフィックス、文書には `"文章: "` プレフィックスを付与して encode します。
+デフォルトモデルは `kun432/cl-nagoya-ruri-large:latest` (Ollama backend、`embedder.backend: "ollama"`として使用)。
+`sentence_transformers` バックエンドに切り替える場合は `settings.example.json` を参照してください。
+ruri モデルの場合、クエリには `"クエリ: "` 、文書には `"文章: "` プレフィックスを付与して encode します。
 
 **役割**
 
