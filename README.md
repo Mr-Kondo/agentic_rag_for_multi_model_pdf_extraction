@@ -40,15 +40,19 @@ ollama serve          # 別ターミナルで常時起動しておく
 |---|---|---|
 | テキスト抽出 | `qwen3:8b` | 5.2 GB |
 | テーブル抽出 | `qwen2.5:3b` | 1.9 GB |
-| 図版抽出 / チャンク検証 (VLM) | `qwen2.5vl:7b` | 6.0 GB |
+| 図版抽出 (VLM) | `ricoh-ai/Qwen-3-VL-Ricoh-8B-20260227` | 9B class (BF16) |
+| チャンク検証 (VLM) | `qwen2.5vl:7b` | 6.0 GB |
 | 推論オーケストレーター / 回答検証 / DSPy 検証 | `gemma4:latest` | depends on local Ollama manifest |
 
 ```bash
 ollama pull qwen3:8b
 ollama pull qwen2.5:3b
+ollama pull ricoh-ai/Qwen-3-VL-Ricoh-8B-20260227
 ollama pull qwen2.5vl:7b
 ollama pull gemma4:latest
 ```
+
+注: Ricoh VLM は利用規約への同意が必要な場合があります。`ollama pull` が利用環境で失敗する場合は、`models.vision_extraction` を従来の `qwen2.5vl:7b` に戻して運用してください。
 
 ### 3. Python 依存関係のインストール
 
@@ -78,7 +82,7 @@ cp settings.example.json settings.json
   "models": {
     "text_extraction": "qwen3:8b",
     "table_extraction": "qwen2.5:3b",
-    "vision_extraction": "qwen2.5vl:7b",
+    "vision_extraction": "ricoh-ai/Qwen-3-VL-Ricoh-8B-20260227",
     "chunk_validator": "qwen2.5vl:7b",
     "orchestrator": "gemma4:latest",
     "answer_validator": "gemma4:latest",
@@ -191,7 +195,7 @@ app.py (CLI)
         ├── agents/
         │   ├── TextAgent      — qwen3:8b   テキスト抽出
         │   ├── TableAgent     — qwen2.5:3b テーブル抽出
-        │   ├── VisionAgent    — qwen2.5vl:7b 図版解析 (VLM)
+        │   ├── VisionAgent    — ricoh-ai/Qwen-3-VL-Ricoh-8B-20260227 図版解析 (VLM)
         │   ├── ChunkValidatorAgent   — qwen2.5vl:7b CHECKPOINT A
         │   ├── ReasoningOrchestratorAgent — gemma4:latest 回答生成
         │   └── AnswerValidatorAgent  — gemma4:latest (DSPy) CHECKPOINT B
@@ -205,6 +209,10 @@ app.py (CLI)
 モデルのロード / アンロードおよび VRAM 管理は Ollama サーバーが担います。
 埋め込みモデルは `ollama` バックエンド（デフォルト: `kun432/cl-nagoya-ruri-large`）
 または `sentence_transformers` バックエンド（例: `intfloat/multilingual-e5-small`）から選択できます。
+
+VLM の段階導入方針:
+- Phase 1: `vision_extraction` を Ricoh VLM に置換
+- Phase 2: 品質評価後に `chunk_validator` 置換を検討
 
 ---
 

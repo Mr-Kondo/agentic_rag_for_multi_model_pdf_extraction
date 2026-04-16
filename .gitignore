@@ -210,10 +210,15 @@ models*/
 chroma_db*/
 .vscode*/
 
-# Generated audit image artifacts
-out/*_audit/figures/*.png
-out/*_audit/pages/*.png
+# Test and runtime artifacts
+out/
+
+# macOS system files
+.DS_Store
+
+# Application logs
 app.log
+*.log
 
 # Configuration (user-customized)
 settings.json
