@@ -62,9 +62,9 @@ _CURRENT_TRACE: contextvars.ContextVar["TraceHandle | None"] = contextvars.Conte
     default=None,
 )
 
-_TRACE_START_API_CANDIDATES = ("start_as_current_span", "start_span")
-_CHILD_SPAN_API_CANDIDATES = ("start_as_current_span", "start_span")
-_GENERATION_API_CANDIDATES = ("start_as_current_generation", "start_generation")
+_TRACE_START_API_CANDIDATES = ("start_as_current_observation", "start_observation")
+_CHILD_SPAN_API_CANDIDATES = ("start_as_current_observation", "start_observation")
+_GENERATION_API_CANDIDATES = ("start_as_current_observation", "start_observation")
 _TRACE_ID_API_CANDIDATES = ("get_current_trace_id",)
 _SCORE_API_CANDIDATES = ("create_score", "score")
 _COMPATIBILITY_LOGGED = False
@@ -380,7 +380,7 @@ class LangfuseTracer:
             return
 
         try:
-            span = trace_api(
+            ctx = trace_api(
                 name=name,
                 input=input or {},
                 metadata=metadata or {},
@@ -402,7 +402,7 @@ class LangfuseTracer:
                 _CURRENT_TRACE.reset(token)
             return
 
-        if span is None:
+        if ctx is None:
             diagnostics = _build_diagnostics(
                 client=self._client,
                 trace_name=name,
@@ -410,9 +410,6 @@ class LangfuseTracer:
             )
             diagnostics.resolved_apis["trace_api"] = trace_api_name
             _log_diagnostics(logging.WARNING, "Langfuse trace unavailable.", diagnostics)
-            span = None
-
-        if span is None:
             handle = TraceHandle.noop(reason="trace_start_returned_none", diagnostics=diagnostics)
             token = _CURRENT_TRACE.set(handle)
             try:
@@ -421,48 +418,52 @@ class LangfuseTracer:
                 _CURRENT_TRACE.reset(token)
             return
 
-        trace_id = None
-        trace_id_api_name, trace_id_api = _resolve_api(self._client, _TRACE_ID_API_CANDIDATES)
-        if trace_id_api is not None:
-            try:
-                trace_id = trace_id_api()
-                log.debug("✓ Trace started: %s (trace_id=%s)", name, trace_id)
-            except Exception as exc:
-                diagnostics = _build_diagnostics(
-                    client=self._client,
-                    raw=span,
-                    trace_name=name,
-                    reason="trace_id_lookup_failed",
-                    error=exc,
-                )
-                diagnostics.resolved_apis["trace_api"] = trace_api_name
-                diagnostics.resolved_apis["trace_id_api"] = trace_id_api_name
-                _log_diagnostics(logging.WARNING, "Langfuse trace started without trace id lookup.", diagnostics)
-
-        handle_diagnostics = _build_diagnostics(client=self._client, raw=span, trace_name=name)
-        handle_diagnostics.resolved_apis["trace_api"] = trace_api_name
-        handle_diagnostics.resolved_apis["trace_id_api"] = trace_id_api_name
-        if (
-            handle_diagnostics.resolved_apis.get("child_span_api") is None
-            or handle_diagnostics.resolved_apis.get("generation_api") is None
-        ):
-            handle_diagnostics.reason = "partial_trace_handle_api_support"
-            _log_diagnostics(logging.WARNING, "Langfuse trace started with limited child API support.", handle_diagnostics)
-
-        handle = TraceHandle(span, trace_id, diagnostics=handle_diagnostics)
-        token = _CURRENT_TRACE.set(handle)
-        try:
-            yield handle
-        except Exception as e:
-            if hasattr(span, "update"):
+        # Enter the context manager returned by start_as_current_observation() to
+        # propagate the OTel active-span context. Only the entered LangfuseSpan
+        # object exposes child span APIs (start_as_current_observation, etc.).
+        with _wrap_context_object(ctx) as span:
+            trace_id = None
+            trace_id_api_name, trace_id_api = _resolve_api(self._client, _TRACE_ID_API_CANDIDATES)
+            if trace_id_api is not None:
                 try:
-                    span.update(level="ERROR", status_message=str(e))
-                except Exception:
-                    pass
-            log.error(f"Trace error in '{name}': {e}")
-            raise
-        finally:
-            _CURRENT_TRACE.reset(token)
+                    trace_id = trace_id_api()
+                    log.debug("✓ Trace started: %s (trace_id=%s)", name, trace_id)
+                except Exception as exc:
+                    diagnostics = _build_diagnostics(
+                        client=self._client,
+                        raw=span,
+                        trace_name=name,
+                        reason="trace_id_lookup_failed",
+                        error=exc,
+                    )
+                    diagnostics.resolved_apis["trace_api"] = trace_api_name
+                    diagnostics.resolved_apis["trace_id_api"] = trace_id_api_name
+                    _log_diagnostics(logging.WARNING, "Langfuse trace started without trace id lookup.", diagnostics)
+
+            handle_diagnostics = _build_diagnostics(client=self._client, raw=span, trace_name=name)
+            handle_diagnostics.resolved_apis["trace_api"] = trace_api_name
+            handle_diagnostics.resolved_apis["trace_id_api"] = trace_id_api_name
+            if (
+                handle_diagnostics.resolved_apis.get("child_span_api") is None
+                or handle_diagnostics.resolved_apis.get("generation_api") is None
+            ):
+                handle_diagnostics.reason = "partial_trace_handle_api_support"
+                _log_diagnostics(logging.WARNING, "Langfuse trace started with limited child API support.", handle_diagnostics)
+
+            handle = TraceHandle(span, trace_id, diagnostics=handle_diagnostics)
+            token = _CURRENT_TRACE.set(handle)
+            try:
+                yield handle
+            except Exception as e:
+                if hasattr(span, "update"):
+                    try:
+                        span.update(level="ERROR", status_message=str(e))
+                    except Exception:
+                        pass
+                log.error(f"Trace error in '{name}': {e}")
+                raise
+            finally:
+                _CURRENT_TRACE.reset(token)
 
     # ── Scoring ──────────────────────────────
     def score(
@@ -654,6 +655,7 @@ class TraceHandle:
         try:
             context = generation_api(
                 name=name,
+                as_type="generation",
                 model=model,
                 input=input,
                 model_parameters=model_params or {},
