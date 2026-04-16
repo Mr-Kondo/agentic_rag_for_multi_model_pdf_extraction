@@ -25,7 +25,7 @@ class _FakeSpan:
         self.calls: list[dict] = []
 
     @contextmanager
-    def start_as_current_generation(self, **kwargs):
+    def start_as_current_observation(self, **kwargs):
         self.calls.append(kwargs)
         yield self.generation
 
@@ -36,14 +36,14 @@ class _FakeTraceContext:
         self.generation_calls: list[dict] = []
 
     @contextmanager
-    def start_as_current_generation(self, **kwargs):
+    def start_as_current_observation(self, **kwargs):
         self.generation_calls.append(kwargs)
         yield self.child_generation
 
 
 class _FallbackTraceContext(_FakeTraceContext):
     @contextmanager
-    def start_generation(self, **kwargs):
+    def start_observation(self, **kwargs):
         self.generation_calls.append(kwargs)
         yield self.child_generation
 
@@ -53,7 +53,7 @@ class _FakeClientWithFallbackTraceApi:
         self.calls: list[dict] = []
         self.trace_context = _FallbackTraceContext()
 
-    def start_span(self, **kwargs):
+    def start_observation(self, **kwargs):
         self.calls.append(kwargs)
         return self.trace_context
 
