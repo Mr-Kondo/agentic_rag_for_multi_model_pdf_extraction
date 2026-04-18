@@ -24,6 +24,7 @@ def save_chunk_audit(
     accepted: list[ProcessedChunk],
     output_dir: str | Path,
     render_page_previews: bool = True,
+    parser_table_metrics: list[dict[str, Any]] | None = None,
 ) -> dict[str, Path]:
     """Persist audit artifacts for visual review of extracted chunks."""
     pdf_path = Path(pdf_path)
@@ -62,6 +63,7 @@ def save_chunk_audit(
     audit_data = {
         "pdf_file": pdf_path.name,
         "pdf_path": os.path.relpath(pdf_path, start=output_dir).replace("\\", "/"),
+        "parser_table_metrics": parser_table_metrics or [],
         "pages": [
             {
                 "page_num": page_num,
@@ -208,6 +210,10 @@ def _build_html(audit_data: dict[str, Any]) -> str:
     .diff-del {{ background:#fee2e2; color:#991b1b; text-decoration:line-through; display:block; }}
     .diff-ctx {{ color:#6b7280; display:block; }}
     .empty-state {{ border: 1px dashed var(--border); border-radius: 20px; padding: 24px; background: rgba(255,255,255,0.6); color: var(--muted); }}
+    .metrics {{ border: 1px solid var(--border); border-radius: 20px; padding: 18px; background: rgba(255,255,255,0.72); margin-bottom: 24px; }}
+    .metrics table {{ width: 100%; border-collapse: collapse; font-size: 14px; }}
+    .metrics th, .metrics td {{ border-bottom: 1px solid var(--border); padding: 8px; text-align: left; }}
+    .metrics th {{ color: var(--muted); font-weight: 600; }}
     @media (max-width: 980px) {{ .layout {{ grid-template-columns: 1fr; }} .detail {{ position: static; }} }}
   </style>
 </head>
@@ -220,6 +226,7 @@ def _build_html(audit_data: dict[str, Any]) -> str:
       <div class=\"chunk-list\" id=\"chunk-list\"></div>
     </aside>
     <main class=\"content\">
+      <section class="metrics" id="metrics"></section>
       <section class=\"detail\" id=\"detail\">
         <strong>Chunk を選択すると詳細を表示します。</strong>
       </section>
@@ -298,6 +305,51 @@ __PAYLOAD__
         };
         host.appendChild(button);
       });
+    }
+
+    function renderMetrics() {
+      const host = document.getElementById("metrics");
+      const metrics = audit.parser_table_metrics || [];
+      if (!metrics.length) {
+        host.innerHTML = '<strong>Parser table metrics</strong><p>メトリクスは記録されていません。</p>';
+        return;
+      }
+
+      const rows = metrics.map((metric) => {
+        const reasons = Object.entries(metric.rejected_reasons || {})
+          .map(([key, value]) => `${escapeHtml(key)}:${value}`)
+          .join(", ");
+        return `
+          <tr>
+            <td>${metric.page_num}</td>
+            <td>${metric.total_candidates}</td>
+            <td>${metric.default_candidates}</td>
+            <td>${metric.fallback_candidates}</td>
+            <td>${metric.accepted_candidates}</td>
+            <td>${metric.rejected_candidates}</td>
+            <td>${reasons || "-"}</td>
+          </tr>
+        `;
+      }).join("");
+
+      host.innerHTML = `
+        <strong>Parser table metrics</strong>
+        <p>ページ別のテーブル候補判定サマリです。</p>
+        <table>
+          <thead>
+            <tr>
+              <th>page</th>
+              <th>total</th>
+              <th>default</th>
+              <th>fallback</th>
+              <th>accepted</th>
+              <th>rejected</th>
+              <th>reasons</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      `;
     }
 
     function visibleChunks() {
@@ -417,6 +469,7 @@ __PAYLOAD__
     }
 
     renderFilters();
+    renderMetrics();
     renderChunkList();
     renderPages();
     if (chunks.length) {

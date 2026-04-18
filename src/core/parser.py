@@ -90,6 +90,7 @@ class PDFParser:
         self._available_tesseract_languages_loaded = False
         self._easyocr_reader: Any | None = None
         self._last_ocr_metadata: dict[str, Any] | None = None
+        self._last_parse_table_metrics: list[dict[str, Any]] = []
         if self.OCR_PREWARM_EASYOCR and self.OCR_ENGINE == "easyocr":
             self._get_easyocr_reader()
 
@@ -105,6 +106,7 @@ class PDFParser:
         """
         pdf_path = Path(pdf_path)
         chunks: list[RawChunk] = []
+        self._last_parse_table_metrics = []
         doc_fitz = pymupdf.open(str(pdf_path))
         doc_plumb = pdfplumber.open(str(pdf_path))
 
@@ -193,6 +195,7 @@ class PDFParser:
                     elif reject_reason is not None:
                         rejected_reasons[reject_reason] = rejected_reasons.get(reject_reason, 0) + 1
                 metrics = self._build_table_metrics(table_candidates, accepted_tables, rejected_reasons)
+                self._last_parse_table_metrics.append({"page_num": page_idx + 1, **metrics})
                 log.info(
                     "Page %d: table metrics total=%d default=%d fallback=%d accepted=%d rejected=%d",
                     page_idx + 1,
@@ -225,6 +228,10 @@ class PDFParser:
 
         log.info("Parsed %d raw chunks from %s", len(chunks), pdf_path.name)
         return chunks
+
+    def get_last_parse_table_metrics(self) -> list[dict[str, Any]]:
+        """Return table diagnostics captured during the last parse call."""
+        return [dict(entry) for entry in self._last_parse_table_metrics]
 
     def _should_skip_fitz_word_extraction(self, plumb_words: list[dict[str, Any]], image_count: int) -> bool:
         """Return True when a page is likely native PDF text and fitz word extraction is unnecessary."""
