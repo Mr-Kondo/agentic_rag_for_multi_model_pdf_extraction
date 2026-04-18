@@ -48,7 +48,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "2a71e59b-c5ad-42e6-8630-062fb348c291",
+        "chunk_id": "3f8bbfb7-a103-4a00-843c-3729b4d58515",
         "chunk_type": "text",
         "page_num": 1,
         "source_file": "21_77.pdf",
@@ -100,7 +100,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "43283985-6049-457d-909c-dbca12ff4f73",
+        "chunk_id": "4fd7caf1-73d1-4f58-8a2d-0f5f50af8853",
         "chunk_type": "text",
         "page_num": 1,
         "source_file": "21_77.pdf",
@@ -152,7 +152,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "7ea13bff-43cb-418e-bb4b-9953816be5fc",
+        "chunk_id": "58786eda-f640-46df-8c3b-921e8dc87f3f",
         "chunk_type": "text",
         "page_num": 1,
         "source_file": "21_77.pdf",
@@ -204,7 +204,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "f6c7e2a4-9ad9-40f4-b621-11661a60bf82",
+        "chunk_id": "7fc2f384-7579-4064-94da-3cb63e1a3a94",
         "chunk_type": "text",
         "page_num": 1,
         "source_file": "21_77.pdf",
@@ -256,7 +256,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "d949071f-66c6-4d3c-a410-676661d48a15",
+        "chunk_id": "ffffe9cc-43fa-4fdf-8720-959bd7f882b0",
         "chunk_type": "text",
         "page_num": 1,
         "source_file": "21_77.pdf",
@@ -308,7 +308,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "1ecf50dd-cd42-4998-a3e0-1639e76cd99b",
+        "chunk_id": "42b589f9-7a29-4910-afd1-4fb6160b19c1",
         "chunk_type": "text",
         "page_num": 1,
         "source_file": "21_77.pdf",
@@ -357,10 +357,10 @@
           "height": 842.0
         },
         "source_preview": "image:611x278",
-        "artifact_path": "21_77_audit/figures/5c88a4da-c2af-4572-bed5-f9de40e0dcd9.png"
+        "artifact_path": "21_77_audit/figures/e40ab67d-31f5-4abf-b509-c78589347022.png"
       },
       "processed": {
-        "chunk_id": "5c88a4da-c2af-4572-bed5-f9de40e0dcd9",
+        "chunk_id": "e40ab67d-31f5-4abf-b509-c78589347022",
         "chunk_type": "figure",
         "page_num": 2,
         "source_file": "21_77.pdf",
@@ -376,11 +376,16 @@
         },
         "artifact_path": null,
         "source_preview": "image:611x278",
-        "structured_text": "[OCR unavailable]",
-        "intuition_summary": "OCR fallback.",
-        "key_concepts": [],
-        "confidence": 0.3,
-        "agent_notes": "Vision model not loaded.\n[ocr_policy] engine=tesseract, threshold=0.50, reocr=False, max_attempts=0",
+        "structured_text": "A grayscale aerial or satellite map depicting urban areas, road networks, and water bodies with visible geographical features and infrastructure.",
+        "intuition_summary": "A grayscale map showing urban development, transportation routes, and natural water features within a geographic region.",
+        "key_concepts": [
+          "map",
+          "urban areas",
+          "roads",
+          "water bodies"
+        ],
+        "confidence": 0.95,
+        "agent_notes": "figure_type=map | No issues detected; clear representation of a geographic map with identifiable land use and infrastructure elements.\n[ocr_policy] engine=tesseract, threshold=0.50, reocr=False, max_attempts=0",
         "validation": {
           "is_valid": true,
           "verdict_score": 1.0,
@@ -409,10 +414,10 @@
           "height": 842.0
         },
         "source_preview": "image:197x83",
-        "artifact_path": "21_77_audit/figures/6e3c1393-d8a0-428a-926e-10ab7a0685e6.png"
+        "artifact_path": "21_77_audit/figures/c76d1930-17a8-4c4b-8063-1317dfa6f4b8.png"
       },
       "processed": {
-        "chunk_id": "6e3c1393-d8a0-428a-926e-10ab7a0685e6",
+        "chunk_id": "c76d1930-17a8-4c4b-8063-1317dfa6f4b8",
         "chunk_type": "figure",
         "page_num": 2,
         "source_file": "21_77.pdf",
@@ -428,11 +433,11 @@
         },
         "artifact_path": null,
         "source_preview": "image:197x83",
-        "structured_text": "[OCR unavailable]",
-        "intuition_summary": "OCR fallback.",
+        "structured_text": "",
+        "intuition_summary": "",
         "key_concepts": [],
-        "confidence": 0.3,
-        "agent_notes": "Vision model not loaded.\n[ocr_policy] engine=tesseract, threshold=0.50, reocr=False, max_attempts=0",
+        "confidence": 0.6,
+        "agent_notes": "figure_type=other | \n[ocr_policy] engine=tesseract, threshold=0.50, reocr=False, max_attempts=0",
         "validation": {
           "is_valid": true,
           "verdict_score": 1.0,
@@ -461,10 +466,10 @@
           "height": 842.0
         },
         "source_preview": "image:160x83",
-        "artifact_path": "21_77_audit/figures/0bc7c4ae-50f8-471f-b19b-2ba9039f5e4c.png"
+        "artifact_path": "21_77_audit/figures/f54e16a7-4106-41e3-8458-1d9c63ef35ec.png"
       },
       "processed": {
-        "chunk_id": "0bc7c4ae-50f8-471f-b19b-2ba9039f5e4c",
+        "chunk_id": "f54e16a7-4106-41e3-8458-1d9c63ef35ec",
         "chunk_type": "figure",
         "page_num": 2,
         "source_file": "21_77.pdf",
@@ -480,11 +485,15 @@
         },
         "artifact_path": null,
         "source_preview": "image:160x83",
-        "structured_text": "[OCR unavailable]",
-        "intuition_summary": "OCR fallback.",
-        "key_concepts": [],
-        "confidence": 0.3,
-        "agent_notes": "Vision model not loaded.\n[ocr_policy] engine=tesseract, threshold=0.50, reocr=False, max_attempts=0",
+        "structured_text": "An image containing the Japanese text '西大橋' overlaid on a background of tree branches or foliage.",
+        "intuition_summary": "A photograph featuring Japanese text on a natural background.",
+        "key_concepts": [
+          "西大橋",
+          "photograph",
+          "Japanese text"
+        ],
+        "confidence": 0.9,
+        "agent_notes": "figure_type=photograph | No issues detected; the image is a photograph with overlaid text.\n[ocr_policy] engine=tesseract, threshold=0.50, reocr=False, max_attempts=0",
         "validation": {
           "is_valid": true,
           "verdict_score": 1.0,
@@ -513,10 +522,10 @@
           "height": 842.0
         },
         "source_preview": "image:149x145",
-        "artifact_path": "21_77_audit/figures/fa6f679a-73af-48ca-a3e2-65f477b9680f.png"
+        "artifact_path": "21_77_audit/figures/979bd6ca-fac0-4e16-a5e4-f4932b91030f.png"
       },
       "processed": {
-        "chunk_id": "fa6f679a-73af-48ca-a3e2-65f477b9680f",
+        "chunk_id": "979bd6ca-fac0-4e16-a5e4-f4932b91030f",
         "chunk_type": "figure",
         "page_num": 2,
         "source_file": "21_77.pdf",
@@ -532,11 +541,15 @@
         },
         "artifact_path": null,
         "source_preview": "image:149x145",
-        "structured_text": "[OCR unavailable]",
-        "intuition_summary": "OCR fallback.",
-        "key_concepts": [],
-        "confidence": 0.3,
-        "agent_notes": "Vision model not loaded.\n[ocr_policy] engine=tesseract, threshold=0.50, reocr=False, max_attempts=0",
+        "structured_text": "A map with a compass rose symbol, likely representing topographic or geographical features.",
+        "intuition_summary": "A map incorporating a compass rose for directional orientation.",
+        "key_concepts": [
+          "compass rose",
+          "map",
+          "topographic"
+        ],
+        "confidence": 0.9,
+        "agent_notes": "figure_type=map | No structured table detected; image contains map elements with compass rose.\n[ocr_policy] engine=tesseract, threshold=0.50, reocr=False, max_attempts=0",
         "validation": {
           "is_valid": true,
           "verdict_score": 1.0,
@@ -565,10 +578,10 @@
           "height": 842.0
         },
         "source_preview": "image:170x135",
-        "artifact_path": "21_77_audit/figures/bcc49278-d521-47cf-bd2c-642e4ff7acee.png"
+        "artifact_path": "21_77_audit/figures/70dbcbad-d7c6-4211-9576-7d84c25a9803.png"
       },
       "processed": {
-        "chunk_id": "bcc49278-d521-47cf-bd2c-642e4ff7acee",
+        "chunk_id": "70dbcbad-d7c6-4211-9576-7d84c25a9803",
         "chunk_type": "figure",
         "page_num": 2,
         "source_file": "21_77.pdf",
@@ -584,11 +597,15 @@
         },
         "artifact_path": null,
         "source_preview": "image:170x135",
-        "structured_text": "[OCR unavailable]",
-        "intuition_summary": "OCR fallback.",
-        "key_concepts": [],
-        "confidence": 0.3,
-        "agent_notes": "Vision model not loaded.\n[ocr_policy] engine=tesseract, threshold=0.50, reocr=False, max_attempts=0",
+        "structured_text": "A black-and-white geographical map featuring the Japanese text '荒川' (Arakawa) prominently displayed, with visible river networks and terrain lines in the background.",
+        "intuition_summary": "A monochrome map highlighting the Arakawa river and surrounding geographical features.",
+        "key_concepts": [
+          "荒川",
+          "map",
+          "geographical features"
+        ],
+        "confidence": 0.95,
+        "agent_notes": "figure_type=map | No issues detected; clear map with Japanese text preserved.\n[ocr_policy] engine=tesseract, threshold=0.50, reocr=False, max_attempts=0",
         "validation": {
           "is_valid": true,
           "verdict_score": 1.0,
@@ -617,10 +634,10 @@
           "height": 842.0
         },
         "source_preview": "image:196x84",
-        "artifact_path": "21_77_audit/figures/48f9e876-7619-4a9e-a100-32bcb92a0312.png"
+        "artifact_path": "21_77_audit/figures/e020554b-4f61-4924-afc3-07d0d6eb47bc.png"
       },
       "processed": {
-        "chunk_id": "48f9e876-7619-4a9e-a100-32bcb92a0312",
+        "chunk_id": "e020554b-4f61-4924-afc3-07d0d6eb47bc",
         "chunk_type": "figure",
         "page_num": 2,
         "source_file": "21_77.pdf",
@@ -636,11 +653,13 @@
         },
         "artifact_path": null,
         "source_preview": "image:196x84",
-        "structured_text": "Bay a Bi JI\n",
-        "intuition_summary": "OCR fallback.",
-        "key_concepts": [],
-        "confidence": 0.3,
-        "agent_notes": "Vision model not loaded.\n[ocr_policy] engine=tesseract, threshold=0.50, reocr=False, max_attempts=0",
+        "structured_text": "阿武隈川",
+        "intuition_summary": "The image contains only Japanese textual content representing a proper noun.",
+        "key_concepts": [
+          "阿武隈川"
+        ],
+        "confidence": 0.95,
+        "agent_notes": "figure_type=other | No structured visual elements detected; purely textual content.\n[ocr_policy] engine=tesseract, threshold=0.50, reocr=False, max_attempts=0",
         "validation": {
           "is_valid": true,
           "verdict_score": 1.0,
@@ -669,10 +688,10 @@
           "height": 842.0
         },
         "source_preview": "image:157x83",
-        "artifact_path": "21_77_audit/figures/80e810b0-932c-401e-8b87-f3d2974f85d7.png"
+        "artifact_path": "21_77_audit/figures/d966a158-feaf-47e2-93bb-0d31fec6dabd.png"
       },
       "processed": {
-        "chunk_id": "80e810b0-932c-401e-8b87-f3d2974f85d7",
+        "chunk_id": "d966a158-feaf-47e2-93bb-0d31fec6dabd",
         "chunk_type": "figure",
         "page_num": 2,
         "source_file": "21_77.pdf",
@@ -688,11 +707,15 @@
         },
         "artifact_path": null,
         "source_preview": "image:157x83",
-        "structured_text": "[OCR unavailable]",
-        "intuition_summary": "OCR fallback.",
-        "key_concepts": [],
-        "confidence": 0.3,
-        "agent_notes": "Vision model not loaded.\n[ocr_policy] engine=tesseract, threshold=0.50, reocr=False, max_attempts=0",
+        "structured_text": "荒川橋",
+        "intuition_summary": "A map depicting the Arakawa Bridge with geographical features and network-like lines.",
+        "key_concepts": [
+          "map",
+          "Arakawa Bridge",
+          "geographical features"
+        ],
+        "confidence": 0.9,
+        "agent_notes": "figure_type=map | No issues detected; clear map representation with Japanese text.\n[ocr_policy] engine=tesseract, threshold=0.50, reocr=False, max_attempts=0",
         "validation": {
           "is_valid": true,
           "verdict_score": 1.0,
@@ -724,7 +747,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "3279f27d-ce38-447a-b847-de563440c364",
+        "chunk_id": "31250cc1-1451-4000-b41f-6b2bad1b9b85",
         "chunk_type": "text",
         "page_num": 2,
         "source_file": "21_77.pdf",
@@ -776,7 +799,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "9866c32f-29af-4a60-8c11-c5a063a690c4",
+        "chunk_id": "37a0420c-ff8f-4a27-9dde-5fd6b0a02c3a",
         "chunk_type": "text",
         "page_num": 2,
         "source_file": "21_77.pdf",
@@ -828,7 +851,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "4ac26bfb-cd3f-468e-915f-98fa324669b9",
+        "chunk_id": "5da6570e-88a9-4b9a-857f-5f9988fc2cb9",
         "chunk_type": "text",
         "page_num": 2,
         "source_file": "21_77.pdf",
@@ -880,7 +903,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "4354b3ee-d48d-401c-8147-3db4785c4d6f",
+        "chunk_id": "3687ff42-6623-4205-b30a-68a1aac52cf1",
         "chunk_type": "text",
         "page_num": 2,
         "source_file": "21_77.pdf",
@@ -932,7 +955,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "095bd58a-926e-4c80-afc5-9f333e18b629",
+        "chunk_id": "00271319-ead1-416c-89b0-06c6a3754a2f",
         "chunk_type": "text",
         "page_num": 2,
         "source_file": "21_77.pdf",
@@ -984,7 +1007,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "a0a7e90e-3aec-489c-bc8c-d98c20d1c8c2",
+        "chunk_id": "50469aed-f8ae-4eb6-a3fd-1506a7e98656",
         "chunk_type": "text",
         "page_num": 2,
         "source_file": "21_77.pdf",
@@ -1036,7 +1059,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "93fdeee6-6e3e-4f99-9495-3be85e2b6717",
+        "chunk_id": "b23e2dd6-2c94-4f70-888e-29f51d2399f2",
         "chunk_type": "text",
         "page_num": 2,
         "source_file": "21_77.pdf",
@@ -1088,7 +1111,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "89bdac8e-f999-4783-94ac-e173e1ee24f6",
+        "chunk_id": "9d109ef8-234f-432a-9659-bc330edca550",
         "chunk_type": "text",
         "page_num": 2,
         "source_file": "21_77.pdf",
@@ -1140,7 +1163,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "27adab32-81f7-4122-be0f-08e9f7c4aac5",
+        "chunk_id": "8f29f040-d209-4370-ad1b-f78d0647f023",
         "chunk_type": "text",
         "page_num": 2,
         "source_file": "21_77.pdf",
@@ -1192,7 +1215,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "4afa9b47-d474-4272-9999-ece1c9bdd9e2",
+        "chunk_id": "5379c42e-03eb-4cb8-86e8-80c3bb898638",
         "chunk_type": "text",
         "page_num": 2,
         "source_file": "21_77.pdf",
@@ -1244,7 +1267,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "5a7b0292-894b-4167-bcd3-967d8397ca33",
+        "chunk_id": "4d6fe84a-1c9c-4e62-b248-5090e7c4af17",
         "chunk_type": "text",
         "page_num": 2,
         "source_file": "21_77.pdf",
@@ -1296,7 +1319,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "47d4cb07-f9e8-403f-9552-180aa327cb9f",
+        "chunk_id": "3d5b98c8-bb10-4b43-9f01-50d52307bbc5",
         "chunk_type": "text",
         "page_num": 2,
         "source_file": "21_77.pdf",
@@ -1348,7 +1371,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "302158cf-89a4-40db-9ef8-3e387aba298e",
+        "chunk_id": "1b7fb699-5901-4829-aa1e-0fb035b61964",
         "chunk_type": "text",
         "page_num": 2,
         "source_file": "21_77.pdf",
@@ -1400,7 +1423,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "2f353e79-19bf-4517-9adf-b6019f9c22b9",
+        "chunk_id": "bbcd561d-385c-415d-8783-6faaf0324d03",
         "chunk_type": "text",
         "page_num": 2,
         "source_file": "21_77.pdf",
@@ -1452,7 +1475,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "7349fc66-33c8-4dd0-b71b-e4762b1426e9",
+        "chunk_id": "73275fcd-2a37-459e-85e1-ba001bf87b56",
         "chunk_type": "text",
         "page_num": 2,
         "source_file": "21_77.pdf",
@@ -1504,7 +1527,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "6a7ae099-29d6-4012-99a3-84f2879d06b4",
+        "chunk_id": "c1a99e5e-0ca3-4abc-bf9d-b020e60afb11",
         "chunk_type": "text",
         "page_num": 2,
         "source_file": "21_77.pdf",
@@ -1556,7 +1579,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "cc424833-7275-475f-9bac-3d76009e9893",
+        "chunk_id": "3c882a08-b14b-4743-8ae6-210998492039",
         "chunk_type": "text",
         "page_num": 2,
         "source_file": "21_77.pdf",
@@ -1608,7 +1631,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "b764c05d-fffb-4e87-91f8-fb38b1ad88a8",
+        "chunk_id": "e4ec695f-558f-4ce2-87b0-9dccff2e666f",
         "chunk_type": "text",
         "page_num": 2,
         "source_file": "21_77.pdf",
@@ -1660,7 +1683,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "cf606583-7db6-4424-a763-03b98b690e8d",
+        "chunk_id": "8ee1f9c3-433e-4c09-99da-15c5a9b0e0fa",
         "chunk_type": "text",
         "page_num": 2,
         "source_file": "21_77.pdf",
@@ -1712,7 +1735,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "5a8d866b-a14f-4876-a023-aff0154b379a",
+        "chunk_id": "d11aeaae-31db-4114-b4ac-f52947010f8c",
         "chunk_type": "text",
         "page_num": 2,
         "source_file": "21_77.pdf",
@@ -1764,7 +1787,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "3135fc9b-ab5f-46f8-ba65-3f30f26fbb12",
+        "chunk_id": "4c82ca8a-0f30-4000-868f-6bedbbfec03a",
         "chunk_type": "text",
         "page_num": 2,
         "source_file": "21_77.pdf",
@@ -1816,7 +1839,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "86f3131a-4396-407d-b2cd-9c6968243036",
+        "chunk_id": "5831d3a2-3586-4057-bcdc-a083cb0cd9c9",
         "chunk_type": "text",
         "page_num": 2,
         "source_file": "21_77.pdf",
@@ -1868,7 +1891,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "1f29f97a-4987-45b5-a426-181400f32c5e",
+        "chunk_id": "55807d32-efa2-46ea-9383-20bd8695fa39",
         "chunk_type": "text",
         "page_num": 2,
         "source_file": "21_77.pdf",
@@ -1920,7 +1943,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "c4477939-17b4-4cc1-802f-f4761764b4df",
+        "chunk_id": "c08a6c55-3932-4eea-8b5a-656ce34c7ca7",
         "chunk_type": "text",
         "page_num": 2,
         "source_file": "21_77.pdf",
@@ -1972,7 +1995,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "49e5eca3-5850-4b3f-b9f5-59bc0f5a4bf2",
+        "chunk_id": "d4e5929a-6d5e-4f4f-a798-adfc70613ccb",
         "chunk_type": "text",
         "page_num": 2,
         "source_file": "21_77.pdf",
@@ -2024,7 +2047,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "ac1a4964-77ca-4f20-9af9-8711a62aee5f",
+        "chunk_id": "fcab6f60-15d5-47c3-9766-2a0d8e20817d",
         "chunk_type": "text",
         "page_num": 2,
         "source_file": "21_77.pdf",
@@ -2076,7 +2099,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "211d8a10-bf7f-4796-b27c-fb803775f64d",
+        "chunk_id": "c2f5dbbe-2868-4b94-914d-6564f91b16eb",
         "chunk_type": "text",
         "page_num": 2,
         "source_file": "21_77.pdf",
@@ -2128,7 +2151,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "051eb371-5f3c-46e8-bcfa-c0c1c41c9558",
+        "chunk_id": "8f4f61f2-6e8a-4067-8702-389b71337b57",
         "chunk_type": "text",
         "page_num": 2,
         "source_file": "21_77.pdf",
@@ -2180,7 +2203,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "4c928780-d0fe-4bfd-bc99-405d6b4fb8ab",
+        "chunk_id": "c693f615-11d7-4422-9a52-ebcdab678494",
         "chunk_type": "text",
         "page_num": 2,
         "source_file": "21_77.pdf",
@@ -2232,7 +2255,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "fec10e77-560b-4195-bf8d-da71af035c0d",
+        "chunk_id": "70724a17-8cac-4d09-896a-5dc25df2cca7",
         "chunk_type": "text",
         "page_num": 2,
         "source_file": "21_77.pdf",
@@ -2284,7 +2307,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "240101dd-9e93-49e0-80c9-33f7492efbe7",
+        "chunk_id": "438ef740-b467-4368-988b-a2a72e479e0b",
         "chunk_type": "text",
         "page_num": 2,
         "source_file": "21_77.pdf",
@@ -2336,7 +2359,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "97a6a9ad-7270-4392-8af6-f045ff8981a9",
+        "chunk_id": "92426400-9da6-4c79-b63a-623e39b43c51",
         "chunk_type": "text",
         "page_num": 2,
         "source_file": "21_77.pdf",
@@ -2388,7 +2411,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "60ca074b-cd44-422c-a0af-7dd3cdaa352e",
+        "chunk_id": "1b2c67c7-ac05-4765-9a87-c9513138fa07",
         "chunk_type": "text",
         "page_num": 2,
         "source_file": "21_77.pdf",
@@ -2440,7 +2463,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "23bda627-3469-4151-bc9e-29e2d799d4d7",
+        "chunk_id": "5658fcfc-20ea-403d-b7db-d7ae70efb2f9",
         "chunk_type": "text",
         "page_num": 2,
         "source_file": "21_77.pdf",
@@ -2492,7 +2515,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "c33735a3-7b95-4ac1-9cd2-c8cd778ddc64",
+        "chunk_id": "a310e0eb-3a3e-4e7d-9bf3-9819799f6008",
         "chunk_type": "text",
         "page_num": 2,
         "source_file": "21_77.pdf",
@@ -2544,7 +2567,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "d3052b76-7afb-413e-a3a6-8f04a53c4392",
+        "chunk_id": "ac592d29-1744-4170-80e1-db984d94f919",
         "chunk_type": "text",
         "page_num": 2,
         "source_file": "21_77.pdf",
@@ -2596,7 +2619,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "6b4b12cb-5324-43c9-b93e-85725bd3fcfa",
+        "chunk_id": "b27434d8-13c9-4509-bb54-9b957a52e8fb",
         "chunk_type": "text",
         "page_num": 2,
         "source_file": "21_77.pdf",
@@ -2648,7 +2671,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "890847d1-bee9-41bd-b149-34ebc0e5e62f",
+        "chunk_id": "e494e14a-2b9d-4c85-b3e5-f8001467935d",
         "chunk_type": "text",
         "page_num": 2,
         "source_file": "21_77.pdf",
@@ -2700,7 +2723,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "6ee9b4a9-69d3-422e-a6db-187f152a2ac1",
+        "chunk_id": "e6843690-73e8-4d24-82e2-deb6a6ad209f",
         "chunk_type": "text",
         "page_num": 2,
         "source_file": "21_77.pdf",
@@ -2752,7 +2775,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "3a97408b-0572-464a-8fa6-4f1491e8b25a",
+        "chunk_id": "973004f4-f5c0-4ef9-870e-1af3ada7a6fb",
         "chunk_type": "text",
         "page_num": 2,
         "source_file": "21_77.pdf",
@@ -2801,10 +2824,10 @@
           "height": 842.0
         },
         "source_preview": "image:735x413",
-        "artifact_path": "21_77_audit/figures/3854a0bb-59f2-4198-a1d7-3743e745a38b.png"
+        "artifact_path": "21_77_audit/figures/23056f57-2eeb-4d66-ab02-18ae0916aa0c.png"
       },
       "processed": {
-        "chunk_id": "3854a0bb-59f2-4198-a1d7-3743e745a38b",
+        "chunk_id": "23056f57-2eeb-4d66-ab02-18ae0916aa0c",
         "chunk_type": "figure",
         "page_num": 3,
         "source_file": "21_77.pdf",
@@ -2820,116 +2843,82 @@
         },
         "artifact_path": null,
         "source_preview": "image:735x413",
-        "structured_text": "[OCR unavailable]",
-        "intuition_summary": "OCR fallback.",
-        "key_concepts": [],
-        "confidence": 0.3,
-        "agent_notes": "Vision model not loaded.\n[ocr_policy] engine=tesseract, threshold=0.50, reocr=False, max_attempts=0",
-        "validation": {
-          "is_valid": true,
-          "verdict_score": 1.0,
-          "issues": [],
-          "validator_notes": "",
-          "corrected_text": null,
-          "corrected_chunk_id": null
-        }
-      },
-      "corrected": null
-    },
-    {
-      "status": "corrected",
-      "raw": {
-        "chunk_type": "figure",
-        "page_num": 3,
-        "source_file": "21_77.pdf",
-        "bbox": {
-          "x0": 333.17401123046875,
-          "y0": 247.57400512695312,
-          "x1": 549.18603515625,
-          "y1": 368.906005859375
-        },
-        "page_size": {
-          "width": 595.22,
-          "height": 842.0
-        },
-        "source_preview": "image:735x413",
-        "artifact_path": "21_77_audit/figures/fea8a5a1-d0a9-4a5b-9028-5ed5587383ba.png"
-      },
-      "processed": {
-        "chunk_id": "fea8a5a1-d0a9-4a5b-9028-5ed5587383ba",
-        "chunk_type": "figure",
-        "page_num": 3,
-        "source_file": "21_77.pdf",
-        "bbox": {
-          "x0": 333.17401123046875,
-          "y0": 247.57400512695312,
-          "x1": 549.18603515625,
-          "y1": 368.906005859375
-        },
-        "page_size": {
-          "width": 595.22,
-          "height": 842.0
-        },
-        "artifact_path": null,
-        "source_preview": "image:735x413",
-        "structured_text": "[OCR unavailable]",
-        "intuition_summary": "OCR fallback.",
-        "key_concepts": [],
-        "confidence": 0.3,
-        "agent_notes": "Vision model not loaded.\n[ocr_policy] engine=tesseract, threshold=0.50, reocr=False, max_attempts=0",
-        "validation": {
-          "is_valid": false,
-          "verdict_score": 0.0,
-          "issues": [
-            "Fabricated content: 'OCR unavailable' and 'OCR fallback' are irrelevant to an IMAGE figure; the EXTRACTED incorrectly treats a visual figure as text-based content",
-            "Missing key information: The figure's visual elements (night scene, blue lines, grass, road) are not described",
-            "Incorrect key_concepts: Empty key_concepts list fails to capture the figure's content"
-          ],
-          "validator_notes": "The EXTRACTED incorrectly labels an IMAGE as requiring OCR, fabricating text-based content where none exists. The figure's visual elements are entirely omitted, making the extraction invalid.",
-          "corrected_text": "[OCR unavailable]",
-          "corrected_chunk_id": "94056e7b-84a0-4ca8-a392-0e112462b5b4"
-        }
-      },
-      "corrected": {
-        "chunk_id": "94056e7b-84a0-4ca8-a392-0e112462b5b4",
-        "chunk_type": "figure",
-        "page_num": 3,
-        "source_file": "21_77.pdf",
-        "bbox": {
-          "x0": 333.17401123046875,
-          "y0": 247.57400512695312,
-          "x1": 549.18603515625,
-          "y1": 368.906005859375
-        },
-        "page_size": {
-          "width": 595.22,
-          "height": 842.0
-        },
-        "artifact_path": null,
-        "source_preview": "image:735x413",
-        "structured_text": "[OCR unavailable]",
-        "intuition_summary": "The figure is a nighttime landscape with a grassy field, blue lines overlaid, and a road edge; OCR is not applicable to an image.",
+        "structured_text": "A nighttime outdoor landscape photograph featuring fields, trees in the background, and blue annotated lines overlaid on the scene.",
+        "intuition_summary": "A nighttime landscape photograph with blue annotations overlaid on the field area.",
         "key_concepts": [
-          "nighttime landscape",
-          "grassy field",
-          "blue lines",
-          "road edge"
+          "photograph",
+          "landscape",
+          "annotations"
         ],
-        "confidence": 0.0,
-        "agent_notes": "[CHECKPOINT-A CORRECTED] The EXTRACTED incorrectly labels an IMAGE as requiring OCR, fabricating text-based content where none exists. The figure's visual elements are entirely omitted, making the extraction invalid.",
+        "confidence": 0.95,
+        "agent_notes": "figure_type=photograph | No structured table detected; blue lines are annotations on a photograph.\n[ocr_policy] engine=tesseract, threshold=0.50, reocr=False, max_attempts=0",
         "validation": {
-          "is_valid": false,
-          "verdict_score": 0.0,
-          "issues": [
-            "Fabricated content: 'OCR unavailable' and 'OCR fallback' are irrelevant to an IMAGE figure; the EXTRACTED incorrectly treats a visual figure as text-based content",
-            "Missing key information: The figure's visual elements (night scene, blue lines, grass, road) are not described",
-            "Incorrect key_concepts: Empty key_concepts list fails to capture the figure's content"
-          ],
-          "validator_notes": "The EXTRACTED incorrectly labels an IMAGE as requiring OCR, fabricating text-based content where none exists. The figure's visual elements are entirely omitted, making the extraction invalid.",
-          "corrected_text": "[OCR unavailable]",
-          "corrected_chunk_id": "94056e7b-84a0-4ca8-a392-0e112462b5b4"
+          "is_valid": true,
+          "verdict_score": 1.0,
+          "issues": [],
+          "validator_notes": "",
+          "corrected_text": null,
+          "corrected_chunk_id": null
         }
-      }
+      },
+      "corrected": null
+    },
+    {
+      "status": "accepted",
+      "raw": {
+        "chunk_type": "figure",
+        "page_num": 3,
+        "source_file": "21_77.pdf",
+        "bbox": {
+          "x0": 333.17401123046875,
+          "y0": 247.57400512695312,
+          "x1": 549.18603515625,
+          "y1": 368.906005859375
+        },
+        "page_size": {
+          "width": 595.22,
+          "height": 842.0
+        },
+        "source_preview": "image:735x413",
+        "artifact_path": "21_77_audit/figures/cac0bece-7647-4cda-83df-7ebb5e18be20.png"
+      },
+      "processed": {
+        "chunk_id": "cac0bece-7647-4cda-83df-7ebb5e18be20",
+        "chunk_type": "figure",
+        "page_num": 3,
+        "source_file": "21_77.pdf",
+        "bbox": {
+          "x0": 333.17401123046875,
+          "y0": 247.57400512695312,
+          "x1": 549.18603515625,
+          "y1": 368.906005859375
+        },
+        "page_size": {
+          "width": 595.22,
+          "height": 842.0
+        },
+        "artifact_path": null,
+        "source_preview": "image:735x413",
+        "structured_text": "A nighttime photograph of a grassy field with blue annotation lines drawn across the field, showing a dark sky and distant trees in the background.",
+        "intuition_summary": "A nighttime outdoor photograph with manually added blue lines indicating specific features in the field.",
+        "key_concepts": [
+          "photograph",
+          "nighttime",
+          "field",
+          "annotation lines"
+        ],
+        "confidence": 0.9,
+        "agent_notes": "figure_type=photograph | The blue lines are manual annotations, not part of a structured data visualization. No Japanese text present in the image.\n[ocr_policy] engine=tesseract, threshold=0.50, reocr=False, max_attempts=0",
+        "validation": {
+          "is_valid": true,
+          "verdict_score": 1.0,
+          "issues": [],
+          "validator_notes": "EXTRACTED accurately describes the figure: nighttime photograph with blue annotation lines, matching visible content. No fabrication or missing key info.",
+          "corrected_text": null,
+          "corrected_chunk_id": null
+        }
+      },
+      "corrected": null
     },
     {
       "status": "accepted",
@@ -2948,10 +2937,10 @@
           "height": 842.0
         },
         "source_preview": "image:732x411",
-        "artifact_path": "21_77_audit/figures/4e2ac022-c5a2-4fde-b40e-696b4083b5c3.png"
+        "artifact_path": "21_77_audit/figures/8fea0468-9b56-44e6-b7f4-5e2fefc0f9c1.png"
       },
       "processed": {
-        "chunk_id": "4e2ac022-c5a2-4fde-b40e-696b4083b5c3",
+        "chunk_id": "8fea0468-9b56-44e6-b7f4-5e2fefc0f9c1",
         "chunk_type": "figure",
         "page_num": 3,
         "source_file": "21_77.pdf",
@@ -2967,11 +2956,16 @@
         },
         "artifact_path": null,
         "source_preview": "image:732x411",
-        "structured_text": "[OCR unavailable]",
-        "intuition_summary": "OCR fallback.",
-        "key_concepts": [],
-        "confidence": 0.3,
-        "agent_notes": "Vision model not loaded.\n[ocr_policy] engine=tesseract, threshold=0.50, reocr=False, max_attempts=0",
+        "structured_text": "A landscape photograph depicting a wetland or flooded area with overlaid blue horizontal lines, set against a backdrop of distant buildings, hills, and a twilight sky.",
+        "intuition_summary": "A landscape photograph with overlaid blue lines suggesting measurement or path marking in an outdoor setting.",
+        "key_concepts": [
+          "photograph",
+          "blue lines",
+          "landscape",
+          "wetland"
+        ],
+        "confidence": 0.95,
+        "agent_notes": "figure_type=photograph | No structured table, chart, or diagram present; the blue lines are annotations on a photographic image.\n[ocr_policy] engine=tesseract, threshold=0.50, reocr=False, max_attempts=0",
         "validation": {
           "is_valid": true,
           "verdict_score": 1.0,
@@ -3000,10 +2994,10 @@
           "height": 842.0
         },
         "source_preview": "image:242x176",
-        "artifact_path": "21_77_audit/figures/b79118a0-408d-45c3-b4d5-16e661d32f80.png"
+        "artifact_path": "21_77_audit/figures/930c1455-903d-45c6-9e71-a8798b1099fe.png"
       },
       "processed": {
-        "chunk_id": "b79118a0-408d-45c3-b4d5-16e661d32f80",
+        "chunk_id": "930c1455-903d-45c6-9e71-a8798b1099fe",
         "chunk_type": "figure",
         "page_num": 3,
         "source_file": "21_77.pdf",
@@ -3019,11 +3013,11 @@
         },
         "artifact_path": null,
         "source_preview": "image:242x176",
-        "structured_text": "[OCR unavailable]",
-        "intuition_summary": "OCR fallback.",
+        "structured_text": "",
+        "intuition_summary": "",
         "key_concepts": [],
-        "confidence": 0.3,
-        "agent_notes": "Vision model not loaded.\n[ocr_policy] engine=tesseract, threshold=0.50, reocr=False, max_attempts=0",
+        "confidence": 0.6,
+        "agent_notes": "figure_type=other | \n[ocr_policy] engine=tesseract, threshold=0.50, reocr=False, max_attempts=0",
         "validation": {
           "is_valid": true,
           "verdict_score": 1.0,
@@ -3052,10 +3046,10 @@
           "height": 842.0
         },
         "source_preview": "image:248x181",
-        "artifact_path": "21_77_audit/figures/a40a3f8b-1587-4002-beae-a30e472322d1.png"
+        "artifact_path": "21_77_audit/figures/f666d212-044c-40cb-8a21-1244d1228b43.png"
       },
       "processed": {
-        "chunk_id": "a40a3f8b-1587-4002-beae-a30e472322d1",
+        "chunk_id": "f666d212-044c-40cb-8a21-1244d1228b43",
         "chunk_type": "figure",
         "page_num": 3,
         "source_file": "21_77.pdf",
@@ -3071,11 +3065,11 @@
         },
         "artifact_path": null,
         "source_preview": "image:248x181",
-        "structured_text": "[OCR unavailable]",
-        "intuition_summary": "OCR fallback.",
+        "structured_text": "",
+        "intuition_summary": "",
         "key_concepts": [],
-        "confidence": 0.3,
-        "agent_notes": "Vision model not loaded.\n[ocr_policy] engine=tesseract, threshold=0.50, reocr=False, max_attempts=0",
+        "confidence": 0.6,
+        "agent_notes": "figure_type=other | \n[ocr_policy] engine=tesseract, threshold=0.50, reocr=False, max_attempts=0",
         "validation": {
           "is_valid": true,
           "verdict_score": 1.0,
@@ -3104,10 +3098,10 @@
           "height": 842.0
         },
         "source_preview": "image:249x252",
-        "artifact_path": "21_77_audit/figures/8806ba7b-c1ee-4730-8895-18ec825d2fbe.png"
+        "artifact_path": "21_77_audit/figures/04310c39-552d-46ca-8eb3-c18b50f220eb.png"
       },
       "processed": {
-        "chunk_id": "8806ba7b-c1ee-4730-8895-18ec825d2fbe",
+        "chunk_id": "04310c39-552d-46ca-8eb3-c18b50f220eb",
         "chunk_type": "figure",
         "page_num": 3,
         "source_file": "21_77.pdf",
@@ -3123,11 +3117,15 @@
         },
         "artifact_path": null,
         "source_preview": "image:249x252",
-        "structured_text": "[OCR unavailable]",
-        "intuition_summary": "OCR fallback.",
-        "key_concepts": [],
-        "confidence": 0.3,
-        "agent_notes": "Vision model not loaded.\n[ocr_policy] engine=tesseract, threshold=0.50, reocr=False, max_attempts=0",
+        "structured_text": "",
+        "intuition_summary": "A grayscale photograph depicting a brushed metal surface texture with visible linear patterns.",
+        "key_concepts": [
+          "brushed metal",
+          "texture",
+          "grayscale"
+        ],
+        "confidence": 0.95,
+        "agent_notes": "figure_type=photograph | No structured data or graphical elements (e.g., axes, grids) detected; consistent with a close-up photograph of a physical material surface.\n[ocr_policy] engine=tesseract, threshold=0.50, reocr=False, max_attempts=0",
         "validation": {
           "is_valid": true,
           "verdict_score": 1.0,
@@ -3156,10 +3154,10 @@
           "height": 842.0
         },
         "source_preview": "image:252x256",
-        "artifact_path": "21_77_audit/figures/07a12c7e-e2ac-4c5e-a3b2-62a4b7786675.png"
+        "artifact_path": "21_77_audit/figures/6fbe6c63-1d20-40a9-9776-079ce922c263.png"
       },
       "processed": {
-        "chunk_id": "07a12c7e-e2ac-4c5e-a3b2-62a4b7786675",
+        "chunk_id": "6fbe6c63-1d20-40a9-9776-079ce922c263",
         "chunk_type": "figure",
         "page_num": 3,
         "source_file": "21_77.pdf",
@@ -3175,11 +3173,15 @@
         },
         "artifact_path": null,
         "source_preview": "image:252x256",
-        "structured_text": "[OCR unavailable]",
-        "intuition_summary": "OCR fallback.",
-        "key_concepts": [],
-        "confidence": 0.3,
-        "agent_notes": "Vision model not loaded.\n[ocr_policy] engine=tesseract, threshold=0.50, reocr=False, max_attempts=0",
+        "structured_text": "A grayscale photograph of a textured surface, likely a close-up of a material with a rough, granular appearance.",
+        "intuition_summary": "The image appears to be a close-up photograph of a granular or rough-textured material.",
+        "key_concepts": [
+          "photograph",
+          "textured surface",
+          "grayscale"
+        ],
+        "confidence": 0.95,
+        "agent_notes": "figure_type=photograph | No structured elements (tables, charts, etc.) detected; appears to be a standard photograph of a textured material.\n[ocr_policy] engine=tesseract, threshold=0.50, reocr=False, max_attempts=0",
         "validation": {
           "is_valid": true,
           "verdict_score": 1.0,
@@ -3208,10 +3210,10 @@
           "height": 842.0
         },
         "source_preview": "image:365x274",
-        "artifact_path": "21_77_audit/figures/42dc18c2-dd7f-4a3a-baf1-d3de3893d08c.png"
+        "artifact_path": "21_77_audit/figures/d3d91b80-25db-4b44-8e82-259c121d9ac2.png"
       },
       "processed": {
-        "chunk_id": "42dc18c2-dd7f-4a3a-baf1-d3de3893d08c",
+        "chunk_id": "d3d91b80-25db-4b44-8e82-259c121d9ac2",
         "chunk_type": "figure",
         "page_num": 3,
         "source_file": "21_77.pdf",
@@ -3227,11 +3229,11 @@
         },
         "artifact_path": null,
         "source_preview": "image:365x274",
-        "structured_text": "[OCR unavailable]",
-        "intuition_summary": "OCR fallback.",
+        "structured_text": "{\n  \"figure_type\": \"photograph\",\n  \"structured_text\": \"A dark image with scattered light points",
+        "intuition_summary": "",
         "key_concepts": [],
-        "confidence": 0.3,
-        "agent_notes": "Vision model not loaded.\n[ocr_policy] engine=tesseract, threshold=0.50, reocr=False, max_attempts=0",
+        "confidence": 0.6,
+        "agent_notes": "figure_type=other | \n[ocr_policy] engine=tesseract, threshold=0.50, reocr=False, max_attempts=0",
         "validation": {
           "is_valid": true,
           "verdict_score": 1.0,
@@ -3260,10 +3262,10 @@
           "height": 842.0
         },
         "source_preview": "image:589x332",
-        "artifact_path": "21_77_audit/figures/db52ef97-9d5d-4b64-a1c9-c474dfe95dd3.png"
+        "artifact_path": "21_77_audit/figures/eb0c6940-be23-4f6c-bca7-cd0e2ee6e33a.png"
       },
       "processed": {
-        "chunk_id": "db52ef97-9d5d-4b64-a1c9-c474dfe95dd3",
+        "chunk_id": "eb0c6940-be23-4f6c-bca7-cd0e2ee6e33a",
         "chunk_type": "figure",
         "page_num": 3,
         "source_file": "21_77.pdf",
@@ -3279,11 +3281,19 @@
         },
         "artifact_path": null,
         "source_preview": "image:589x332",
-        "structured_text": "[OCR unavailable]",
-        "intuition_summary": "OCR fallback.",
-        "key_concepts": [],
-        "confidence": 0.3,
-        "agent_notes": "Vision model not loaded.\n[ocr_policy] engine=tesseract, threshold=0.50, reocr=False, max_attempts=0",
+        "structured_text": "A nighttime landscape photograph showing a road, vegetation, buildings with illuminated lights, and distant urban lights under a dark sky.",
+        "intuition_summary": "A nighttime landscape photograph capturing a road, vegetation, and illuminated buildings against a dark sky.",
+        "key_concepts": [
+          "night",
+          "landscape",
+          "road",
+          "vegetation",
+          "buildings",
+          "illuminated lights",
+          "urban lights"
+        ],
+        "confidence": 0.95,
+        "agent_notes": "figure_type=photograph | No structured tables or charts detected; purely a photographic scene.\n[ocr_policy] engine=tesseract, threshold=0.50, reocr=False, max_attempts=0",
         "validation": {
           "is_valid": true,
           "verdict_score": 1.0,
@@ -3315,7 +3325,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "5fb59c99-0b93-4a22-9bc6-1bd4bcdfb40c",
+        "chunk_id": "d7e57e00-fa4f-481d-92a8-f75a93177ed1",
         "chunk_type": "text",
         "page_num": 3,
         "source_file": "21_77.pdf",
@@ -3367,7 +3377,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "81f99fcc-6e60-4981-aa0a-79fe0ec79d39",
+        "chunk_id": "0ddefc62-0706-4b04-b275-a2145fa2667b",
         "chunk_type": "text",
         "page_num": 3,
         "source_file": "21_77.pdf",
@@ -3419,7 +3429,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "f2fe9d3b-2bbe-4e35-b028-a8c8d4371b42",
+        "chunk_id": "e7dae68b-5d47-47ac-b520-5aafbeffca58",
         "chunk_type": "text",
         "page_num": 3,
         "source_file": "21_77.pdf",
@@ -3471,7 +3481,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "fc058892-0012-4a5c-932b-7b0b46e0e252",
+        "chunk_id": "82350f91-8cfa-4f95-ada6-c4c1c641e205",
         "chunk_type": "text",
         "page_num": 3,
         "source_file": "21_77.pdf",
@@ -3523,7 +3533,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "a250905e-d304-422b-8cf0-93afd351a0ac",
+        "chunk_id": "38c3781b-587a-4b2c-8c02-7e9afe9006ad",
         "chunk_type": "text",
         "page_num": 3,
         "source_file": "21_77.pdf",
@@ -3575,7 +3585,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "3d75e573-0d03-4776-81f8-4599d8618843",
+        "chunk_id": "9c3837b1-4a08-4734-a0c6-f47c19d7e0d3",
         "chunk_type": "text",
         "page_num": 3,
         "source_file": "21_77.pdf",
@@ -3627,7 +3637,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "d2e227cf-79c8-4149-bb23-a5343f18d083",
+        "chunk_id": "51e53b66-7547-4616-9ec6-6ad015a0ead1",
         "chunk_type": "text",
         "page_num": 3,
         "source_file": "21_77.pdf",
@@ -3679,7 +3689,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "ae24f3d8-1409-4bda-86c8-db60cfd6dd32",
+        "chunk_id": "5e03c2b6-99a9-4e11-b877-bccf2b9b70b8",
         "chunk_type": "text",
         "page_num": 3,
         "source_file": "21_77.pdf",
@@ -3731,7 +3741,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "dfb79257-3d50-401c-8e2f-c4fd8d6c0b2c",
+        "chunk_id": "de4101f1-efc3-45bc-9174-3b6f84ab0222",
         "chunk_type": "text",
         "page_num": 3,
         "source_file": "21_77.pdf",
@@ -3783,7 +3793,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "ee5103d3-802b-4e78-b19d-24d2267ad2a0",
+        "chunk_id": "aefb2040-fc2d-4d79-9f7d-176979e32118",
         "chunk_type": "text",
         "page_num": 3,
         "source_file": "21_77.pdf",
@@ -3835,7 +3845,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "830d22cb-4912-4111-8f4a-5847865acb3a",
+        "chunk_id": "ad0b2b9f-292a-4dde-83bc-d049871f98de",
         "chunk_type": "text",
         "page_num": 3,
         "source_file": "21_77.pdf",
@@ -3887,7 +3897,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "acf34add-98fb-4508-8874-f26db981fbed",
+        "chunk_id": "c330e064-3aff-4e45-b1bc-00faabe02121",
         "chunk_type": "text",
         "page_num": 3,
         "source_file": "21_77.pdf",
@@ -3939,7 +3949,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "6393d57c-da11-45b2-a19b-be84647d2453",
+        "chunk_id": "2668a51b-bbe6-4f0b-9a90-57597f872fcd",
         "chunk_type": "text",
         "page_num": 3,
         "source_file": "21_77.pdf",
@@ -3991,7 +4001,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "127e9af9-3a53-4638-82cf-732587c0dbb4",
+        "chunk_id": "a007d60b-5473-4243-a734-df465a43b5bb",
         "chunk_type": "text",
         "page_num": 3,
         "source_file": "21_77.pdf",
@@ -4043,7 +4053,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "c34b9e4d-a3c2-4ea3-8e16-bd3a771d29bb",
+        "chunk_id": "c18cf549-7049-4be2-ad08-c446ee5655d9",
         "chunk_type": "text",
         "page_num": 3,
         "source_file": "21_77.pdf",
@@ -4092,10 +4102,10 @@
           "height": 842.0
         },
         "source_preview": "image:216x103",
-        "artifact_path": "21_77_audit/figures/6c2ff05d-dc14-4d5b-b673-b42b9960031c.png"
+        "artifact_path": "21_77_audit/figures/8b86ae5a-2506-4155-82d3-d46643333c23.png"
       },
       "processed": {
-        "chunk_id": "6c2ff05d-dc14-4d5b-b673-b42b9960031c",
+        "chunk_id": "8b86ae5a-2506-4155-82d3-d46643333c23",
         "chunk_type": "figure",
         "page_num": 4,
         "source_file": "21_77.pdf",
@@ -4111,11 +4121,15 @@
         },
         "artifact_path": null,
         "source_preview": "image:216x103",
-        "structured_text": "[OCR unavailable]",
-        "intuition_summary": "OCR fallback.",
-        "key_concepts": [],
-        "confidence": 0.3,
-        "agent_notes": "Vision model not loaded.\n[ocr_policy] engine=tesseract, threshold=0.50, reocr=False, max_attempts=0",
+        "structured_text": "A gray rectangular button with the text 'Difficult' centered on it",
+        "intuition_summary": "A simple button element displaying the word 'Difficult'",
+        "key_concepts": [
+          "button",
+          "text label",
+          "Difficult"
+        ],
+        "confidence": 0.95,
+        "agent_notes": "figure_type=other | No structured data or complex visual elements detected; purely a text-based button graphic\n[ocr_policy] engine=tesseract, threshold=0.50, reocr=False, max_attempts=0",
         "validation": {
           "is_valid": true,
           "verdict_score": 1.0,
@@ -4144,10 +4158,10 @@
           "height": 842.0
         },
         "source_preview": "image:198x104",
-        "artifact_path": "21_77_audit/figures/c2e5e9c8-17af-435f-ba39-83574dbba84a.png"
+        "artifact_path": "21_77_audit/figures/33577b9a-7cb7-4544-bdab-6f8d068069a8.png"
       },
       "processed": {
-        "chunk_id": "c2e5e9c8-17af-435f-ba39-83574dbba84a",
+        "chunk_id": "33577b9a-7cb7-4544-bdab-6f8d068069a8",
         "chunk_type": "figure",
         "page_num": 4,
         "source_file": "21_77.pdf",
@@ -4163,11 +4177,15 @@
         },
         "artifact_path": null,
         "source_preview": "image:198x104",
-        "structured_text": "[OCR unavailable]",
-        "intuition_summary": "OCR fallback.",
-        "key_concepts": [],
-        "confidence": 0.3,
-        "agent_notes": "Vision model not loaded.\n[ocr_policy] engine=tesseract, threshold=0.50, reocr=False, max_attempts=0",
+        "structured_text": "A gray rectangular button with the text 'Critical' displayed on it",
+        "intuition_summary": "A single text label on a button indicating a critical status",
+        "key_concepts": [
+          "Critical",
+          "button",
+          "text label"
+        ],
+        "confidence": 0.9,
+        "agent_notes": "figure_type=other | The image is a simple button with text, no structured data like tables, so no issues with table detection\n[ocr_policy] engine=tesseract, threshold=0.50, reocr=False, max_attempts=0",
         "validation": {
           "is_valid": true,
           "verdict_score": 1.0,
@@ -4196,10 +4214,10 @@
           "height": 842.0
         },
         "source_preview": "image:255x103",
-        "artifact_path": "21_77_audit/figures/5dcc444f-cf79-4432-9187-cc5ae9a89b53.png"
+        "artifact_path": "21_77_audit/figures/ea5c7a80-e9db-452a-bc7a-bb5959d9c931.png"
       },
       "processed": {
-        "chunk_id": "5dcc444f-cf79-4432-9187-cc5ae9a89b53",
+        "chunk_id": "ea5c7a80-e9db-452a-bc7a-bb5959d9c931",
         "chunk_type": "figure",
         "page_num": 4,
         "source_file": "21_77.pdf",
@@ -4215,11 +4233,15 @@
         },
         "artifact_path": null,
         "source_preview": "image:255x103",
-        "structured_text": "[OCR unavailable]",
-        "intuition_summary": "OCR fallback.",
-        "key_concepts": [],
-        "confidence": 0.3,
-        "agent_notes": "Vision model not loaded.\n[ocr_policy] engine=tesseract, threshold=0.50, reocr=False, max_attempts=0",
+        "structured_text": "A gray rectangular button with the text 'Favorable' centered on it",
+        "intuition_summary": "A simple user interface button labeled 'Favorable' with no additional visual structure",
+        "key_concepts": [
+          "button",
+          "text",
+          "Favorable"
+        ],
+        "confidence": 0.95,
+        "agent_notes": "figure_type=other | No issues detected; clearly a UI element rather than a scientific figure\n[ocr_policy] engine=tesseract, threshold=0.50, reocr=False, max_attempts=0",
         "validation": {
           "is_valid": true,
           "verdict_score": 1.0,
@@ -4248,10 +4270,10 @@
           "height": 842.0
         },
         "source_preview": "image:255x103",
-        "artifact_path": "21_77_audit/figures/8f426271-439a-46b6-bb2c-a28a1f6f2e62.png"
+        "artifact_path": "21_77_audit/figures/18f8e439-9514-4e6a-9aa7-c6e6e02a2904.png"
       },
       "processed": {
-        "chunk_id": "8f426271-439a-46b6-bb2c-a28a1f6f2e62",
+        "chunk_id": "18f8e439-9514-4e6a-9aa7-c6e6e02a2904",
         "chunk_type": "figure",
         "page_num": 4,
         "source_file": "21_77.pdf",
@@ -4267,11 +4289,15 @@
         },
         "artifact_path": null,
         "source_preview": "image:255x103",
-        "structured_text": "[OCR unavailable]",
-        "intuition_summary": "OCR fallback.",
-        "key_concepts": [],
-        "confidence": 0.3,
-        "agent_notes": "Vision model not loaded.\n[ocr_policy] engine=tesseract, threshold=0.50, reocr=False, max_attempts=0",
+        "structured_text": "A gray rectangular button with the text 'Favorable' centered on it",
+        "intuition_summary": "A simple user interface button labeled 'Favorable' with no additional visual structure",
+        "key_concepts": [
+          "button",
+          "text",
+          "Favorable"
+        ],
+        "confidence": 0.95,
+        "agent_notes": "figure_type=other | No issues detected; clearly a UI element rather than a scientific figure\n[ocr_policy] engine=tesseract, threshold=0.50, reocr=False, max_attempts=0",
         "validation": {
           "is_valid": true,
           "verdict_score": 1.0,
@@ -4300,10 +4326,10 @@
           "height": 842.0
         },
         "source_preview": "image:198x103",
-        "artifact_path": "21_77_audit/figures/c5f537f2-5b8c-4df5-8695-92201fb4682f.png"
+        "artifact_path": "21_77_audit/figures/40a7aabf-4368-4358-8091-302c463f7b13.png"
       },
       "processed": {
-        "chunk_id": "c5f537f2-5b8c-4df5-8695-92201fb4682f",
+        "chunk_id": "40a7aabf-4368-4358-8091-302c463f7b13",
         "chunk_type": "figure",
         "page_num": 4,
         "source_file": "21_77.pdf",
@@ -4319,11 +4345,15 @@
         },
         "artifact_path": null,
         "source_preview": "image:198x103",
-        "structured_text": "[OCR unavailable]",
-        "intuition_summary": "OCR fallback.",
-        "key_concepts": [],
-        "confidence": 0.3,
-        "agent_notes": "Vision model not loaded.\n[ocr_policy] engine=tesseract, threshold=0.50, reocr=False, max_attempts=0",
+        "structured_text": "A gray rectangular button with the text 'Critical' displayed on it",
+        "intuition_summary": "A single text label on a button indicating a critical status",
+        "key_concepts": [
+          "Critical",
+          "button",
+          "text label"
+        ],
+        "confidence": 0.9,
+        "agent_notes": "figure_type=other | The image is a simple button with text, no structured data like tables, so no issues with table detection\n[ocr_policy] engine=tesseract, threshold=0.50, reocr=False, max_attempts=0",
         "validation": {
           "is_valid": true,
           "verdict_score": 1.0,
@@ -4355,7 +4385,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "e211a726-3a63-48d0-a373-f0467742f4c3",
+        "chunk_id": "cc0864f5-9c10-4247-ad3f-76148cd13025",
         "chunk_type": "text",
         "page_num": 4,
         "source_file": "21_77.pdf",
@@ -4407,7 +4437,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "cc72cf70-4f92-4881-8a53-6bf65437bcfb",
+        "chunk_id": "9efb9e6b-f67d-4b19-96cb-7d985beb3cd3",
         "chunk_type": "text",
         "page_num": 4,
         "source_file": "21_77.pdf",
@@ -4459,7 +4489,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "0d2bfd43-1880-4db0-9372-784723214c7b",
+        "chunk_id": "8e50adf9-6ec5-4712-bdf9-5db10241eb64",
         "chunk_type": "text",
         "page_num": 4,
         "source_file": "21_77.pdf",
@@ -4511,7 +4541,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "ca30d9f0-c624-4b93-ba44-d019ef96076f",
+        "chunk_id": "94d32757-dc32-4840-82c6-6811f97319e1",
         "chunk_type": "text",
         "page_num": 4,
         "source_file": "21_77.pdf",
@@ -4563,7 +4593,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "cabef4fb-9461-47d6-adba-73e5c5772c50",
+        "chunk_id": "7ef9ba7d-b00c-417f-9c3b-b2dccb297b4b",
         "chunk_type": "text",
         "page_num": 4,
         "source_file": "21_77.pdf",
@@ -4615,7 +4645,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "cc51d931-ae45-432c-acc6-f445dda9953e",
+        "chunk_id": "108050cf-049c-4122-9b80-f232344a0b1a",
         "chunk_type": "text",
         "page_num": 4,
         "source_file": "21_77.pdf",
@@ -4667,7 +4697,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "4b14394c-673b-49bb-a015-f7b1b6d84c96",
+        "chunk_id": "a636d094-0413-4502-9a79-8905daca8c7d",
         "chunk_type": "text",
         "page_num": 4,
         "source_file": "21_77.pdf",
@@ -4719,7 +4749,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "20b31648-469a-4d76-ad2d-7df0e0b412ec",
+        "chunk_id": "85d35b30-e6ef-44a0-86d3-3cc025faea36",
         "chunk_type": "text",
         "page_num": 4,
         "source_file": "21_77.pdf",
@@ -4771,7 +4801,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "7dba8ec0-7fe5-4af9-867d-7803c49cd5d6",
+        "chunk_id": "a50b3795-ddad-4815-96df-89127ba9ffda",
         "chunk_type": "text",
         "page_num": 4,
         "source_file": "21_77.pdf",
@@ -4823,7 +4853,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "881bb5e5-147f-46ac-9ba4-3967b13f6d39",
+        "chunk_id": "5bb214c0-87b1-4ace-9473-fcad8eccc5e1",
         "chunk_type": "text",
         "page_num": 4,
         "source_file": "21_77.pdf",
@@ -4875,7 +4905,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "73995c47-f777-4b63-8682-38c5ceb85c3e",
+        "chunk_id": "44a978e8-bc01-4a7f-8a5d-772bb00d63ae",
         "chunk_type": "text",
         "page_num": 4,
         "source_file": "21_77.pdf",
@@ -4927,7 +4957,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "ec1f882e-4eb9-4fbe-a73b-b3ff84583d0b",
+        "chunk_id": "bc7615c0-e269-4011-b349-20406a411e17",
         "chunk_type": "text",
         "page_num": 4,
         "source_file": "21_77.pdf",
@@ -4979,7 +5009,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "3ae2ee34-a2bd-4d6c-8c0e-b20b9b8aaeb2",
+        "chunk_id": "1f96fcee-583f-470d-8def-3b20e128a847",
         "chunk_type": "text",
         "page_num": 4,
         "source_file": "21_77.pdf",
@@ -5031,7 +5061,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "1de547d6-6665-461d-9042-a5410302ed2d",
+        "chunk_id": "25551994-0ddb-4c17-867f-a279c6417709",
         "chunk_type": "text",
         "page_num": 4,
         "source_file": "21_77.pdf",
@@ -5083,7 +5113,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "3a3bd492-7376-4b74-bc62-dc671ca441b9",
+        "chunk_id": "bac7225d-099f-404e-8469-2504d0431d8d",
         "chunk_type": "text",
         "page_num": 4,
         "source_file": "21_77.pdf",
@@ -5135,7 +5165,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "de63ecac-eec0-48c0-ae99-e9f0cfa75b1c",
+        "chunk_id": "4e75b2d3-bb82-4afc-b281-ace14031e424",
         "chunk_type": "text",
         "page_num": 4,
         "source_file": "21_77.pdf",
@@ -5187,7 +5217,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "90b498eb-820c-45af-8bfa-52fe64a642cf",
+        "chunk_id": "7598ec2f-84ba-4e0e-8752-b431cb7840e2",
         "chunk_type": "text",
         "page_num": 4,
         "source_file": "21_77.pdf",
@@ -5239,7 +5269,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "e5dca950-b3fe-4576-9dfe-6cb3fb50a2a9",
+        "chunk_id": "e7d11446-1eee-4876-b898-a7c6867457ab",
         "chunk_type": "text",
         "page_num": 4,
         "source_file": "21_77.pdf",
@@ -5291,7 +5321,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "6f62a7d9-17d1-4d3d-b7b0-c42ec07ce267",
+        "chunk_id": "6b5d0443-4210-4c68-8bf0-41f577cc4e7f",
         "chunk_type": "text",
         "page_num": 4,
         "source_file": "21_77.pdf",
@@ -5343,7 +5373,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "fc344a9e-dd71-4369-a6d7-1ce01c7ddafe",
+        "chunk_id": "1bf15abf-c628-4df4-bedd-50b12d9a3ea8",
         "chunk_type": "text",
         "page_num": 4,
         "source_file": "21_77.pdf",
@@ -5395,7 +5425,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "0f5bc8b0-5b75-4ad1-bb41-81240a3d287a",
+        "chunk_id": "89691cf4-2cde-421c-854d-72ac01fbc1ea",
         "chunk_type": "text",
         "page_num": 4,
         "source_file": "21_77.pdf",
@@ -5447,7 +5477,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "28214bb3-a63f-4abf-a209-90c427fc65a8",
+        "chunk_id": "8e284210-df9a-4147-8164-43cba98755ae",
         "chunk_type": "text",
         "page_num": 4,
         "source_file": "21_77.pdf",
@@ -5499,7 +5529,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "7be955b9-8c38-4960-9f94-a20902a30761",
+        "chunk_id": "371b4ad3-22d8-4492-950e-e32ef9d334a2",
         "chunk_type": "text",
         "page_num": 4,
         "source_file": "21_77.pdf",
@@ -5551,7 +5581,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "c05916a2-2d71-4cad-9175-8a3d53f4c595",
+        "chunk_id": "12f5f0d9-3cff-4226-a294-7e9811b79108",
         "chunk_type": "text",
         "page_num": 4,
         "source_file": "21_77.pdf",
@@ -5603,7 +5633,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "6d66f7a4-49c3-4f59-9490-64034be7b92e",
+        "chunk_id": "625fa82a-decb-4d04-9467-ab0250619bc8",
         "chunk_type": "text",
         "page_num": 4,
         "source_file": "21_77.pdf",
@@ -5655,7 +5685,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "8ab8ef19-a5b4-4fac-b598-d6afc82ae2d5",
+        "chunk_id": "9e02a19f-7087-436a-8453-914cc237d0fe",
         "chunk_type": "text",
         "page_num": 4,
         "source_file": "21_77.pdf",
@@ -5707,7 +5737,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "8d5fbbd0-4685-4288-9158-d5fb51e0d202",
+        "chunk_id": "06e49ed4-8dbe-4485-ae2d-48d01fd7cbbb",
         "chunk_type": "text",
         "page_num": 4,
         "source_file": "21_77.pdf",
@@ -5759,7 +5789,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "f9290b5c-f52d-43a9-b1ed-8d28eb7cc070",
+        "chunk_id": "8e5ce672-22a6-4de1-bf53-667f0a7da8d5",
         "chunk_type": "text",
         "page_num": 4,
         "source_file": "21_77.pdf",
@@ -5811,7 +5841,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "45c9a25d-368a-44de-aa28-ab7b2ff90573",
+        "chunk_id": "10042106-f8d2-4eb5-b901-ddca45a057fd",
         "chunk_type": "text",
         "page_num": 4,
         "source_file": "21_77.pdf",
@@ -5863,7 +5893,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "913c7d83-a353-4e54-88cf-94051353b2f0",
+        "chunk_id": "af87818e-d614-477e-a8b3-7f352c5e37f3",
         "chunk_type": "text",
         "page_num": 4,
         "source_file": "21_77.pdf",
@@ -5915,7 +5945,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "21cb1e39-c3a6-4ce1-afca-b94f6b771ff2",
+        "chunk_id": "b24f5272-6020-4033-9d51-cef0c33cc155",
         "chunk_type": "text",
         "page_num": 4,
         "source_file": "21_77.pdf",
@@ -5967,7 +5997,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "76a2b3ff-831c-4d17-ae7c-9a6db273378f",
+        "chunk_id": "7caec474-46e3-4c79-b8f1-24540ef87ff6",
         "chunk_type": "text",
         "page_num": 4,
         "source_file": "21_77.pdf",
@@ -6019,7 +6049,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "d42e680e-83d8-403f-905b-a26fd94cd73c",
+        "chunk_id": "8b4ab661-e358-421d-84cc-6a61fd9ce30c",
         "chunk_type": "text",
         "page_num": 4,
         "source_file": "21_77.pdf",
@@ -6071,7 +6101,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "4f412347-4559-4f52-8d69-fd746420ca7c",
+        "chunk_id": "ea107c5c-7390-4cb9-9b02-a6aaaa63f401",
         "chunk_type": "text",
         "page_num": 4,
         "source_file": "21_77.pdf",
@@ -6123,7 +6153,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "6d7dcb63-7a5f-4bc1-9194-c752eeff59b1",
+        "chunk_id": "d53894b3-f22d-4c5a-ade6-af493e5df864",
         "chunk_type": "text",
         "page_num": 4,
         "source_file": "21_77.pdf",
@@ -6175,7 +6205,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "3be9c6dd-371f-48d8-942a-b492fdeaa369",
+        "chunk_id": "8b0c1005-6844-48c2-ae1f-1109ee78c0c8",
         "chunk_type": "text",
         "page_num": 4,
         "source_file": "21_77.pdf",
@@ -6227,7 +6257,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "3f80a1a5-d1d2-4037-831f-8faa6d201dd9",
+        "chunk_id": "984cd4bd-9aea-41a8-8a84-52b7f093bbe3",
         "chunk_type": "text",
         "page_num": 4,
         "source_file": "21_77.pdf",
@@ -6279,7 +6309,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "97ce50da-0fda-458e-b0ad-a7ddf6ec0f21",
+        "chunk_id": "a019e4f5-d72e-4f5b-b128-8072d43841d1",
         "chunk_type": "text",
         "page_num": 4,
         "source_file": "21_77.pdf",
@@ -6331,7 +6361,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "73e0770b-ae42-4172-836a-1e6debd2ec3d",
+        "chunk_id": "be46e4b9-8c8d-481b-91d3-3f1de78557a0",
         "chunk_type": "text",
         "page_num": 4,
         "source_file": "21_77.pdf",
@@ -6383,7 +6413,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "8ee7c730-7c38-4cef-b91e-1118de88986f",
+        "chunk_id": "7739943f-f512-4b79-a6e6-b35b79ab1889",
         "chunk_type": "text",
         "page_num": 4,
         "source_file": "21_77.pdf",
@@ -6435,7 +6465,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "6db670da-83c3-4361-b4b3-dea1fb6fe4b1",
+        "chunk_id": "3ca017b2-e277-4097-a56e-e5cc3e7eff34",
         "chunk_type": "text",
         "page_num": 4,
         "source_file": "21_77.pdf",
@@ -6487,7 +6517,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "5b6d708f-10f1-4f70-b600-384adadc2296",
+        "chunk_id": "4523e84e-cc17-474a-8a7a-2d139b38d089",
         "chunk_type": "text",
         "page_num": 4,
         "source_file": "21_77.pdf",
@@ -6539,7 +6569,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "59703679-2111-464e-a432-1851eada245b",
+        "chunk_id": "603402f9-fab4-4f17-a5c3-ff6af6ff5078",
         "chunk_type": "text",
         "page_num": 4,
         "source_file": "21_77.pdf",
@@ -6591,7 +6621,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "6c08c078-8f67-4933-9bb4-1422649a8ec7",
+        "chunk_id": "97b1b572-d608-481d-bcf9-c5c930e267e1",
         "chunk_type": "text",
         "page_num": 4,
         "source_file": "21_77.pdf",
@@ -6640,11 +6670,11 @@
           "height": 842.0
         },
         "source_preview": "image:659x942",
-        "artifact_path": "21_77_audit/figures/fbc3dd4b-3f66-4cd3-8ce8-fb27c92b93b5.png"
+        "artifact_path": "21_77_audit/figures/ef88d844-551d-4645-b53c-19da49dc5c64.png"
       },
       "processed": {
-        "chunk_id": "fbc3dd4b-3f66-4cd3-8ce8-fb27c92b93b5",
-        "chunk_type": "figure",
+        "chunk_id": "ef88d844-551d-4645-b53c-19da49dc5c64",
+        "chunk_type": "table",
         "page_num": 5,
         "source_file": "21_77.pdf",
         "bbox": {
@@ -6659,11 +6689,11 @@
         },
         "artifact_path": null,
         "source_preview": "image:659x942",
-        "structured_text": "—\nT\n\nBua fi | BR\nBe 3) | +DIEXE 3\nBae tm) | tm) | Simsyey | (o/s) | 06)\n1 [26.10 6 16:00 | -0.14 | 60.07 | 123.46 | 117.88 | +47\n2 [u26 10.14 11:50 | -0.36 | 48.52 83.49 8Lol +23\n\n26.107 11:00\n\n0.86\n\n26.10.14 11:50\n\n0.45 242.82 | 357.61 | 394.50 | -10.3\n\n",
-        "intuition_summary": "OCR fallback.",
+        "structured_text": "| Fit | YN | aa | 3 | HI | PR |\n| --- | --- | --- | --- | --- | --- |\n| (m?/s) ° | ‘Bal\nle |  | Ik 4\n(m) | mR\n(m?) | Bait\n+DIEXTit\n(m?/s) | HORE\n(m?/s) | RE\n(%) |\n|  | H26.10.6 16:00 |  |  |  |  |  |\n|  | 26.10.14 11:50 |  |  |  | 8Lo6l |  |\n| (m) (m?) m/s) (m/s) (%) | GH\nax |  | Ik th\n(m) | ne\n(m?*) | Beet\n+DIENX Ft\n(m*/s) | H-OFE\n(n?/s) | RE\n(%) |\n|  | 26.107 11:00 | 0.86 |  |  |  |  |\n|  | 26.10.14 11:50 |  |  |  | 394.50, |  |",
+        "intuition_summary": "Extracted from table-like image via geometry heuristic.",
         "key_concepts": [],
-        "confidence": 0.3,
-        "agent_notes": "Vision model not loaded.\n[ocr_policy] engine=tesseract, threshold=0.50, reocr=False, max_attempts=0",
+        "confidence": 0.75,
+        "agent_notes": "extracted_from_geometry_heuristic\n[ocr_policy] engine=tesseract, threshold=0.50, reocr=False, max_attempts=0",
         "validation": {
           "is_valid": true,
           "verdict_score": 1.0,
@@ -6695,7 +6725,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "e1d2367a-2245-4df0-9f8c-792f3ebc35d2",
+        "chunk_id": "2a41f168-f9a3-4f02-a5a7-df588f29e8ce",
         "chunk_type": "text",
         "page_num": 5,
         "source_file": "21_77.pdf",
@@ -6747,7 +6777,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "c40fa665-1cd2-4cd1-b9ca-251582c22c14",
+        "chunk_id": "cc1d94e3-4cc9-4e4e-86aa-2bcad5ea599f",
         "chunk_type": "text",
         "page_num": 5,
         "source_file": "21_77.pdf",
@@ -6799,7 +6829,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "9f7d680c-5484-45a2-9b7e-b51be93d6be0",
+        "chunk_id": "658a4322-cc75-4a3b-9b0a-0eefe901f623",
         "chunk_type": "text",
         "page_num": 5,
         "source_file": "21_77.pdf",
@@ -6851,7 +6881,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "6ba18cbb-64fd-487d-bfe0-a39ac2f31ab4",
+        "chunk_id": "5a7ed95c-26f1-4563-8f04-0f77c4edcdfc",
         "chunk_type": "text",
         "page_num": 5,
         "source_file": "21_77.pdf",
@@ -6903,7 +6933,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "4eb69e5d-503e-4074-bd5e-32dc11144208",
+        "chunk_id": "32207b6b-24e1-471f-87da-bcc5cef646ea",
         "chunk_type": "text",
         "page_num": 5,
         "source_file": "21_77.pdf",
@@ -6955,7 +6985,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "768143c2-8906-4fbb-ab41-a5b93e5f2a7c",
+        "chunk_id": "e1c1999b-162b-4d2b-a0d2-dd70f0b6c918",
         "chunk_type": "text",
         "page_num": 5,
         "source_file": "21_77.pdf",
@@ -7007,7 +7037,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "917eabeb-32bf-4854-982d-082bde3673fd",
+        "chunk_id": "55c8cd03-7759-4633-bc71-02488e53bfbb",
         "chunk_type": "text",
         "page_num": 5,
         "source_file": "21_77.pdf",
@@ -7059,7 +7089,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "bd647e7a-5b86-46f8-ad7c-aed30ecf323d",
+        "chunk_id": "bf4ecb84-069d-45b8-8d20-0080fd06a11e",
         "chunk_type": "text",
         "page_num": 5,
         "source_file": "21_77.pdf",
@@ -7111,7 +7141,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "d377be1a-1c9f-4a6e-8894-bd1faf697bac",
+        "chunk_id": "cb8df819-048c-4d54-96d9-f3cd13398083",
         "chunk_type": "text",
         "page_num": 5,
         "source_file": "21_77.pdf",
@@ -7163,7 +7193,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "371491c9-df91-4384-a600-04ff2457ce55",
+        "chunk_id": "5f1a1340-8e33-4d42-9ac2-be1ea3ec9f5a",
         "chunk_type": "text",
         "page_num": 5,
         "source_file": "21_77.pdf",
@@ -7215,7 +7245,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "6cc558a7-ce6a-40f6-8b1c-8662532142d7",
+        "chunk_id": "39c4c875-7939-4df2-8942-833ce23bbf66",
         "chunk_type": "text",
         "page_num": 5,
         "source_file": "21_77.pdf",
@@ -7267,7 +7297,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "e86d1088-1664-4dc7-81d6-abb53a7e9058",
+        "chunk_id": "27a55cb8-209b-4347-9c68-b1639954ded1",
         "chunk_type": "text",
         "page_num": 5,
         "source_file": "21_77.pdf",
@@ -7319,7 +7349,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "dca45993-1eb9-4a19-bb62-c7330049c9d0",
+        "chunk_id": "e9e9631c-9698-4a42-88bd-06ac1904e5ab",
         "chunk_type": "text",
         "page_num": 5,
         "source_file": "21_77.pdf",
@@ -7371,7 +7401,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "d49e4c0d-6989-4891-96f3-97262c31b3bd",
+        "chunk_id": "58727fe4-29e1-47b2-a4ad-a20d395934af",
         "chunk_type": "text",
         "page_num": 5,
         "source_file": "21_77.pdf",
@@ -7423,7 +7453,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "d413cd60-bab5-4782-ab34-ccd1ba550964",
+        "chunk_id": "0c5b34e8-6e10-416a-8d7f-bcdfff5ae2e8",
         "chunk_type": "text",
         "page_num": 5,
         "source_file": "21_77.pdf",
@@ -7475,7 +7505,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "3d1de3bf-73fe-4f01-b9c4-d8940d852ed1",
+        "chunk_id": "ba7ad806-55f1-4a78-8086-1469ec4193e9",
         "chunk_type": "text",
         "page_num": 5,
         "source_file": "21_77.pdf",
@@ -7527,7 +7557,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "bea2c4a0-89e1-44f8-b251-849dabdf7336",
+        "chunk_id": "b01a280d-72ae-4e03-9687-29b3080303f9",
         "chunk_type": "text",
         "page_num": 5,
         "source_file": "21_77.pdf",
@@ -7579,7 +7609,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "14e48165-7cc8-4521-9375-10a5c320372e",
+        "chunk_id": "86d1064d-a7d8-4bb3-be3b-430bc4fd59af",
         "chunk_type": "text",
         "page_num": 5,
         "source_file": "21_77.pdf",
@@ -7631,7 +7661,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "c6e269eb-1fa3-4b2b-ad6d-bc0bf4b4dcd9",
+        "chunk_id": "d2a6adbb-a625-47a1-afb7-28b94e743ca0",
         "chunk_type": "text",
         "page_num": 5,
         "source_file": "21_77.pdf",
@@ -7683,7 +7713,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "e7af9c50-1e88-4dde-9a0f-bbfc879c6083",
+        "chunk_id": "73be266b-20d5-4cd2-98e2-1e4ced598fef",
         "chunk_type": "text",
         "page_num": 5,
         "source_file": "21_77.pdf",
@@ -7735,7 +7765,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "0281b858-cf09-4bee-91d7-3deee53b70b9",
+        "chunk_id": "9220ceba-4b04-4420-9014-1e87c1c32fc2",
         "chunk_type": "text",
         "page_num": 5,
         "source_file": "21_77.pdf",
@@ -7787,7 +7817,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "3de274fa-be97-443c-8874-b11a7c5e285b",
+        "chunk_id": "a0f27345-cd43-4ded-9435-a838d4473bec",
         "chunk_type": "text",
         "page_num": 5,
         "source_file": "21_77.pdf",
@@ -7839,7 +7869,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "cf83d180-a5a4-46ac-939a-17802aacfc94",
+        "chunk_id": "dd3baab7-17a1-4f25-8a4f-769413a36114",
         "chunk_type": "text",
         "page_num": 5,
         "source_file": "21_77.pdf",
@@ -7891,7 +7921,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "4f0197b9-3656-4ef3-936f-2b3ddd6ae032",
+        "chunk_id": "f5801e8a-a901-4e04-b12c-d85cbc3ad828",
         "chunk_type": "text",
         "page_num": 5,
         "source_file": "21_77.pdf",
@@ -7943,7 +7973,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "ef41aa3b-82e5-4f42-8c85-83c088a446b8",
+        "chunk_id": "9df29a73-58e6-439c-9bde-85779b9358c6",
         "chunk_type": "text",
         "page_num": 5,
         "source_file": "21_77.pdf",
@@ -7995,7 +8025,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "a46a36fb-f52a-4e8f-ad2a-af7690a0d230",
+        "chunk_id": "d24237a0-3fc3-499b-9b99-f038d7cb758d",
         "chunk_type": "text",
         "page_num": 6,
         "source_file": "21_77.pdf",
@@ -8047,7 +8077,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "c01d9cf7-e98e-43b5-84ee-41ef2577ce13",
+        "chunk_id": "727a2631-3134-434a-b54b-bc200da0ac6d",
         "chunk_type": "text",
         "page_num": 6,
         "source_file": "21_77.pdf",
@@ -8099,7 +8129,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "5053cf3a-5012-4773-ada4-42f873a9a7b2",
+        "chunk_id": "b9b45d0b-5e5c-41bd-81b0-7019a8ba915f",
         "chunk_type": "text",
         "page_num": 6,
         "source_file": "21_77.pdf",
@@ -8151,7 +8181,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "1824ac9e-4a33-4297-8f70-14edaacea050",
+        "chunk_id": "f3fafb82-0240-465d-b24e-12e86e0644e3",
         "chunk_type": "text",
         "page_num": 6,
         "source_file": "21_77.pdf",
@@ -8203,7 +8233,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "a811f9fe-8517-42ec-b440-003c737a06ae",
+        "chunk_id": "d931082b-9e5a-4081-992b-332eecb53680",
         "chunk_type": "text",
         "page_num": 6,
         "source_file": "21_77.pdf",
@@ -8255,7 +8285,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "7c9f9378-00d1-49eb-ac64-4573a9632091",
+        "chunk_id": "9b2659f3-2054-4407-93f2-c65eee2fd54c",
         "chunk_type": "text",
         "page_num": 6,
         "source_file": "21_77.pdf",
@@ -8307,7 +8337,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "e2a4557c-ae3c-4a4f-9a91-fa39bfca5626",
+        "chunk_id": "921d850c-284c-4ca8-9bc0-e83872bbc435",
         "chunk_type": "text",
         "page_num": 6,
         "source_file": "21_77.pdf",
@@ -8359,7 +8389,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "eda4a33c-97c4-45b3-8e06-adc6f351ced9",
+        "chunk_id": "94aa03b4-f945-4f73-844f-54b14f48155c",
         "chunk_type": "text",
         "page_num": 6,
         "source_file": "21_77.pdf",
@@ -8411,7 +8441,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "a01ec46e-438a-4ae2-ba92-8a896f821cab",
+        "chunk_id": "4969c187-d975-4a15-8fef-e784692b083a",
         "chunk_type": "text",
         "page_num": 6,
         "source_file": "21_77.pdf",
@@ -8463,7 +8493,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "14cdb0c0-db6a-4509-b7bf-015818c889a7",
+        "chunk_id": "a926a0d7-ebf0-4888-8a5b-966170011dfc",
         "chunk_type": "text",
         "page_num": 6,
         "source_file": "21_77.pdf",
@@ -8515,7 +8545,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "73abba20-a5fa-46b7-ac62-4f8f41af44fa",
+        "chunk_id": "1968c3d8-4eea-4f65-a1f3-0b3a4ad016bf",
         "chunk_type": "text",
         "page_num": 6,
         "source_file": "21_77.pdf",
@@ -8567,7 +8597,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "d3347116-80dc-47dc-a69f-19352e7c7525",
+        "chunk_id": "065d5fd3-a05a-495e-9cd5-688848343e99",
         "chunk_type": "text",
         "page_num": 6,
         "source_file": "21_77.pdf",
@@ -8619,7 +8649,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "0c555979-4801-4025-a47f-55b0995e0f1f",
+        "chunk_id": "751fafcf-c5aa-4168-a890-7c09642643da",
         "chunk_type": "text",
         "page_num": 6,
         "source_file": "21_77.pdf",
@@ -8671,7 +8701,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "e699d440-f44f-43e6-a2ba-4646f6bbfd19",
+        "chunk_id": "9b9e249a-4f1d-4726-a571-91ebdf1bfac9",
         "chunk_type": "text",
         "page_num": 6,
         "source_file": "21_77.pdf",
@@ -8723,7 +8753,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "eaaee37f-78f5-497a-8d2e-5c253c42b9f6",
+        "chunk_id": "16774ff0-905b-44bf-9e48-8f8f4df58bf5",
         "chunk_type": "text",
         "page_num": 6,
         "source_file": "21_77.pdf",
@@ -8775,7 +8805,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "568c3ec1-7743-47a2-b183-db6894433460",
+        "chunk_id": "6528f21b-1296-4628-89c5-4d81410623c0",
         "chunk_type": "text",
         "page_num": 6,
         "source_file": "21_77.pdf",
@@ -8827,7 +8857,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "b8f34f11-2e7e-42b6-912b-96fbad725021",
+        "chunk_id": "6216eb2f-a9cc-4ab9-90b7-685b8e8360af",
         "chunk_type": "text",
         "page_num": 6,
         "source_file": "21_77.pdf",
@@ -8879,7 +8909,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "b1fca4bd-9478-4ef8-8221-dbbd83057af5",
+        "chunk_id": "98c3177f-fbf6-462e-9b34-cabe3dd8d79c",
         "chunk_type": "text",
         "page_num": 6,
         "source_file": "21_77.pdf",
@@ -8931,7 +8961,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "6fcfebee-1dbb-4436-98d5-7fcb04bbf10a",
+        "chunk_id": "34780007-5b6d-4a1d-9d6e-87625bcb40d9",
         "chunk_type": "text",
         "page_num": 6,
         "source_file": "21_77.pdf",
@@ -8983,7 +9013,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "610a2398-d1fa-4af7-8e34-b0357e37a313",
+        "chunk_id": "bdde3b97-8b84-4dfa-b4c7-d9c105fed004",
         "chunk_type": "text",
         "page_num": 6,
         "source_file": "21_77.pdf",
@@ -9035,7 +9065,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "c35f7af7-4528-4979-bd86-75fca3c0693c",
+        "chunk_id": "d99e0e1e-f1d3-4731-9c37-44758dc10a22",
         "chunk_type": "text",
         "page_num": 6,
         "source_file": "21_77.pdf",
@@ -9087,7 +9117,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "85990c3c-3548-493d-b50a-4832ba1c1935",
+        "chunk_id": "cf96b745-7beb-4594-bea0-104e2166bb19",
         "chunk_type": "text",
         "page_num": 6,
         "source_file": "21_77.pdf",
@@ -9139,7 +9169,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "1ccb55c0-aa1c-466d-846c-3ddb40db7e42",
+        "chunk_id": "c1b80317-5c18-49d7-bc7d-b0140c55814d",
         "chunk_type": "text",
         "page_num": 6,
         "source_file": "21_77.pdf",
@@ -9191,7 +9221,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "c28616eb-3017-43be-b4cc-527c35401d22",
+        "chunk_id": "40cf884c-856b-4478-8dfc-da2b45db7698",
         "chunk_type": "text",
         "page_num": 6,
         "source_file": "21_77.pdf",
@@ -9243,7 +9273,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "01cf3fc3-ea09-42b2-97f7-abaae2e3f8f1",
+        "chunk_id": "e686ddb4-cb08-486d-8d8c-622482180786",
         "chunk_type": "text",
         "page_num": 6,
         "source_file": "21_77.pdf",
@@ -9295,7 +9325,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "af6bc324-f179-4428-8b39-ae4fd243c613",
+        "chunk_id": "177a3d4d-bcc4-4b56-adbe-f3bf4ad71296",
         "chunk_type": "text",
         "page_num": 6,
         "source_file": "21_77.pdf",
@@ -9347,7 +9377,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "84ea9830-a493-4b77-8e2b-4a97d142ed7d",
+        "chunk_id": "fd0eded4-1934-4282-9238-d9e0d2985b69",
         "chunk_type": "text",
         "page_num": 6,
         "source_file": "21_77.pdf",
@@ -9399,7 +9429,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "0ff7aa82-74c2-496d-98dc-6a046c3cc919",
+        "chunk_id": "e5185240-2f2e-495f-b574-218d76c2c0dc",
         "chunk_type": "text",
         "page_num": 6,
         "source_file": "21_77.pdf",
@@ -9451,7 +9481,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "6b1be8c8-7ba1-437c-bbd4-43bbe39cc023",
+        "chunk_id": "64bf0959-b7fc-4c27-a0ff-24526f29468f",
         "chunk_type": "text",
         "page_num": 6,
         "source_file": "21_77.pdf",
@@ -9503,7 +9533,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "7f7dcf15-b3e3-4195-ab76-d1bfbc8bebf3",
+        "chunk_id": "2f733ccb-8f32-457c-b176-df5bdce996ad",
         "chunk_type": "text",
         "page_num": 6,
         "source_file": "21_77.pdf",
@@ -9555,7 +9585,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "f9275699-cbbc-487e-9efd-fc36804f0abd",
+        "chunk_id": "bcca0629-c400-4d85-8023-5a9a32c342b2",
         "chunk_type": "text",
         "page_num": 6,
         "source_file": "21_77.pdf",
@@ -9607,7 +9637,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "c683c161-1f4a-47ec-bc0a-e321b3142632",
+        "chunk_id": "106389ac-3f0a-4ad9-9620-931ea5009189",
         "chunk_type": "text",
         "page_num": 6,
         "source_file": "21_77.pdf",
@@ -9659,7 +9689,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "a1e64c23-8598-4ad8-bb2d-c3591406b787",
+        "chunk_id": "2232c16a-fe57-4ff3-a62e-fba83febb794",
         "chunk_type": "text",
         "page_num": 6,
         "source_file": "21_77.pdf",
@@ -9711,7 +9741,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "5b3ffc78-83a1-466f-b164-7a0095aa5947",
+        "chunk_id": "9ae186f3-e9d9-442e-88e2-7648c58ac29f",
         "chunk_type": "text",
         "page_num": 6,
         "source_file": "21_77.pdf",
@@ -9763,7 +9793,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "4d88bbdd-a22d-44a4-acf9-1c90b3689ef6",
+        "chunk_id": "dfc7af2e-9208-41a9-90ef-50f6ef9dbfec",
         "chunk_type": "text",
         "page_num": 6,
         "source_file": "21_77.pdf",
@@ -9815,7 +9845,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "472c7c17-74dd-4b6b-8140-dd049bcccf6c",
+        "chunk_id": "3e9c196a-1590-412f-96a9-952530b8564f",
         "chunk_type": "text",
         "page_num": 6,
         "source_file": "21_77.pdf",
@@ -9867,7 +9897,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "fe1819d3-70cc-49d5-8ddb-7eca01e7d459",
+        "chunk_id": "3441b9e8-5698-4591-b731-36087b7e29a5",
         "chunk_type": "text",
         "page_num": 6,
         "source_file": "21_77.pdf",
@@ -9919,7 +9949,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "4786f876-7760-4f93-8cc9-45bc295669ae",
+        "chunk_id": "8467bd9e-e5be-4abd-ad55-a73b58b1f46f",
         "chunk_type": "text",
         "page_num": 6,
         "source_file": "21_77.pdf",
@@ -9971,7 +10001,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "b7f9901c-9695-4b56-9cf8-f7156e9ded8e",
+        "chunk_id": "7c0ab3e8-0c5f-4883-8b4f-b469125b6697",
         "chunk_type": "text",
         "page_num": 6,
         "source_file": "21_77.pdf",
@@ -10023,7 +10053,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "40052470-392f-4a7c-92a0-9db0150102de",
+        "chunk_id": "5ec1ef2e-ba2b-4805-a260-0daf5ec01a90",
         "chunk_type": "text",
         "page_num": 6,
         "source_file": "21_77.pdf",
@@ -10075,7 +10105,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "b68ac179-8fbf-4aa0-befc-de25329dd6ec",
+        "chunk_id": "4c5b9819-dd33-4971-acbc-3716853b9d29",
         "chunk_type": "text",
         "page_num": 6,
         "source_file": "21_77.pdf",
@@ -10127,7 +10157,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "bebb1f4d-2248-46a7-842f-684815290df5",
+        "chunk_id": "0b732bb1-b185-4927-a63a-ccc017ab7cf1",
         "chunk_type": "text",
         "page_num": 6,
         "source_file": "21_77.pdf",
@@ -10179,7 +10209,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "8c2ece60-52a8-4e68-9553-f48abb739d04",
+        "chunk_id": "6d8ff685-b9b7-4ff3-89c1-1675f6e138cf",
         "chunk_type": "text",
         "page_num": 6,
         "source_file": "21_77.pdf",
@@ -10231,7 +10261,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "91d5ed62-d5e0-4857-8008-d055474b911c",
+        "chunk_id": "666df66a-e644-4c35-9c47-3dc00d642a67",
         "chunk_type": "text",
         "page_num": 6,
         "source_file": "21_77.pdf",
@@ -10283,7 +10313,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "879d10d5-d593-4261-94e6-8504109e5da7",
+        "chunk_id": "97436d1f-5987-4caf-9a46-e7412d62d005",
         "chunk_type": "text",
         "page_num": 6,
         "source_file": "21_77.pdf",
@@ -10335,7 +10365,7 @@
         "artifact_path": null
       },
       "processed": {
-        "chunk_id": "1541bf4a-57e6-4879-af95-c64000ff9b25",
+        "chunk_id": "cb91256f-83ca-4bef-b92b-9074aa336869",
         "chunk_type": "text",
         "page_num": 6,
         "source_file": "21_77.pdf",

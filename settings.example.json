@@ -42,7 +42,7 @@
     "embedder_batch_size": 32,
     "chunk_size": 800,
     "text_passthrough": true,
-    "figure_ocr_only": true
+    "figure_ocr_only": false
   },
   "cache": {
     "enable_hf_cache": true,
