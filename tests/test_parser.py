@@ -151,6 +151,26 @@ def test_build_table_metrics_aggregates_candidate_sources_and_reasons() -> None:
     assert metrics["rejected_reasons"] == {"fallback_low_table_signal": 1, "too_sparse": 1}
 
 
+def test_get_last_parse_table_metrics_returns_copy() -> None:
+    parser = PDFParser()
+    parser._last_parse_table_metrics = [
+        {
+            "page_num": 1,
+            "total_candidates": 2,
+            "default_candidates": 1,
+            "fallback_candidates": 1,
+            "accepted_candidates": 1,
+            "rejected_candidates": 1,
+            "rejected_reasons": {"too_sparse": 1},
+        }
+    ]
+
+    captured = parser.get_last_parse_table_metrics()
+    captured[0]["accepted_candidates"] = 999
+
+    assert parser._last_parse_table_metrics[0]["accepted_candidates"] == 1
+
+
 class _DummyCandidate:
     def __init__(self, bbox: tuple[float, float, float, float]):
         self.bbox = bbox

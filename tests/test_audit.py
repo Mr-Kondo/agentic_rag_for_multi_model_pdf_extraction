@@ -187,3 +187,63 @@ def test_save_chunk_audit_skips_page_preview_rendering_when_disabled(tmp_path: P
     assert audit_data["pages"] == []
     assert audit_data["pdf_path"] == "../sample.pdf"
     assert "ページプレビューは生成されていません。" in html
+
+
+def test_save_chunk_audit_persists_parser_table_metrics(tmp_path: Path) -> None:
+    """Audit report should retain parser table diagnostics for later comparisons."""
+    pdf_path = tmp_path / "sample.pdf"
+    document = pymupdf.open()
+    page = document.new_page(width=200, height=300)
+    page.insert_text((24, 48), "Audit me")
+    document.save(pdf_path)
+    document.close()
+
+    raw = RawChunk(
+        chunk_type=ChunkType.TEXT,
+        page_num=1,
+        source_file=pdf_path.name,
+        raw_content="Audit me",
+        bbox=(20.0, 30.0, 120.0, 70.0),
+        page_width=200.0,
+        page_height=300.0,
+        source_preview="Audit me",
+    )
+    processed = ProcessedChunk(
+        chunk_type=ChunkType.TEXT,
+        page_num=1,
+        source_file=pdf_path.name,
+        bbox=raw.bbox,
+        page_width=raw.page_width,
+        page_height=raw.page_height,
+        source_preview=raw.source_preview,
+        structured_text="Audit me",
+        intuition_summary="Short text block",
+        confidence=0.95,
+    )
+    parser_metrics = [
+        {
+            "page_num": 1,
+            "total_candidates": 4,
+            "default_candidates": 2,
+            "fallback_candidates": 2,
+            "accepted_candidates": 1,
+            "rejected_candidates": 3,
+            "rejected_reasons": {"too_sparse": 2, "overlaps_figure": 1},
+        }
+    ]
+
+    paths = save_chunk_audit(
+        pdf_path=pdf_path,
+        extracted=[(raw, processed)],
+        accepted=[processed],
+        output_dir=tmp_path / "out",
+        parser_table_metrics=parser_metrics,
+    )
+
+    audit_data = json.loads(paths["json"].read_text(encoding="utf-8"))
+    html = paths["html"].read_text(encoding="utf-8")
+
+    assert audit_data["parser_table_metrics"] == parser_metrics
+    assert "Parser table metrics" in html
+    assert '"parser_table_metrics"' in html
+    assert '"too_sparse": 2' in html

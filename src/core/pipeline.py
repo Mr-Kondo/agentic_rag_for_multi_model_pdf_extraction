@@ -267,6 +267,7 @@ class AgenticRAGPipeline:
                     accepted=accepted,
                     output_dir=audit_output_dir,
                     render_page_previews=self.audit_render_page_previews,
+                    parser_table_metrics=self.parser.get_last_parse_table_metrics(),
                 )
 
             log.info("=" * 70 + "\n")
