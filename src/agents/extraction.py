@@ -328,6 +328,7 @@ class VisionAgent(BaseAgent):
             ProcessedChunk with figure description and metadata
         """
         if bool(config.get("pipeline.figure_ocr_only", True)):
+            log.debug("VisionAgent: figure_ocr_only is enabled; skipping vision interpretation for page %d", chunk.page_num)
             return self._ocr_fallback(chunk)
 
         table_extractor = TableFromImageExtractor(policy=policy)
