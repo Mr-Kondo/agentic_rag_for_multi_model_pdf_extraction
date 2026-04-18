@@ -238,6 +238,26 @@ class ConfigLoader:
                 return default
         return value if value is not None else default
 
+    def set(self, key: str, value: Any) -> None:
+        """Set config value by dot notation key at runtime.
+
+        Args:
+            key: Dot-separated config key
+            value: Value to set
+        """
+        parts = key.split(".")
+        if not parts:
+            return
+
+        node: dict[str, Any] = self.config
+        for part in parts[:-1]:
+            current = node.get(part)
+            if not isinstance(current, dict):
+                current = {}
+                node[part] = current
+            node = current
+        node[parts[-1]] = value
+
 
 # Global config instance
 config = ConfigLoader()

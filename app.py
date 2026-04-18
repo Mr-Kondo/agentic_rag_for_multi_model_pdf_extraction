@@ -87,6 +87,8 @@ def cmd_ingest(args: argparse.Namespace) -> int:
     log.info(f"Ingesting: {pdf_path.name}")
     log.info(f"{'=' * 70}\n")
 
+    _apply_runtime_pipeline_mode(args)
+
     pipeline = AgenticRAGPipeline.build(
         text_model=args.text_model,
         table_model=args.table_model,
@@ -131,6 +133,8 @@ def cmd_query(args: argparse.Namespace) -> int:
         Exit code (0 for success, non-zero for error)
     """
     question = args.question
+
+    _apply_runtime_pipeline_mode(args)
 
     pipeline = AgenticRAGPipeline.build(
         text_model=args.text_model,
@@ -201,6 +205,8 @@ def cmd_pipeline(args: argparse.Namespace) -> int:
         return 1
 
     question = args.question
+
+    _apply_runtime_pipeline_mode(args)
 
     pipeline = AgenticRAGPipeline.build(
         text_model=args.text_model,
@@ -277,6 +283,20 @@ def cmd_pipeline(args: argparse.Namespace) -> int:
 
     log.info("\nPipeline complete!\n")
     return 0
+
+
+def _apply_runtime_pipeline_mode(args: argparse.Namespace) -> None:
+    """Apply runtime extraction mode flags from CLI arguments.
+
+    Quality mode forces text extraction through the TextAgent.
+    Fast mode enables text passthrough for lower latency.
+    """
+    if getattr(args, "quality_mode", False):
+        config.set("pipeline.text_passthrough", False)
+        log.info("Pipeline mode: quality (text_passthrough=False)")
+    elif getattr(args, "fast_mode", False):
+        config.set("pipeline.text_passthrough", True)
+        log.info("Pipeline mode: fast (text_passthrough=True)")
 
 
 # ═══════════════════════════════════════════════════════════
@@ -484,6 +504,19 @@ Examples:
             action="store_true",
             default=False,
             help="Load/unload extraction agents per chunk (saves VRAM, slower)",
+        )
+        mode_group = perf_group.add_mutually_exclusive_group()
+        mode_group.add_argument(
+            "--quality-mode",
+            action="store_true",
+            default=False,
+            help="Prefer extraction quality by disabling text passthrough",
+        )
+        mode_group.add_argument(
+            "--fast-mode",
+            action="store_true",
+            default=False,
+            help="Prefer speed by enabling text passthrough",
         )
 
     return parser

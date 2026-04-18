@@ -177,6 +177,8 @@ python app.py pipeline ./in/sample.pdf "要点を3つで要約して"
 | `--validate` / `--no-validate` | CHECKPOINT A (ingest) / CHECKPOINT B (query) の有効化 |
 | `--enable-figure-aware-fallback` | parser の figure-aware テーブル fallback を有効化 |
 | `--lazy-agents` | 抽出エージェントをチャンクごとにロード/アンロード (VRAM 節約、低速化) |
+| `--quality-mode` | 抽出品質優先モード (text_passthrough を無効化) |
+| `--fast-mode` | 速度優先モード (text_passthrough を有効化) |
 | `--session-id` | Langfuse トレースのグループ ID |
 | `--storage-dir` | ChromaDB 保存先 |
 | `--output` | 監査レポートの出力先 |
