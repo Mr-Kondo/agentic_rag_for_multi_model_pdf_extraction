@@ -55,6 +55,9 @@
   },
   "ocr": {
     "engine": "easyocr",
+    "_engine_options": "easyocr | yomitoku | tesseract",
+    "yomitoku_device": "mps",
+    "prewarm_yomitoku": true,
     "default_lang": "jpn+eng",
     "japanese_lang": "jpn",
     "fallback_lang": "eng",
@@ -69,6 +72,7 @@
     "enable_line_reocr": true,
     "max_line_reocr_attempts": 2,
     "region_policies": {
+      "_note": "Set engine to 'yomitoku' for higher Japanese accuracy (requires yomitoku installed)",
       "text": {
         "engine": "easyocr",
         "line_confidence_threshold": 0.55,

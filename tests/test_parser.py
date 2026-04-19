@@ -646,3 +646,125 @@ def test_get_available_tesseract_languages_uses_cache(monkeypatch) -> None:
     assert langs_first == {"eng", "jpn"}
     assert langs_second == {"eng", "jpn"}
     assert call_count == 1
+
+
+# ---------------------------------------------------------------------------
+# YomiToku OCR engine integration tests
+# ---------------------------------------------------------------------------
+
+
+class _FakeWordPrediction:
+    """Minimal stand-in for yomitoku WordPrediction."""
+
+    def __init__(
+        self,
+        points: list[list[int]],
+        content: str,
+        rec_score: float = 0.95,
+    ) -> None:
+        self.points = points
+        self.content = content
+        self.rec_score = rec_score
+        self.det_score = 0.99
+        self.direction = "horizontal"
+
+
+class _FakeOCRSchema:
+    """Minimal stand-in for yomitoku OCRSchema."""
+
+    def __init__(self, words: list[_FakeWordPrediction]) -> None:
+        self.words = words
+
+
+class _FakeYomitokuOCR:
+    """Callable that returns a fixed _FakeOCRSchema for any input."""
+
+    def __init__(self, words: list[_FakeWordPrediction]) -> None:
+        self._schema = _FakeOCRSchema(words)
+
+    def __call__(self, img_bgr):  # noqa: ANN001
+        return self._schema, None
+
+
+def test_get_yomitoku_ocr_caches_instance(monkeypatch) -> None:
+    """_get_yomitoku_ocr() initialises the engine once and returns the same object on repeat calls."""
+    parser = PDFParser()
+    parser.OCR_YOMITOKU_DEVICE = "cpu"
+
+    fake_ocr = _FakeYomitokuOCR([])
+    call_count = 0
+
+    def _fake_ocr_constructor(visualize: bool, device: str):  # noqa: ANN001
+        nonlocal call_count
+        call_count += 1
+        return fake_ocr
+
+    import types
+
+    fake_module = types.ModuleType("yomitoku")
+    fake_module.OCR = _fake_ocr_constructor  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "yomitoku", fake_module)
+
+    engine_first = parser._get_yomitoku_ocr()
+    engine_second = parser._get_yomitoku_ocr()
+
+    assert engine_first is fake_ocr
+    assert engine_second is fake_ocr
+    assert call_count == 1
+
+
+def test_get_yomitoku_ocr_returns_none_on_import_error(monkeypatch) -> None:
+    """_get_yomitoku_ocr() returns None and logs a warning when yomitoku is not installed."""
+    parser = PDFParser()
+    monkeypatch.setitem(sys.modules, "yomitoku", None)
+
+    result = parser._get_yomitoku_ocr()
+
+    assert result is None
+
+
+def test_ocr_text_from_bbox_yomitoku_returns_text(monkeypatch) -> None:
+    """_ocr_text_from_bbox_yomitoku() assembles word predictions into a text string."""
+    import numpy as np
+    import types
+
+    parser = PDFParser()
+    parser.OCR_RENDER_SCALE = 1.0
+    parser.OCR_YOMITOKU_DEVICE = "cpu"
+
+    words = [
+        _FakeWordPrediction([[0, 0], [50, 0], [50, 10], [0, 10]], "テスト", 0.97),
+        _FakeWordPrediction([[55, 0], [120, 0], [120, 10], [55, 10]], "文書", 0.92),
+    ]
+    fake_ocr = _FakeYomitokuOCR(words)
+    parser._yomitoku_ocr = fake_ocr
+
+    height, width = 20, 200
+    fake_samples = bytes(height * width * 3)
+
+    class _FakePixmap:
+        samples = fake_samples
+        height = 20
+        width = 200
+
+    class _FakePage:
+        def get_pixmap(self, matrix=None, clip=None, alpha=True):  # noqa: ANN001
+            return _FakePixmap()
+
+    monkeypatch.setattr(
+        "src.core.parser.np",
+        types.SimpleNamespace(
+            frombuffer=np.frombuffer,
+            uint8=np.uint8,
+        ),
+        raising=False,
+    )
+
+    result = parser._ocr_text_from_bbox_yomitoku(
+        fitz_page=_FakePage(),  # type: ignore[arg-type]
+        bbox=(0.0, 0.0, 200.0, 20.0),
+    )
+
+    assert result is not None
+    assert "テスト" in result
+    assert "文書" in result
