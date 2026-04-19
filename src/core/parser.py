@@ -73,6 +73,8 @@ class PDFParser:
     OCR_POST_CORRECTION_APPLY_TO_OCR_ONLY = bool(config.get("ocr.post_correction.apply_to_ocr_only", True))
     OCR_READABILITY_THRESHOLD = 5
     OCR_MIN_CHARS = 24
+    OCR_YOMITOKU_DEVICE = str(config.get("ocr.yomitoku_device", "mps"))
+    OCR_PREWARM_YOMITOKU = bool(config.get("ocr.prewarm_yomitoku", True))
     FALLBACK_TABLE_SETTINGS = {
         "vertical_strategy": "text",
         "horizontal_strategy": "text",
@@ -89,10 +91,13 @@ class PDFParser:
         self._available_tesseract_languages: set[str] | None = None
         self._available_tesseract_languages_loaded = False
         self._easyocr_reader: Any | None = None
+        self._yomitoku_ocr: Any | None = None
         self._last_ocr_metadata: dict[str, Any] | None = None
         self._last_parse_table_metrics: list[dict[str, Any]] = []
         if self.OCR_PREWARM_EASYOCR and self.OCR_ENGINE == "easyocr":
             self._get_easyocr_reader()
+        if self.OCR_PREWARM_YOMITOKU and self.OCR_ENGINE == "yomitoku":
+            self._get_yomitoku_ocr()
 
     def parse(self, pdf_path: str | Path) -> list[RawChunk]:
         """
@@ -453,12 +458,18 @@ class PDFParser:
         """
         Extract text via OCR from a clipped page region.
 
-        Dispatches to EasyOCR (primary) or Tesseract (fallback / explicit setting)
-        based on the configured ``ocr.engine`` value.
+        Dispatches to YomiToku, EasyOCR, or Tesseract based on the configured
+        ``ocr.engine`` value (or the per-region policy engine override).
+        YomiToku and EasyOCR both fall back to Tesseract when they return no text.
         """
         self._last_ocr_metadata = None
         active_policy = policy or self._get_region_policy(ChunkType.TEXT)
-        if active_policy.engine == "easyocr":
+        if active_policy.engine == "yomitoku":
+            result = self._ocr_text_from_bbox_yomitoku(fitz_page=fitz_page, bbox=bbox, policy=active_policy)
+            if result:
+                return result
+            log.debug("YomiToku returned no text; falling back to Tesseract")
+        elif active_policy.engine == "easyocr":
             result = self._ocr_text_from_bbox_easyocr(fitz_page=fitz_page, bbox=bbox, policy=active_policy)
             if result:
                 return result
@@ -708,6 +719,113 @@ class PDFParser:
             return None
 
         return self._easyocr_reader
+
+    def _get_yomitoku_ocr(self) -> Any | None:
+        """
+        Return the cached YomiToku OCR engine, initialising it on first call.
+
+        Uses the device configured via ``ocr.yomitoku_device`` (default: "mps").
+        Import errors are caught so that environments without yomitoku installed
+        degrade gracefully.
+
+        Returns:
+            Initialised ``yomitoku.OCR`` instance, or None on failure.
+        """
+        if self._yomitoku_ocr is not None:
+            return self._yomitoku_ocr
+
+        try:
+            from yomitoku import OCR as YomitokuOCR
+        except ImportError as exc:
+            log.warning("yomitoku is not installed; OCR will fall back to Tesseract. (%s)", exc)
+            return None
+
+        try:
+            self._yomitoku_ocr = YomitokuOCR(visualize=False, device=self.OCR_YOMITOKU_DEVICE)
+            log.info("YomiToku OCR engine initialised (device=%s)", self.OCR_YOMITOKU_DEVICE)
+        except Exception as exc:
+            log.warning("YomiToku OCR engine initialisation failed: %s", exc)
+            return None
+
+        return self._yomitoku_ocr
+
+    def _ocr_text_from_bbox_yomitoku(
+        self,
+        fitz_page: pymupdf.Page,
+        bbox: BBox,
+        policy: RegionOCRPolicy | None = None,
+    ) -> str | None:
+        """
+        Extract text via YomiToku from a clipped page region.
+
+        Renders a pixmap of the bounding box, converts to BGR numpy array,
+        and feeds it to the cached YomiToku OCR engine.  Word results are
+        converted to the same line-entry format used by EasyOCR so that
+        ``_easyocr_results_to_line_entries`` can be reused without duplication.
+
+        Args:
+            fitz_page: PyMuPDF page object for pixel rendering.
+            bbox: Region of interest as (x0, y0, x1, y1).
+            policy: Optional region-specific OCR policy.
+
+        Returns:
+            Extracted text string, or None when yomitoku is unavailable or
+            returns no results.
+        """
+        ocr_engine = self._get_yomitoku_ocr()
+        if ocr_engine is None:
+            return None
+
+        try:
+            import numpy as np
+
+            rect = pymupdf.Rect(bbox[0], bbox[1], bbox[2], bbox[3])
+            pix = fitz_page.get_pixmap(
+                matrix=pymupdf.Matrix(self.OCR_RENDER_SCALE, self.OCR_RENDER_SCALE),
+                clip=rect,
+                alpha=False,
+            )
+            img_rgb = np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.height, pix.width, 3)
+            # YomiToku expects BGR (OpenCV convention).
+            img_bgr = img_rgb[:, :, ::-1].copy()
+        except Exception as exc:
+            log.debug("YomiToku: failed to render clip: %s", exc)
+            return None
+
+        try:
+            results, _ = ocr_engine(img_bgr)
+        except Exception as exc:
+            log.debug("YomiToku: inference failed: %s", exc)
+            return None
+
+        if not results or not results.words:
+            return None
+
+        # Convert yomitoku WordPrediction objects to EasyOCR-compatible tuples
+        # so that the shared line-grouping logic can be reused directly.
+        # EasyOCR format: (quad_points, text, confidence)
+        # where quad_points is a list of four [x, y] pairs.
+        easyocr_compatible = [(word.points, word.content, word.rec_score) for word in results.words if word.content.strip()]
+
+        if not easyocr_compatible:
+            return None
+
+        active_policy = policy or self._get_region_policy(ChunkType.TEXT)
+        line_entries = self._easyocr_results_to_line_entries(easyocr_compatible)
+
+        metadata = {
+            "engine": "yomitoku",
+            "line_count": len(line_entries),
+            "low_confidence_line_count": sum(
+                1 for line in line_entries if line["confidence"] < active_policy.line_confidence_threshold
+            ),
+            "reocr_attempts": 0,
+            "reocr_replaced_lines": 0,
+        }
+        self._last_ocr_metadata = metadata
+
+        text = "\n".join(line["text"] for line in line_entries if line["text"].strip())
+        return text if text.strip() else None
 
     def _ocr_text_from_bbox_tesseract(self, fitz_page: pymupdf.Page, bbox: BBox) -> str | None:
         """
