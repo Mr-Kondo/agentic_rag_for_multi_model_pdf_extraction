@@ -1,187 +1,156 @@
 # Agentic RAG Architecture
 
-Last updated: 2026-04-16
+Last updated: 2026-04-19
 
-この文書は、現在サポートされている Sequential + Ollama 構成だけを説明します。削除済みの CrewAI、LangGraph、MLX 経路は対象外です。
+この文書は、現行の Sequential + Ollama runtime の構成を説明します。
+CrewAI / LangGraph / MLX 系の旧経路は対象外です。
 
 ## 1. System overview
 
-システムは 2 フェーズです。
+システムは ingest と query の 2 フェーズです。
 
 - ingest
-  - PDF を parse して `RawChunk` を作る
-  - 種別ごとの抽出を行い `ProcessedChunk` に変換する
-  - 任意で CHECKPOINT A を実行する
-  - ChromaDB に保存する
+  - PDF parse
+  - chunk extraction (text/table/figure)
+  - optional CHECKPOINT A
+  - ChromaDB upsert
 - query
-  - ベクトルストアから関連チャンクを取得する
-  - オーケストレータで回答を生成する
-  - 任意で CHECKPOINT B を実行する
+  - retrieve
+  - orchestrator generate
+  - optional CHECKPOINT B
 
-主なレイヤーは次の通りです。
+主要レイヤー:
 
-- Parse layer
-- Extraction layer
-- Validation layer
-- Retrieval layer
-- Generation layer
-- Serialization and audit layer
+- Parse
+- Extraction
+- Validation
+- Retrieval
+- Generation
+- Serialization and audit
 
 ## 2. Directory responsibilities
 
-### 2.1 `src/core`
+### 2.1 src/core
 
-- `config.py`
-  - `settings.json` を読み込み、defaults と deep merge します。
-- `models.py`
-  - `RawChunk`, `ProcessedChunk`, `RAGAnswer` などのドメインモデルを定義します。
-- `parser.py`
-  - `pdfplumber` と `PyMuPDF` を使って PDF を解析し、text/table/figure の raw chunk を作ります。
-- `pipeline.py`
-  - 現在サポートされている sequential ingest/query runtime です。
-- `store.py`
-  - ChromaDB への upsert / retrieve を扱います。
-- `cache.py`
-  - Ollama client の取得と `HF_HOME` の設定を扱います。
+- config.py: `_DEFAULTS` と `settings.json` の deep merge
+- parser.py: PDF parse と OCR
+- pipeline.py: ingest/query orchestration
+- store.py: ChromaDB + BM25 ハイブリッド検索
+- models.py: domain model
+- cache.py: sentence-transformers 用 `HF_HOME` 設定
 
-### 2.2 `src/agents`
+### 2.2 src/agents
 
-- `extraction.py`
-  - `TextAgent`, `TableAgent`, `VisionAgent`
-- `router.py`
-  - `RawChunk.chunk_type` に応じて抽出 agent を選びます。
-- `validation.py`
-  - `ChunkValidatorAgent`, `AnswerValidatorAgent`
-- `orchestrator.py`
-  - `ReasoningOrchestratorAgent`
+- extraction.py: `TextAgent`, `TableAgent`, `VisionAgent`
+- router.py: chunk type ベースの抽出ルーティング
+- validation.py: `ChunkValidatorAgent`, `AnswerValidatorAgent`
+- orchestrator.py: `ReasoningOrchestratorAgent`
 
-### 2.3 `src/integrations`
+### 2.3 src/integrations
 
-- `langfuse.py`
-  - trace, span, score を送信します。設定がなければ no-op です。
-- `dspy_adapter.py`, `dspy_modules.py`
-  - DSPy と answer validation を接続します。
+- langfuse.py: trace/span/score
+- dspy_adapter.py, dspy_modules.py: DSPy 接続
 
-### 2.4 `src/utils`
+### 2.4 src/utils
 
-- `serialization.py`
-  - chunks / answer JSON を `./out` に保存します。
-- `audit.py`
-  - 監査用 JSON / HTML / 画像を出力します。
-- `token_counter.py`
-  - tiktoken を使ってテキストのトークン数を近似計算します。Langfuse の `usage_details` 送信に使われます。
+- serialization.py: chunks/answer JSON 保存
+- audit.py: audit JSON/HTML/image 保存
+- token_counter.py: usage token 近似算出
 
 ## 3. Runtime flow
 
-### 3.1 Ingest
-
-`AgenticRAGPipeline.ingest()` は次の順で進みます。
+### 3.1 ingest
 
 1. `PDFParser.parse()`
-2. `AgentRouter.route_with_policy()` による抽出
-3. 任意の chunk validation
+2. `AgentRouter.route_with_policy()`
+3. optional CHECKPOINT A (`validates=True`)
 4. `ChunkStore.upsert()`
-5. 任意の監査出力
+5. optional audit export
 
-### 3.2 Query
-
-`AgenticRAGPipeline.query()` は次の順で進みます。
+### 3.2 query
 
 1. retrieve
 2. orchestrator generate
-3. 任意の answer validation
-4. 必要なら revised answer へ置換
+3. optional CHECKPOINT B (`validates=True`)
+4. revised answer があれば差し替え
 
 ## 4. Parser behavior
 
 ### 4.1 Table detection
 
-`PDFParser` は precision-first です。
+`PDFParser` は precision-first 方針です。
 
-- まず `pdfplumber.find_tables()` の標準候補を使います。
-- fallback の text strategy は次で有効になります。
-  - 標準候補が 0 件
-  - `enable_figure_aware_fallback=True` かつ figure があるページ
-- 誤検出抑制のために figure overlap、caption cue、numeric ratio、long-cell ratio を見ます。
+- `pdfplumber.find_tables()` の標準候補を優先
+- fallback text strategy は次で有効
+  - 標準候補 0 件
+  - `enable_figure_aware_fallback=True` かつ figure ありページ
+- 誤検出抑制に figure overlap / caption cue / numeric ratio / long-cell ratio を使用
 
-### 4.2 OCR
+### 4.2 OCR dispatch
 
-OCR 設定は `src/core/config.py` 経由で読み込まれます。
+OCR engine は region policy の `engine` に従って選択されます。
+
+- `yomitoku`: `_ocr_text_from_bbox_yomitoku()`
+- `easyocr`: `_ocr_text_from_bbox_easyocr()`
+- `tesseract`: `_ocr_text_from_bbox_tesseract()`
+
+`yomitoku` と `easyocr` は結果が空のとき `tesseract` にフォールバックします。
+
+関連設定:
 
 - `ocr.engine`
-- `ocr.default_lang`
-- `ocr.japanese_lang`
-- `ocr.fallback_lang`
-- `ocr.config`
+- `ocr.region_policies.*.engine`
+- `ocr.yomitoku_device`
+- `ocr.prewarm_yomitoku`
+- `ocr.prewarm_easyocr`
 
-既定の OCR engine は `easyocr` です。実運用の注意点は [docs/CONFIG_SETUP.md](docs/CONFIG_SETUP.md) を参照してください。
+詳細は [docs/OCR_ENGINE_BEHAVIOR.md](docs/OCR_ENGINE_BEHAVIOR.md) を参照してください。
 
-## 5. Validation
+## 5. Validation checkpoints
 
 ### 5.1 CHECKPOINT A
 
-- 対象: 抽出済み chunk
-- 実装: `ChunkValidatorAgent`
-- 目的: 保存前の品質担保
-- 挙動:
-  - valid なら採用
-  - corrected が返れば差し替えて採用
-  - invalid かつ corrected なしは破棄
+- ingest で実行
+- `ChunkValidatorAgent`
+- corrected が返れば置換、invalid かつ corrected なしは discard
 
 ### 5.2 CHECKPOINT B
 
-- 対象: 生成済み answer
-- 実装: `AnswerValidatorAgent`
-- 目的: grounding の確認と hallucination 検出
-- 挙動:
-  - grounded ならそのまま返す
-  - revised answer があれば差し替える
-  - revised answer がなければ警告を残したまま返す
+- query で実行
+- `AnswerValidatorAgent` + DSPy
+- grounding 判定と必要時の answer revision
 
-DSPy 連携は `AnswerValidatorAgent` で使われます。
+注: 実行制御は主に CLI の `--validate` / `--no-validate` です。
 
-## 6. Model and memory handling
+## 6. Output architecture
 
-- 抽出 agent は build 時に初期化されます。
-- orchestrator, chunk validator, answer validator は必要フェーズだけ `with model:` で load / unload されます。
-- LLM の実メモリ管理は Ollama server が担当します。
-- `src/core/cache.py` は sentence-transformers 用に `HF_HOME` を `~/.models` に設定します。
+`--output` は chunks / answer / audit すべての保存先です。
 
-## 7. Outputs and audit
+- ingest
+  - `<pdf_stem>_chunks.json`
+  - `<pdf_stem>_audit.json`
+  - `<pdf_stem>_audit.html`
+  - `<pdf_stem>_audit/pages/*.png`
+  - `<pdf_stem>_audit/figures/*.png`
+- query
+  - `query_answer.json` (保存時に `query.pdf` を stem として使うため)
+- pipeline
+  - `<pdf_stem>_chunks.json`
+  - `<pdf_stem>_answer.json`
+  - audit 一式
 
-### 7.1 JSON outputs
+## 7. Observability
 
-`src/utils/serialization.py` は次を `./out` に保存します。
-
-- `<pdf_stem>_chunks.json`
-- `<pdf_stem>_answer.json`
-
-### 7.2 Audit outputs
-
-`save_chunk_audit()` は次を出力します。
-
-- `<pdf_stem>_audit.json`
-- `<pdf_stem>_audit.html`
-- `pages/*.png`
-- `figures/*.png`
-
-監査出力先は CLI の `--output` から渡されます。
-
-## 8. Observability
-
-`LangfuseTracer` が trace / span / score を記録します。環境変数が未設定でも処理は継続します。
-Langfuse SDK バージョンが互換でない場合は自動的に no-op トレースに切り替わり、管理の診断情報が WARNING レベルでログに出力されます。
+`LangfuseTracer` が ingest/query の trace を記録します。
+環境変数未設定や SDK 非互換時は no-op で継続します。
 
 - ingest trace
 - query trace
 - chunk quality score
 - answer grounding score
 
-`session_id` は関連 query を Langfuse 上で束ねるために使います。
+## 8. Notes
 
-## 9. Implementation notes
-
-- `app.py` の CLI 既定モデル値は `config.get_model(...)` から解決されます。
-  CLI でモデルを明示しない限り、`settings.json` の `models.*` が使われます。
-- `lazy_agents` は保持されますが、現時点では大きな実行分岐には接続されていません。
-- サポートされる実行モードは Sequential のみです。
+- CLI のモデル default 表示は `config.get_model(...)` で解決されるため、`settings.json` があると値が変わります。
+- `lazy_agents` は pipeline に保持されますが、現時点では実行分岐への寄与が限定的です。
+- サポート runtime は Sequential のみです。
