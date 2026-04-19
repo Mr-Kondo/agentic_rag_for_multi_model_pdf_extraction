@@ -1,8 +1,9 @@
 # Processing Flow
 
-Last updated: 2026-04-08
+Last updated: 2026-04-19
 
-このドキュメントは、現在サポートされている Sequential CLI flow だけを可視化します。詳細な責務は [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)、設定上の注意点は [docs/CONFIG_SETUP.md](docs/CONFIG_SETUP.md) を参照してください。
+このドキュメントは、現行の Sequential CLI flow を可視化します。
+詳細な責務は [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)、設定は [docs/CONFIG_SETUP.md](docs/CONFIG_SETUP.md) を参照してください。
 
 ## 1. CLI dispatch
 
@@ -27,6 +28,10 @@ flowchart TD
 実装参照:
 - `app.py`: `cmd_ingest`, `cmd_query`, `cmd_pipeline`
 
+注:
+- `--validate/--no-validate` の制御は実行ごとの CLI フラグで決まります。
+- `--output` は default `./out` で、chunks/answer/audit の保存先に共通適用されます。
+
 ## 2. Ingest flow
 
 ```mermaid
@@ -50,6 +55,10 @@ flowchart TD
 - `src/core/parser.py`: `PDFParser`
 - `src/agents/router.py`: `AgentRouter`
 
+注:
+- `--quality-mode` は `pipeline.text_passthrough=False` を runtime 適用します。
+- `--fast-mode` は `pipeline.text_passthrough=True` を runtime 適用します。
+
 ## 3. Query flow
 
 ```mermaid
@@ -70,6 +79,10 @@ flowchart TD
 - `src/core/pipeline.py`: `query`
 - `src/agents/orchestrator.py`: `ReasoningOrchestratorAgent`
 - `src/agents/validation.py`: `AnswerValidatorAgent`
+
+注:
+- `cmd_query` の保存処理は `save_answer(..., Path("query.pdf"), ...)` を使うため、
+  answer 出力名は `query_answer.json` になります。
 
 ## 4. Combined pipeline flow
 
@@ -92,3 +105,4 @@ flowchart TD
 - `--validate` は ingest では CHECKPOINT A、query では CHECKPOINT B を制御します。
 - モデル引数を省略した場合、CLI 既定値は `settings.json` の `models.*` から解決されます。
 - README には概要だけを残し、処理の詳細はこの文書を正とします。
+- 既知 caveat は [docs/KNOWN_CAVEATS.md](docs/KNOWN_CAVEATS.md) を参照してください。

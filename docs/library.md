@@ -1,6 +1,6 @@
 # ライブラリ・フレームワーク解説
 
-Last updated: 2026-04-16
+Last updated: 2026-04-19
 
 このドキュメントは、Agentic RAG for Multi-Model PDF Extraction が依存する主要なフレームワーク・ライブラリについて説明します。
 各項目では「概要」「このアプリでの用途」「役割」を記述します。
@@ -22,9 +22,10 @@ Last updated: 2026-04-16
    - [3.1 pdfplumber](#31-pdfplumber)
    - [3.2 PyMuPDF (fitz)](#32-pymupdf-fitz)
    - [3.3 EasyOCR](#33-easyocr)
-   - [3.4 pytesseract](#34-pytesseract)
-   - [3.5 OpenCV](#35-opencv)
-   - [3.6 Pillow](#36-pillow)
+   - [3.4 yomitoku](#34-yomitoku)
+   - [3.5 pytesseract](#35-pytesseract)
+   - [3.6 OpenCV](#36-opencv)
+   - [3.7 Pillow](#37-pillow)
 4. [オブザーバビリティ](#4-オブザーバビリティ)
    - [4.1 Langfuse](#41-langfuse)
 5. [データモデル / ユーティリティ](#5-データモデル--ユーティリティ)
@@ -131,16 +132,15 @@ BERT 系モデルを用いて文・段落を高品質なベクトルに変換し
 
 | モジュール | 用途 |
 |-----------|------|
-| `src/core/embedder.py` | `SentenceTransformerEmbedder` として実装されており、`ChunkStore` のデフォルト埋め込み backend として使用される |
+| `src/core/embedder.py` | `SentenceTransformerEmbedder` として実装され、`embedder.backend="sentence_transformers"` のときに使用される |
 
-デフォルトモデルは `kun432/cl-nagoya-ruri-large:latest` (Ollama backend、`embedder.backend: "ollama"`として使用)。
-`sentence_transformers` バックエンドに切り替える場合は `settings.example.json` を参照してください。
-ruri モデルの場合、クエリには `"クエリ: "` 、文書には `"文章: "` プレフィックスを付与して encode します。
+現行 default backend は `ollama` です。`sentence_transformers` はオプション backend として利用します。
+切り替え時は再 ingest を推奨します。
 
 **役割**
 
 ローカルで動作する高品質な埋め込みモデルを提供します。
-日本語を含む多言語 PDF に対応するため、多言語 E5 モデルをデフォルトとして採用しています。
+主用途は、Ollama backend が使えない環境や Hugging Face 由来モデルを直接利用したいケースです。
 
 ---
 
@@ -233,10 +233,10 @@ pdfplumber が担うテキスト/表抽出を補完し、図・画像チャン�
 
 | モジュール | 用途 |
 |-----------|------|
-| `src/core/parser.py` | `ocr.engine` 設定のデフォルト (`easyocr`) として使用される。画像ベースの PDF ページや低品質テキストブロックの OCR に使用する |
+| `src/core/parser.py` | `ocr.engine` / `region_policies.*.engine` で `easyocr` が選ばれたときに使用される |
 
-信頼スコアが `ocr.line_confidence_threshold` を下回る行は再 OCR (`re-OCR`) の対象となります。
-起動コスト削減のため、`ocr.prewarm_easyocr=true` でパース開始前にモデルをプリウォームします。
+信頼スコアが低い行は region policy に従って再 OCR 対象になります。
+`ocr.prewarm_easyocr=true` で parser 初期化時にプリウォームします。
 
 **役割**
 
@@ -244,7 +244,31 @@ pdfplumber が担うテキスト/表抽出を補完し、図・画像チャン�
 
 ---
 
-### 3.4 pytesseract
+### 3.4 yomitoku
+
+- **パッケージ**: `yomitoku>=0.12.0`
+- **公式サイト**: https://github.com/kotaro-kinoshita/yomitoku
+
+**概要**
+
+yomitoku は日本語向け OCR ライブラリです。`OCR(device=...)` で実行デバイスを指定できます。
+
+**このアプリでの用途**
+
+| モジュール | 用途 |
+|-----------|------|
+| `src/core/parser.py` | `ocr.engine` または `region_policies.*.engine` が `yomitoku` のときに使用される |
+
+`ocr.yomitoku_device` (既定 `mps`) と `ocr.prewarm_yomitoku` を参照します。
+結果が空の場合は parser が tesseract にフォールバックします。
+
+**役割**
+
+日本語抽出精度を優先した OCR 経路を提供します。
+
+---
+
+### 3.5 pytesseract
 
 - **パッケージ**: `pytesseract>=0.3.13`
 - **公式サイト**: https://github.com/madmaze/pytesseract
@@ -258,7 +282,7 @@ Google の Tesseract OCR エンジンの Python ラッパーです。
 
 | モジュール | 用途 |
 |-----------|------|
-| `src/core/parser.py` | `ocr.engine` を `"tesseract"` に設定した場合の代替 OCR エンジンとして使用される |
+| `src/core/parser.py` | `ocr.engine="tesseract"` での primary OCR、および `easyocr` / `yomitoku` の fallback として使用される |
 
 `ocr.config` (`--oem 3 --psm 6` 等) および `ocr.default_lang` / `ocr.japanese_lang` / `ocr.fallback_lang` の設定を参照します。
 
@@ -268,7 +292,7 @@ EasyOCR の代替として、軽量な Tesseract ベースの OCR を提供し�
 
 ---
 
-### 3.5 OpenCV
+### 3.6 OpenCV
 
 - **パッケージ**: `opencv-python>=4.8.0`
 - **公式サイト**: https://opencv.org
@@ -290,7 +314,7 @@ OCR エンジンに渡す前の画像品質を向上させ、OCR 精度を高め
 
 ---
 
-### 3.6 Pillow
+### 3.7 Pillow
 
 - **パッケージ**: `pillow>=12.1.1`
 - **公式サイト**: https://pillow.readthedocs.io
